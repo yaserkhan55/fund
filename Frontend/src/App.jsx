@@ -66,7 +66,13 @@ export default function App() {
         path="/sign-in"
         element={
           <Layout>
-            <SignInButton />
+           <SignIn
+  path="/sign-in"
+  routing="path"
+  afterSignInUrl="/"
+  redirectUrl="/"
+/>
+
           </Layout>
         }
       />
@@ -76,7 +82,13 @@ export default function App() {
         path="/sign-up"
         element={
           <Layout>
-            <SignUpButton />
+           <SignUp
+  path="/sign-up"
+  routing="path"
+  afterSignUpUrl="/"
+  redirectUrl="/"
+/>
+
           </Layout>
         }
       />

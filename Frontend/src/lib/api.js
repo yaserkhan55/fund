@@ -7,14 +7,11 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// FIX: only add Authorization header if a REAL token exists
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-
   if (token && token !== "null" && token !== "undefined") {
     config.headers.Authorization = `Bearer ${token}`;
   }
-
   return config;
 });
 

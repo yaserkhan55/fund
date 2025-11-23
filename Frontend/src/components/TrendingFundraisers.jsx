@@ -18,7 +18,7 @@ export default function TrendingFundraisers() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await api.get("/api/campaigns/approved");
+        const res = await api.get("/campaigns/approved");
         const arr = Array.isArray(res.data.data) ? res.data.data : [];
         setCampaigns(arr);
       } catch (e) {
