@@ -12,6 +12,7 @@ import Home from "./pages/Home";
 import CreateCampaign from "./pages/CreateCampaign";
 import CampaignDetails from "./pages/CampaignDetails";
 import Profile from "./pages/Profile";
+import CategoryPage from "./pages/CategoryPage";   // ✅ ADDED
 
 // Admin
 import AdminLogin from "./pages/AdminLogin";
@@ -81,6 +82,16 @@ export default function App() {
               afterSignUpUrl="/"
               redirectUrl="/"
             />
+          </Layout>
+        }
+      />
+
+      {/* CATEGORY PAGE — ✅ ADDED */}
+      <Route
+        path="/category/:category"
+        element={
+          <Layout>
+            <CategoryPage />
           </Layout>
         }
       />
