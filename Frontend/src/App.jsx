@@ -14,7 +14,7 @@ import CampaignDetails from "./pages/CampaignDetails";
 import Profile from "./pages/Profile";
 
 /* Clerk Auth Pages  (your file names EXACTLY) */
-import SignINButton from "./pages/SignINButton";
+import SignInButton from "./pages/SignInButton";
 import SignUpButton from "./pages/SignUpButton";
 
 /* Admin */
@@ -66,7 +66,7 @@ export default function App() {
         path="/sign-in"
         element={
           <Layout>
-            <SignINButton />
+            <SignInButton />
           </Layout>
         }
       />
