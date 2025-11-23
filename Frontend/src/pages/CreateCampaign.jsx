@@ -38,21 +38,26 @@ export default function CreateCampaign() {
 
     try {
       const fd = new FormData();
-
       Object.keys(formData).forEach((key) => {
         fd.append(key, formData[key]);
       });
 
       if (image) fd.append("image", image);
-        documents.forEach((doc) => fd.append("documents", doc));
+      documents.forEach((doc) => fd.append("documents", doc));
 
-      const res = await api.post(`/api/campaigns/create`, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
+      // ✅ ADD JWT TOKEN
+      const token = localStorage.getItem("token");
+
+      // ❗ FIX ENDPOINT → "/api/campaigns"
+      const res = await api.post(`/api/campaigns`, fd, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`, // ⭐ REQUIRED
+        },
       });
 
       alert("Fundraiser Successfully Created!");
       window.location.href = "/";
-
     } catch (error) {
       console.error(error);
       const msg =
@@ -183,12 +188,7 @@ export default function CreateCampaign() {
           />
 
           <label className="font-semibold">Upload Documents (Optional)</label>
-          <input
-            type="file"
-            multiple
-            onChange={handleDocsChange}
-            className="w-full p-2"
-          />
+          <input type="file" multiple onChange={handleDocsChange} className="w-full p-2" />
 
           <button
             type="submit"
