@@ -1,7 +1,7 @@
 import express from "express";
 import upload from "../middlewares/upload.js";
 
-// Use Clerk requireAuth
+// Clerk
 import { requireAuth } from "@clerk/express";
 
 import {
@@ -14,19 +14,29 @@ import {
 
 const router = express.Router();
 
-/* PUBLIC ROUTE — Homepage needs this */
+/* ===========================
+   PUBLIC — Homepage campaigns
+   =========================== */
 router.get("/approved", getApprovedCampaigns);
 
-/* MUST be Clerk-protected */
+/* ===========================
+   USER’S OWN CAMPAIGNS (Protected)
+   =========================== */
 router.get("/my", requireAuth(), getMyCampaigns);
 
-/* PUBLIC: browse all (will default to approved behavior) */
+/* ===========================
+   PUBLIC — All campaigns
+   =========================== */
 router.get("/", getAllCampaigns);
 
-/* PUBLIC: single details */
+/* ===========================
+   PUBLIC — Single campaign
+   =========================== */
 router.get("/:id", getCampaignById);
 
-/* CREATE — Clerk protected */
+/* ===========================
+   CREATE CAMPAIGN (Protected)
+   =========================== */
 router.post(
   "/create",
   requireAuth(),

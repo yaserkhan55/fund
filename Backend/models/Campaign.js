@@ -1,8 +1,8 @@
-// models/Campaign.js
 import mongoose from "mongoose";
 
 const campaignSchema = new mongoose.Schema(
   {
+    // Basic Fields
     title: { type: String, required: true },
     shortDescription: String,
     fullStory: String,
@@ -12,19 +12,24 @@ const campaignSchema = new mongoose.Schema(
     city: String,
     relation: String,
 
-    image: String,            // cloudinary URL
-    documents: [String],      // cloudinary URLs array
+    // Uploads
+    image: String,
+    documents: [String],
 
     zakatEligible: { type: Boolean, default: false },
 
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+    // ✔ IMPORTANT — Clerk user ID (string, not ObjectId)
+    owner: { type: String, required: true }, // Clerk user id
+
+    // ✔ NEW STATUS (replaces "isApproved")
+    // pending → admin approves → approved
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
     },
 
-    isApproved: { type: Boolean, default: false },
-
+    // donations
     raisedAmount: { type: Number, default: 0 },
   },
   {
@@ -34,26 +39,20 @@ const campaignSchema = new mongoose.Schema(
   }
 );
 
-// SINGLE correct virtual
+/* --------------------------------------------------------------
+   VIRTUALS
+-------------------------------------------------------------- */
+
 campaignSchema.virtual("imageUrl").get(function () {
   if (!this.image) return null;
 
-  // full URL → normalize
-  if (this.image.startsWith("http://") || this.image.startsWith("https://")) {
-    return this.image.replace(/^http:\/\//, "https://");
-  }
-
-  // fallback
-  return this.image;
+  // Normalize to https
+  return this.image.replace(/^http:\/\//, "https://");
 });
 
-// documents
 campaignSchema.virtual("documentUrls").get(function () {
   if (!Array.isArray(this.documents)) return [];
-
-  return this.documents.map((d) =>
-    d?.replace(/^http:\/\//, "https://")
-  );
+  return this.documents.map((d) => d.replace(/^http:\/\//, "https://"));
 });
 
 export default mongoose.model("Campaign", campaignSchema);
