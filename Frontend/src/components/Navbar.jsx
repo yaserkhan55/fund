@@ -12,7 +12,7 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-3">
           <div className="w-16 h-16 flex items-center justify-center rounded-full bg-white border-2 border-[#00B5B8] overflow-hidden shadow-sm">
-            <img 
+            <img
               src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
               className="w-full h-full object-contain p-1.5"
             />
@@ -52,13 +52,16 @@ export default function Navbar() {
           </Link>
 
           <SignedOut>
-            <Link to="/sign-in" className="text-[#003d3b] font-medium hover:text-[#00B5B8]">
+            <Link
+              to="/sign-in"
+              className="border border-[#00B5B8] text-[#00B5B8] px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7]"
+            >
               Login
             </Link>
 
             <Link
               to="/sign-up"
-              className="bg-[#00B5B8] text-white px-3 py-1.5 rounded-md font-semibold hover:bg-[#009f9f]"
+              className="bg-[#00B5B8] text-white px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f]"
             >
               Sign Up
             </Link>
@@ -84,58 +87,55 @@ export default function Navbar() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth="2"
-                d={
-                  open
-                    ? "M6 18L18 6M6 6l12 12"
-                    : "M4 6h16M4 12h16M4 18h16"
-                }
+                d={open ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
               />
             </svg>
           </button>
-
         </div>
       </div>
 
-      {/* Mobile Dropdown Menu */}
-      <div
-        className={`${open ? "max-h-[450px]" : "max-h-0"} 
-          overflow-hidden transition-all duration-300 bg-white shadow-lg md:hidden`}
-      >
-        <div className="p-5 space-y-4 text-[#003d3b] font-medium">
+      {/* Mobile Dropdown */}
+      <div className={`${open ? "max-h-[600px]" : "max-h-0"} overflow-hidden transition-all duration-300 bg-white shadow-lg md:hidden`}>
+        <div className="p-6 space-y-5 text-[#003d3b] font-medium">
 
-          <Link to="/browse" onClick={() => setOpen(false)}>Browse Fundraisers</Link>
+          <Link to="/browse" onClick={() => setOpen(false)} className="block text-lg">
+            Browse Fundraisers
+          </Link>
 
-          <details className="group">
-            <summary className="cursor-pointer">Fundraise For ▾</summary>
-            <div className="ml-3 mt-2 space-y-2">
+          <div>
+            <p className="font-semibold mb-2">Fundraise For</p>
+            <div className="flex flex-col space-y-2 ml-3">
               <Link to="/medical" onClick={() => setOpen(false)}>Medical</Link>
               <Link to="/education" onClick={() => setOpen(false)}>Education</Link>
               <Link to="/disaster" onClick={() => setOpen(false)}>Emergencies</Link>
             </div>
-          </details>
+          </div>
 
-          <Link to="/how-it-works" onClick={() => setOpen(false)}>
+          <Link to="/how-it-works" onClick={() => setOpen(false)} className="block text-lg">
             How It Works
           </Link>
 
-          {/* Theme Button */}
           <Link
             to="/create-campaign"
             onClick={() => setOpen(false)}
-            className="block bg-[#00B5B8] text-white text-center py-2.5 rounded-xl font-semibold"
+            className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
           >
             Start a Fundraiser
           </Link>
 
           <SignedOut>
-            <Link to="/sign-in" onClick={() => setOpen(false)}>
+            <Link
+              to="/sign-in"
+              onClick={() => setOpen(false)}
+              className="block border border-[#00B5B8] text-[#00B5B8] text-center py-3 rounded-xl font-semibold"
+            >
               Login
             </Link>
 
             <Link
               to="/sign-up"
               onClick={() => setOpen(false)}
-              className="block bg-[#00B5B8] text-white text-center py-2.5 rounded-xl font-semibold"
+              className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
             >
               Sign Up
             </Link>
