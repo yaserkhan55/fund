@@ -15,19 +15,21 @@ export default function CampaignDetails() {
     async function fetchCampaign() {
       setLoading(true);
       try {
-        // FIXED — no double /api
-        const res = await api.get(`/campaigns/${id}`);
-
-        setCampaign(res.data?.campaign || null);
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/campaigns/${id}`
+        );
+  
+        setCampaign(res.data?.campaign || res.data?.data || null);
       } catch (error) {
         console.error("Campaign fetch error:", error);
         setCampaign(null);
       }
       setLoading(false);
     }
-
+  
     fetchCampaign();
   }, [id]);
+  
 
   if (loading) {
     return <div className="text-center pt-20">Loading campaign...</div>;
