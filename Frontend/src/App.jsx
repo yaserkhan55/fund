@@ -13,16 +13,13 @@ import CreateCampaign from "./pages/CreateCampaign";
 import CampaignDetails from "./pages/CampaignDetails";
 import Profile from "./pages/Profile";
 
-/* Clerk Auth Pages (your actual filenames!) */
-import SignInButton from "./pages/SignINButton";
+/* Clerk Auth Pages  (your file names EXACTLY) */
+import SignINButton from "./pages/SignINButton";
 import SignUpButton from "./pages/SignUpButton";
 
 /* Admin */
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
-
-/* Google OAuth Success Redirect */
-import OAuthSuccess from "./pages/OAuthSuccess";
 
 /* Layout wrapper */
 function Layout({ children }) {
@@ -69,7 +66,7 @@ export default function App() {
         path="/sign-in"
         element={
           <Layout>
-            <SignInButton />
+            <SignINButton />
           </Layout>
         }
       />
@@ -80,16 +77,6 @@ export default function App() {
         element={
           <Layout>
             <SignUpButton />
-          </Layout>
-        }
-      />
-
-      {/* Google OAuth Success Redirect */}
-      <Route
-        path="/auth/google/success"
-        element={
-          <Layout>
-            <OAuthSuccess />
           </Layout>
         }
       />
