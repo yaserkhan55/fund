@@ -12,17 +12,16 @@ import {
 
 const router = express.Router();
 
-// 1️⃣ Fixed — Put specific routes FIRST
+/* PUBLIC ROUTE — Homepage needs this */
 router.get("/approved", getApprovedCampaigns);
+
+/* Auth required */
 router.get("/my", protect, getMyCampaigns);
 
-// 2️⃣ Then list campaigns
 router.get("/", getAllCampaigns);
 
-// 3️⃣ LAST — single campaign
 router.get("/:id", getCampaignById);
 
-// CREATE (Cloudinary)
 router.post(
   "/create",
   protect,

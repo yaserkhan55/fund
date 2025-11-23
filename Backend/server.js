@@ -15,7 +15,7 @@ import donationRoutes from "./routes/donationRoutes.js";
 
 import User from "./models/User.js";
 
-// Clerk (correct import)
+// Clerk
 import { clerkMiddleware, requireAuth } from "@clerk/express";
 
 // ENV
@@ -26,48 +26,65 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 const app = express();
 
 /* CORS */
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    process.env.FRONTEND_URL || "https://fund-liart.vercel.app"
-  ],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      process.env.FRONTEND_URL || "https://fund-liart.vercel.app",
+    ],
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(cookieParser());
 
-// Clerk Auth Middleware (must be placed before routes)
+/* Clerk middleware (must come before routes) */
 app.use(clerkMiddleware());
 
-/* Root */
-app.get("/", (req, res) => res.send("Fund backend running with Clerk Auth 🔐"));
+/* Root message */
+app.get("/", (req, res) =>
+  res.send("Fund backend running with Clerk Auth 🔐")
+);
 
-/* Static */
+/* Static files */
 app.use("/uploads", express.static("uploads"));
 
-/* Protected Routes — only logged-in Clerk users can access */
+/* -------------------------------------------
+   PUBLIC ROUTES (NO LOGIN REQUIRED)
+-------------------------------------------- */
+
+/** Homepage → trending/approved campaigns */
+app.use("/api/campaigns/approved", campaignRoutes);
+
+/* -------------------------------------------
+   PROTECTED ROUTES (LOGIN REQUIRED)
+-------------------------------------------- */
+
 app.use("/api/campaigns", requireAuth(), campaignRoutes);
 app.use("/api/profile", requireAuth(), profileRoutes);
 app.use("/api/fundraisers", requireAuth(), fundraiserRoutes);
 app.use("/api/donations", requireAuth(), donationRoutes);
 
-/* Admin (NOT Clerk protected — uses your own JWT) */
+/* Admin routes (your own JWT, not Clerk) */
 app.use("/api/admin", adminRoutes);
 
-/* Remove old auth routes */
-// ❌ app.use("/api/auth", authRoutes); // REMOVED COMPLETELY
+/* -------------------------------------------
+   DEFAULT ADMIN SETUP
+-------------------------------------------- */
 
-
-/* ----------------------------------------------------------
-   DEFAULT ADMIN SETUP  (THIS IS WHERE YOUR MESSAGE APPEARS)
------------------------------------------------------------ */
 async function createDefaultAdmin() {
   try {
-    const adminExists = await User.findOne({ email: "admin@fund.com", role: "admin" });
+    const adminExists = await User.findOne({
+      email: "admin@fund.com",
+      role: "admin",
+    });
 
     if (!adminExists) {
-      const hashed = await bcrypt.hash(process.env.DEFAULT_ADMIN_PASSWORD || "admin123", 10);
+      const hashed = await bcrypt.hash(
+        process.env.DEFAULT_ADMIN_PASSWORD || "admin123",
+        10
+      );
 
       await User.create({
         name: "Super Admin",
@@ -78,16 +95,16 @@ async function createDefaultAdmin() {
 
       console.log("Default admin created");
     } else {
-      console.log("Admin already exists:", adminExists.email);  // ✅ ADDED FOR SATISFACTION
+      console.log("Admin already exists:", adminExists.email);
     }
-
   } catch (err) {
     console.error("Admin creation error:", err.message);
   }
 }
 
-
-/* Start Server */
+/* -------------------------------------------
+   START SERVER
+-------------------------------------------- */
 connectDB()
   .then(() => {
     createDefaultAdmin();
