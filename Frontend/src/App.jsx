@@ -13,8 +13,8 @@ import CreateCampaign from "./pages/CreateCampaign";
 import CampaignDetails from "./pages/CampaignDetails";
 import Profile from "./pages/Profile";
 
-/* Clerk Auth Pages */
-import SignInButton from "./pages/SignInButton";
+/* Clerk Auth Pages (your actual filenames!) */
+import SignInButton from "./pages/SignINButton";
 import SignUpButton from "./pages/SignUpButton";
 
 /* Admin */
@@ -69,7 +69,7 @@ export default function App() {
         path="/sign-in"
         element={
           <Layout>
-            <SignInPage />
+            <SignInButton />
           </Layout>
         }
       />
@@ -79,7 +79,7 @@ export default function App() {
         path="/sign-up"
         element={
           <Layout>
-            <SignUpPage />
+            <SignUpButton />
           </Layout>
         }
       />
