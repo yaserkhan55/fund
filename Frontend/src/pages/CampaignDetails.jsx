@@ -16,7 +16,7 @@ export default function CampaignDetails() {
       setLoading(true);
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/campaigns/${id}`
+          `${import.meta.env.VITE_API_URL}/campaigns/${id}`
         );
 
         setCampaign(res.data?.data || null);
