@@ -6,11 +6,14 @@ export default function TrendingFundraisers() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Fix image URL resolve
   const resolveImg = (img) => {
     if (!img) return "/no-image.png";
-    if (img.startsWith("http")) return img;
 
-    // If image is a relative path from server
+    // already full URL
+    if (img.startsWith("http")) return img.replace("http://", "https://");
+
+    // relative → build full
     const base = import.meta.env.VITE_API_URL;
     return `${base}/${img.replace(/^\/+/, "")}`;
   };
@@ -18,8 +21,13 @@ export default function TrendingFundraisers() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await api.get("/campaigns/approved");
-        const arr = Array.isArray(res.data.data) ? res.data.data : [];
+        const res = await api.get("api/campaigns/approved");
+
+        // FIX: backend sends { success, campaigns }
+        const arr = Array.isArray(res.data.campaigns)
+          ? res.data.campaigns
+          : [];
+
         setCampaigns(arr);
       } catch (e) {
         console.error("Failed to load trending:", e);

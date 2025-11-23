@@ -49,7 +49,7 @@ export default function CreateCampaign() {
       const token = localStorage.getItem("token");
 
       // ❗ FIX ENDPOINT → "/api/campaigns"
-      const res = await api.post(`/api/campaigns`, fd, {
+      const res = await api.post(`/api/campaigns/create`, fd, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`, // ⭐ REQUIRED
