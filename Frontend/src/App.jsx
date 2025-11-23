@@ -14,8 +14,8 @@ import CampaignDetails from "./pages/CampaignDetails";
 import Profile from "./pages/Profile";
 
 /* Clerk Auth Pages */
-import SignInPage from "./pages/SignInPage";
-import SignUpPage from "./pages/SignUpPage";
+import SignInButton from "./pages/SignInButton";
+import SignUpButton from "./pages/SignUpButton";
 
 /* Admin */
 import AdminLogin from "./pages/AdminLogin";
