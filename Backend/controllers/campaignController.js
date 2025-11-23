@@ -1,145 +1,103 @@
-// Backend/controllers/campaignController.js
+// controllers/campaignController.js
 import Campaign from "../models/Campaign.js";
+import User from "../models/User.js";
 
-/**
- * CREATE CAMPAIGN
- */
-/**
- * CREATE CAMPAIGN (CLOUDINARY VERSION)
- */
-export const createCampaign = async (req, res) => {
-  try {
-    const {
-      title,
-      shortDescription,
-      fullStory,
-      goalAmount,
-      category,
-      beneficiaryName,
-      city,
-      relation,
-      zakatEligible,
-    } = req.body;
-
-    if (!title || !shortDescription || !fullStory || !goalAmount || !category) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
-    }
-
-    // 🌥 CLOUDINARY IMAGE (No more localhost/uploads)
-    let imageUrl = null;
-
-    if (req.files?.image?.length > 0) {
-      imageUrl = req.files.image[0].path; // secure_url from Cloudinary
-    }
-
-    // 🌥 CLOUDINARY DOCUMENTS
-    const documents = req.files?.documents
-      ? req.files.documents.map((doc) => doc.path) // secure_url
-      : [];
-
-    const newCampaign = new Campaign({
-      title,
-      shortDescription,
-      fullStory,
-      goalAmount: Number(goalAmount),
-      category,
-      beneficiaryName,
-      city,
-      relation,
-      zakatEligible: zakatEligible === "true" || zakatEligible === true,
-      image: imageUrl || "",
-      documents,
-      createdBy: req.user._id,
-      isApproved: false,
-    });
-
-    await newCampaign.save();
-
-    return res.status(201).json({ success: true, data: newCampaign.toObject({ virtuals: true }) });
-  } catch (error) {
-    console.error("🔥 createCampaign error:", error);
-    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
-  }
-};
-
-/**
- * GET ALL CAMPAIGNS
- * - Supports ?approved=true query (also handles string booleans)
- * - Returns consistent shape: { success: true, data: [...] }
- */
+/* ------------------------------------------------------------------
+   GET ALL CAMPAIGNS (Public)
+------------------------------------------------------------------ */
 export const getAllCampaigns = async (req, res) => {
   try {
-    console.log("📥 Incoming GET /api/campaigns, query:", req.query);
-
-    const { approved } = req.query;
-    let filter = {};
-
-    if (approved !== undefined) {
-      // Accept approved=true (string) or boolean true
-      if (approved === "true" || approved === true) {
-        filter.$or = [{ isApproved: true }, { isApproved: "true" }];
-      } else if (approved === "false" || approved === false) {
-        filter.$or = [{ isApproved: false }, { isApproved: "false" }];
-      }
-    } else {
-      // default behavior: return approved only (to match public site)
-      filter.$or = [{ isApproved: true }, { isApproved: "true" }];
-    }
-
-    const campaigns = await Campaign.find(filter).sort({ createdAt: -1 }).lean({ virtuals: true });
-
-    console.log("📤 Campaigns loaded:", campaigns.length);
-    return res.json({ success: true, data: campaigns });
+    const campaigns = await Campaign.find().sort({ createdAt: -1 });
+    res.json({ success: true, campaigns });
   } catch (error) {
-    console.error("🔥 getAllCampaigns error:", error);
-    return res.status(500).json({ success: false, message: "Failed to load campaigns", error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-/**
- * GET Approved campaigns (explicit)
- */
-export const getApprovedCampaigns = async (req, res) => {
-  try {
-    const campaigns = await Campaign.find({
-      $or: [{ isApproved: true }, { isApproved: "true" }],
-    })
-      .sort({ createdAt: -1 })
-      .lean({ virtuals: true });
-
-    return res.json({ success: true, data: campaigns });
-  } catch (error) {
-    console.error("🔥 getApprovedCampaigns error:", error);
-    return res.status(500).json({ success: false, message: "Failed to load approved campaigns", error: error.message });
-  }
-};
-
-/**
- * GET My campaigns (auth required)
- */
-export const getMyCampaigns = async (req, res) => {
-  try {
-    const campaigns = await Campaign.find({ createdBy: req.user._id })
-      .sort({ createdAt: -1 })
-      .lean({ virtuals: true });
-
-    return res.json({ success: true, data: campaigns });
-  } catch (error) {
-    console.error("🔥 getMyCampaigns error:", error);
-    return res.status(500).json({ success: false, message: "Failed to load your campaigns", error: error.message });
-  }
-};
-
-/**
- * GET single campaign by id
- */
+/* ------------------------------------------------------------------
+   GET SINGLE CAMPAIGN (Public)
+------------------------------------------------------------------ */
 export const getCampaignById = async (req, res) => {
   try {
-    const campaign = await Campaign.findById(req.params.id).lean({ virtuals: true });
-    if (!campaign) return res.status(404).json({ success: false, message: "Campaign not found" });
-    return res.json({ success: true, data: campaign });
+    const campaign = await Campaign.findById(req.params.id);
+
+    if (!campaign)
+      return res.status(404).json({ success: false, message: "Campaign not found" });
+
+    res.json({ success: true, campaign });
   } catch (error) {
-    console.error("🔥 getCampaignById error:", error);
-    return res.status(500).json({ success: false, message: "Failed to fetch campaign", error: error.message });
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* ------------------------------------------------------------------
+   CREATE CAMPAIGN (Clerk protected)
+------------------------------------------------------------------ */
+export const createCampaign = async (req, res) => {
+  try {
+    const userId = req.auth.userId; // Clerk user ID
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const { title, description, goal } = req.body;
+
+    const newCampaign = await Campaign.create({
+      title,
+      description,
+      goal,
+      owner: userId,
+    });
+
+    res.json({ success: true, campaign: newCampaign });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* ------------------------------------------------------------------
+   UPDATE CAMPAIGN (Clerk protected)
+------------------------------------------------------------------ */
+export const updateCampaign = async (req, res) => {
+  try {
+    const userId = req.auth.userId;
+
+    const campaign = await Campaign.findById(req.params.id);
+
+    if (!campaign)
+      return res.status(404).json({ success: false, message: "Campaign not found" });
+
+    if (campaign.owner !== userId)
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+
+    const updated = await Campaign.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
+    res.json({ success: true, campaign: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* ------------------------------------------------------------------
+   DELETE CAMPAIGN (Clerk protected)
+------------------------------------------------------------------ */
+export const deleteCampaign = async (req, res) => {
+  try {
+    const userId = req.auth.userId;
+
+    const campaign = await Campaign.findById(req.params.id);
+
+    if (!campaign)
+      return res.status(404).json({ success: false, message: "Campaign not found" });
+
+    if (campaign.owner !== userId)
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+
+    await campaign.deleteOne();
+
+    res.json({ success: true, message: "Campaign deleted" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
