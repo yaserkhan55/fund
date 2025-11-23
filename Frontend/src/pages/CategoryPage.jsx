@@ -8,7 +8,7 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(true);
 
   const resolveImg = (img) => {
-    if (!img) return "/no-image.png";
+    if (!img) return "/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg";
     if (img.startsWith("http")) return img;
     return `${import.meta.env.VITE_API_URL}/${img.replace(/^\/+/, "")}`;
   };
@@ -99,7 +99,7 @@ export default function CategoryPage() {
                       (c.raisedAmount / c.goalAmount) * 100,
                       100
                     )}%`,
-                    background: "#00AEEF",
+                    background: "#00B5B8", // MATCHED WITH HOME
                   }}
                 ></div>
               </div>
@@ -109,7 +109,8 @@ export default function CategoryPage() {
                 <span>of ₹{(c.goalAmount || 0).toLocaleString()}</span>
               </div>
 
-              <div className="mt-4 text-center bg-[#00AEEF] hover:bg-[#0099D6] text-white py-2.5 rounded-xl font-semibold transition">
+              {/* MATCHED BUTTON COLOR WITH HOME PAGE */}
+              <div className="mt-4 text-center bg-[#00B5B8] hover:bg-[#009f9f] text-white py-2.5 rounded-xl font-semibold transition">
                 View Details • مزید معلومات
               </div>
             </div>
