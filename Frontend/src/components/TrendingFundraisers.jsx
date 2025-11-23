@@ -6,14 +6,10 @@ export default function TrendingFundraisers() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fix image URL resolve
   const resolveImg = (img) => {
     if (!img) return "/no-image.png";
-
-    // already full URL
     if (img.startsWith("http")) return img.replace("http://", "https://");
 
-    // relative → build full
     const base = import.meta.env.VITE_API_URL;
     return `${base}/${img.replace(/^\/+/, "")}`;
   };
@@ -23,7 +19,6 @@ export default function TrendingFundraisers() {
       try {
         const res = await api.get("api/campaigns/approved");
 
-        // FIX: backend sends { success, campaigns }
         const arr = Array.isArray(res.data.campaigns)
           ? res.data.campaigns
           : [];
@@ -116,12 +111,13 @@ export default function TrendingFundraisers() {
                 </p>
 
                 <div className="mt-auto">
+                  {/* PROGRESS BAR FIXED TO THEME */}
                   <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
                     <div
                       className="h-2 rounded-full transition-all"
                       style={{
                         width: `${progress}%`,
-                        background: "#00AEEF",
+                        background: "#F9A826", // Yellow theme color
                       }}
                     ></div>
                   </div>
@@ -131,7 +127,8 @@ export default function TrendingFundraisers() {
                     <span>of ₹{(c.goalAmount || 0).toLocaleString()}</span>
                   </div>
 
-                  <div className="block text-center bg-[#00AEEF] hover:bg-[#0099D6] text-white py-2.5 rounded-xl font-semibold transition">
+                  {/* BUTTON NOW IN THEME COLORS */}
+                  <div className="block text-center bg-[#003d3b] hover:bg-[#022e2c] text-white py-2.5 rounded-xl font-semibold transition">
                     View Details • مزید معلومات
                   </div>
                 </div>
