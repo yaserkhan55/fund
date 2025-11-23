@@ -18,7 +18,6 @@ import User from "./models/User.js";
 // Clerk
 import { clerkMiddleware, requireAuth } from "@clerk/express";
 
-// ENV
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, ".env") });
@@ -26,65 +25,48 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 const app = express();
 
 /* CORS */
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      process.env.FRONTEND_URL || "https://fund-liart.vercel.app",
-    ],
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    process.env.FRONTEND_URL || "https://fund-liart.vercel.app"
+  ],
+  credentials: true,
+}));
 
 app.use(express.json());
 app.use(cookieParser());
 
-/* Clerk middleware (must come before routes) */
+// Clerk global middleware
 app.use(clerkMiddleware());
 
-/* Root message */
-app.get("/", (req, res) =>
-  res.send("Fund backend running with Clerk Auth 🔐")
-);
+/* Root */
+app.get("/", (req, res) => res.send("Fund backend running with Clerk Auth 🔐"));
 
-/* Static files */
+/* Static */
 app.use("/uploads", express.static("uploads"));
 
-/* -------------------------------------------
-   PUBLIC ROUTES (NO LOGIN REQUIRED)
--------------------------------------------- */
+/* --------------------------
+   PUBLIC (NO CLERK REQUIRED)
+--------------------------- */
+app.use("/api/campaigns", campaignRoutes);  // FIXED ✔ PUBLIC AGAIN
 
-/** Homepage → trending/approved campaigns */
-app.use("/api/campaigns/approved", campaignRoutes);
-
-/* -------------------------------------------
-   PROTECTED ROUTES (LOGIN REQUIRED)
--------------------------------------------- */
-
-app.use("/api/campaigns", requireAuth(), campaignRoutes);
+/* --------------------------
+   PROTECTED (CLERK REQUIRED)
+--------------------------- */
 app.use("/api/profile", requireAuth(), profileRoutes);
 app.use("/api/fundraisers", requireAuth(), fundraiserRoutes);
 app.use("/api/donations", requireAuth(), donationRoutes);
 
-/* Admin routes (your own JWT, not Clerk) */
+/* Admin (uses your own JWT) */
 app.use("/api/admin", adminRoutes);
 
-/* -------------------------------------------
-   DEFAULT ADMIN SETUP
--------------------------------------------- */
-
+/* Default Admin Setup */
 async function createDefaultAdmin() {
   try {
-    const adminExists = await User.findOne({
-      email: "admin@fund.com",
-      role: "admin",
-    });
+    const adminExists = await User.findOne({ email: "admin@fund.com", role: "admin" });
 
     if (!adminExists) {
-      const hashed = await bcrypt.hash(
-        process.env.DEFAULT_ADMIN_PASSWORD || "admin123",
-        10
-      );
+      const hashed = await bcrypt.hash(process.env.DEFAULT_ADMIN_PASSWORD || "admin123", 10);
 
       await User.create({
         name: "Super Admin",
@@ -102,9 +84,7 @@ async function createDefaultAdmin() {
   }
 }
 
-/* -------------------------------------------
-   START SERVER
--------------------------------------------- */
+/* Start Server */
 connectDB()
   .then(() => {
     createDefaultAdmin();
