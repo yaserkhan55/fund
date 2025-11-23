@@ -1,12 +1,17 @@
+// controllers/campaignController.js
 import Campaign from "../models/Campaign.js";
 
-/* --------------------------------------------------------------
-   PUBLIC — GET APPROVED CAMPAIGNS (Homepage)
--------------------------------------------------------------- */
+// ---------------------------------------------------------------
+// GET APPROVED CAMPAIGNS (Homepage)
+// ---------------------------------------------------------------
 export const getApprovedCampaigns = async (req, res) => {
   try {
-    const campaigns = await Campaign.find({ status: "approved" })
-      .sort({ createdAt: -1 });
+    const campaigns = await Campaign.find({
+      $or: [
+        { status: "approved" },        // new campaigns
+        { isApproved: true }           // old campaigns support
+      ]
+    }).sort({ createdAt: -1 });
 
     res.json({ success: true, campaigns });
   } catch (error) {
@@ -14,9 +19,9 @@ export const getApprovedCampaigns = async (req, res) => {
   }
 };
 
-/* --------------------------------------------------------------
-   PUBLIC — GET ALL CAMPAIGNS (fallback)
--------------------------------------------------------------- */
+// ---------------------------------------------------------------
+// GET ALL CAMPAIGNS (Public)
+// ---------------------------------------------------------------
 export const getAllCampaigns = async (req, res) => {
   try {
     const campaigns = await Campaign.find().sort({ createdAt: -1 });
@@ -26,32 +31,34 @@ export const getAllCampaigns = async (req, res) => {
   }
 };
 
-/* --------------------------------------------------------------
-   PUBLIC — GET SINGLE CAMPAIGN
--------------------------------------------------------------- */
+// ---------------------------------------------------------------
+// GET SINGLE CAMPAIGN
+// ---------------------------------------------------------------
 export const getCampaignById = async (req, res) => {
   try {
     const campaign = await Campaign.findById(req.params.id);
-
-    if (!campaign)
+    if (!campaign) {
       return res.status(404).json({ success: false, message: "Campaign not found" });
-
+    }
     res.json({ success: true, campaign });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-/* --------------------------------------------------------------
-   USER — GET MY CAMPAIGNS (Clerk)
--------------------------------------------------------------- */
+// ---------------------------------------------------------------
+// GET USER'S OWN CAMPAIGNS (Clerk protected)
+// ---------------------------------------------------------------
 export const getMyCampaigns = async (req, res) => {
   try {
     const userId = req.auth.userId;
 
-    const campaigns = await Campaign.find({ owner: userId }).sort({
-      createdAt: -1,
-    });
+    const campaigns = await Campaign.find({
+      $or: [
+        { owner: userId },  // new campaigns
+        { createdBy: userId } // old campaigns
+      ]
+    }).sort({ createdAt: -1 });
 
     res.json({ success: true, campaigns });
   } catch (error) {
@@ -59,15 +66,13 @@ export const getMyCampaigns = async (req, res) => {
   }
 };
 
-/* --------------------------------------------------------------
-   CREATE CAMPAIGN (Clerk + File Upload)
--------------------------------------------------------------- */
+// ---------------------------------------------------------------
+// CREATE CAMPAIGN (Clerk protected)
+// ---------------------------------------------------------------
 export const createCampaign = async (req, res) => {
   try {
     const userId = req.auth.userId;
-
-    if (!userId)
-      return res.status(401).json({ success: false, message: "Unauthorized" });
+    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
 
     const {
       title,
@@ -82,11 +87,9 @@ export const createCampaign = async (req, res) => {
     } = req.body;
 
     const image = req.files?.image ? req.files.image[0].path : null;
-    const documents = req.files?.documents
-      ? req.files.documents.map((d) => d.path)
-      : [];
+    const documents = req.files?.documents?.map((doc) => doc.path) || [];
 
-    const campaign = await Campaign.create({
+    const newCampaign = await Campaign.create({
       title,
       shortDescription,
       fullStory,
@@ -99,63 +102,10 @@ export const createCampaign = async (req, res) => {
       image,
       documents,
       owner: userId,
-      status: "pending", // ⭐ Default so admin can approve it
+      status: "pending"
     });
 
-    res.json({ success: true, campaign });
-  } catch (error) {
-    console.error("Create Campaign Error:", error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/* --------------------------------------------------------------
-   UPDATE CAMPAIGN — OPTIONAL
--------------------------------------------------------------- */
-export const updateCampaign = async (req, res) => {
-  try {
-    const userId = req.auth.userId;
-
-    const campaign = await Campaign.findById(req.params.id);
-
-    if (!campaign)
-      return res.status(404).json({ success: false, message: "Campaign not found" });
-
-    if (campaign.owner !== userId)
-      return res
-        .status(403)
-        .json({ success: false, message: "Unauthorized" });
-
-    const updated = await Campaign.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-
-    res.json({ success: true, campaign: updated });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/* --------------------------------------------------------------
-   DELETE CAMPAIGN — OPTIONAL
--------------------------------------------------------------- */
-export const deleteCampaign = async (req, res) => {
-  try {
-    const userId = req.auth.userId;
-
-    const campaign = await Campaign.findById(req.params.id);
-
-    if (!campaign)
-      return res.status(404).json({ success: false, message: "Campaign not found" });
-
-    if (campaign.owner !== userId)
-      return res
-        .status(403)
-        .json({ success: false, message: "Unauthorized" });
-
-    await campaign.deleteOne();
-
-    res.json({ success: true, message: "Campaign deleted" });
+    res.json({ success: true, campaign: newCampaign });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
