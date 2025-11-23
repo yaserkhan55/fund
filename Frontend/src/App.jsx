@@ -21,6 +21,9 @@ import SignUpPage from "./pages/SignUpPage";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 
+/* Google OAuth Success Redirect */
+import OAuthSuccess from "./pages/OAuthSuccess";
+
 /* Layout wrapper */
 function Layout({ children }) {
   return (
@@ -77,6 +80,16 @@ export default function App() {
         element={
           <Layout>
             <SignUpPage />
+          </Layout>
+        }
+      />
+
+      {/* Google OAuth Success Redirect */}
+      <Route
+        path="/auth/google/success"
+        element={
+          <Layout>
+            <OAuthSuccess />
           </Layout>
         }
       />
