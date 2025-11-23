@@ -28,7 +28,7 @@ export default function CategoryPage() {
           (c) => c.category?.toLowerCase() === category.toLowerCase()
         );
 
-        await minDelay; // show logo loader at least 1 sec
+        await minDelay;
 
         setCampaigns(filtered);
       } catch (err) {
@@ -41,15 +41,15 @@ export default function CategoryPage() {
   }, [category]);
 
   // ---------------------------
-  // CUSTOM WEBSITE LOGO LOADER
+  // CUSTOM LOADER WITH CORRECT IMAGE
   // ---------------------------
   if (loading) {
     return (
       <div className="w-full h-screen flex justify-center items-center bg-white">
         <img
-          src="/logo.png" // <-- change to your actual logo file
+          src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
           alt="Loading..."
-          className="w-28 opacity-90 animate-pulse"
+          className="w-28 h-28 object-contain opacity-90 animate-pulse"
         />
       </div>
     );
@@ -74,12 +74,12 @@ export default function CategoryPage() {
           <Link
             key={c._id}
             to={`/campaign/${c._id}`}
-            className="bg-white rounded-2xl shadow-md hover:shadow-xl transition p-4 border border-transparent hover:border-[#00AEEF]"
+            className="bg-white rounded-2xl shadow-md hover:shadow-xl transition p-4 border border-transparent hover:border-[#003d3b]"
           >
             <img
               src={resolveImg(c.image || c.imageUrl)}
               alt={c.title}
-              className="w-full h-48 object-cover rounded-xl"
+              className="w-full h-52 object-cover rounded-xl"
             />
 
             <h3 className="text-xl font-bold text-[#003d3b] mt-3 line-clamp-2">
@@ -99,7 +99,7 @@ export default function CategoryPage() {
                       (c.raisedAmount / c.goalAmount) * 100,
                       100
                     )}%`,
-                    background: "#00B5B8", // MATCHED WITH HOME
+                    background: "#003d3b",
                   }}
                 ></div>
               </div>
@@ -109,8 +109,8 @@ export default function CategoryPage() {
                 <span>of ₹{(c.goalAmount || 0).toLocaleString()}</span>
               </div>
 
-              {/* MATCHED BUTTON COLOR WITH HOME PAGE */}
-              <div className="mt-4 text-center bg-[#00B5B8] hover:bg-[#009f9f] text-white py-2.5 rounded-xl font-semibold transition">
+              {/* UPDATED BUTTON COLOR */}
+              <div className="block text-center bg-[#003d3b] hover:bg-[#022e2c] text-white py-2.5 rounded-xl font-semibold mt-4 transition">
                 View Details • مزید معلومات
               </div>
             </div>
