@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import api from "../lib/api"; // use your API wrapper
+import axios from "axios";   // ← THIS WAS MISSING
 import DonationModal from "../components/DonationModal";
+
 
 const FALLBACK = "/no-image.png";
 
