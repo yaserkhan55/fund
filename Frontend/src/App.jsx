@@ -1,27 +1,22 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
-/* Clerk */
-import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+// Clerk
+import { SignedIn, SignedOut, RedirectToSignIn, SignIn, SignUp } from "@clerk/clerk-react";
 
-/* Layout */
+// Layout
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
-/* Pages */
+// Pages
 import Home from "./pages/Home";
 import CreateCampaign from "./pages/CreateCampaign";
 import CampaignDetails from "./pages/CampaignDetails";
 import Profile from "./pages/Profile";
 
-/* Clerk Auth Pages  (your file names EXACTLY) */
-import SignInButton from "./pages/SignInButton";
-import SignUpButton from "./pages/SignUpButton";
-
-/* Admin */
+// Admin
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 
-/* Layout wrapper */
 function Layout({ children }) {
   return (
     <>
@@ -32,7 +27,6 @@ function Layout({ children }) {
   );
 }
 
-/* Clerk Protected Route Wrapper */
 function ClerkProtectedRoute({ children }) {
   return (
     <>
@@ -47,11 +41,11 @@ function ClerkProtectedRoute({ children }) {
 export default function App() {
   return (
     <Routes>
-      {/* ===== ADMIN ROUTES (NO NAVBAR/FOOTER) ===== */}
+      {/* ADMIN */}
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
-      {/* ===== PUBLIC ROUTES WITH LAYOUT ===== */}
+      {/* HOME */}
       <Route
         path="/"
         element={
@@ -61,39 +55,37 @@ export default function App() {
         }
       />
 
-      {/* Clerk Sign In */}
+      {/* SIGN IN */}
       <Route
         path="/sign-in"
         element={
           <Layout>
-           <SignIn
-  path="/sign-in"
-  routing="path"
-  afterSignInUrl="/"
-  redirectUrl="/"
-/>
-
+            <SignIn
+              path="/sign-in"
+              routing="path"
+              afterSignInUrl="/"
+              redirectUrl="/"
+            />
           </Layout>
         }
       />
 
-      {/* Clerk Sign Up */}
+      {/* SIGN UP */}
       <Route
         path="/sign-up"
         element={
           <Layout>
-           <SignUp
-  path="/sign-up"
-  routing="path"
-  afterSignUpUrl="/"
-  redirectUrl="/"
-/>
-
+            <SignUp
+              path="/sign-up"
+              routing="path"
+              afterSignUpUrl="/"
+              redirectUrl="/"
+            />
           </Layout>
         }
       />
 
-      {/* Campaign Details */}
+      {/* CAMPAIGN DETAILS */}
       <Route
         path="/campaign/:id"
         element={
@@ -103,7 +95,7 @@ export default function App() {
         }
       />
 
-      {/* ===== PROTECTED ROUTES (Clerk) ===== */}
+      {/* PROTECTED ROUTES */}
       <Route
         path="/create-campaign"
         element={
@@ -126,7 +118,7 @@ export default function App() {
         }
       />
 
-      {/* Fallback */}
+      {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
