@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.56.2",
     "@heroicons/react": "^2.2.0",
     "axios": "^1.6.8",
     "react": "^19.0.0",
