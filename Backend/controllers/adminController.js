@@ -35,15 +35,16 @@ export const adminLogin = async (req, res) => {
 
 export const getPendingCampaigns = async (req, res) => {
   try {
-    const pending = await Campaign.find({ status: { $in: ["pending", "Pending"] } })
+    const pending = await Campaign.find({ status: "pending" })
       .sort({ createdAt: -1 });
 
-    res.json({ success: true, pending });
+    res.json(pending); // <-- FIXED
   } catch (err) {
     console.error("Error loading pending:", err);
-    res.status(500).json({ success: false, message: "Failed to load pending" });
+    res.status(500).json({ message: "Failed to load pending" });
   }
 };
+
 
 
 export const getApprovedCampaignsAdmin = async (req, res) => {
@@ -73,23 +74,15 @@ export const getRejectedCampaignsAdmin = async (req, res) => {
 /* --------------------------
    ACTIONS
 --------------------------- */
-
 // Approve campaign
-export const approveCampaign = async (req, res) => {
+export const getApprovedCampaigns = async (req, res) => {
   try {
-    const id = req.params.id;
+    const approved = await Campaign.find({ status: "approved" })
+      .sort({ createdAt: -1 });
 
-    const updated = await Campaign.findByIdAndUpdate(
-      id,
-      { status: "approved", isApproved: true },
-      { new: true }
-    );
-
-    if (!updated) return res.status(404).json({ message: "Campaign not found" });
-
-    res.json({ message: "Campaign approved", campaign: updated });
+    res.json({ campaigns: approved }); // <-- FIXED
   } catch (error) {
-    res.status(500).json({ message: "Approval failed", error: error.message });
+    res.status(500).json({ message: "Failed to load approved campaigns" });
   }
 };
 
@@ -111,6 +104,26 @@ export const rejectCampaign = async (req, res) => {
     res.status(500).json({ message: "Rejection failed", error: error.message });
   }
 };
+export const approveCampaign = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updated = await Campaign.findByIdAndUpdate(
+      id,
+      { status: "approved" },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Campaign not found" });
+    }
+
+    res.json({ success: true, campaign: updated });
+  } catch (error) {
+    res.status(500).json({ message: "Error approving campaign" });
+  }
+};
+
 
 export const editCampaign = async (req, res) => {
   try {
