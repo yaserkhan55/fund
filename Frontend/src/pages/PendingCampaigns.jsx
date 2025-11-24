@@ -13,14 +13,10 @@ const PendingCampaigns = () => {
       setLoading(true);
 
       const res = await fetch(`${API_URL}/api/admin/pending-campaigns`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
-
-      // backend returns array
       setCampaigns(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error loading pending:", err);
@@ -32,7 +28,11 @@ const PendingCampaigns = () => {
   const approve = async (id) => {
     await fetch(`${API_URL}/api/admin/approve/${id}`, {
       method: "PUT",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: "approved" }),
     });
 
     fetchPending();
@@ -40,8 +40,12 @@ const PendingCampaigns = () => {
 
   const reject = async (id) => {
     await fetch(`${API_URL}/api/admin/reject/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: "rejected" }),
     });
 
     fetchPending();
@@ -57,33 +61,18 @@ const PendingCampaigns = () => {
     <div>
       <h2>Pending Campaigns</h2>
 
-      {(!Array.isArray(campaigns) || campaigns.length === 0) && (
-        <p>No pending campaigns</p>
-      )}
+      {campaigns.length === 0 && <p>No pending campaigns</p>}
 
-      {(Array.isArray(campaigns) ? campaigns : []).map((c) => (
-        <div
-          key={c._id}
-          style={{
-            border: "1px solid #ccc",
-            margin: 10,
-            padding: 10,
-            borderRadius: 8,
-          }}
-        >
+      {campaigns.map((c) => (
+        <div key={c._id} className="border p-3 rounded mb-3">
           <h3>{c.title}</h3>
           <p>{c.shortDescription}</p>
 
-          <button
-            onClick={() => approve(c._id)}
-            style={{ marginRight: 10, background: "green", color: "white" }}
-          >
+          <button onClick={() => approve(c._id)} className="mr-3 bg-green-600 text-white px-2 py-1">
             Approve
           </button>
-          <button
-            onClick={() => reject(c._id)}
-            style={{ background: "red", color: "white" }}
-          >
+
+          <button onClick={() => reject(c._id)} className="bg-red-600 text-white px-2 py-1">
             Reject
           </button>
         </div>
