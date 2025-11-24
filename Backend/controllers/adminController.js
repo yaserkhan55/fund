@@ -1,12 +1,13 @@
 // controllers/adminController.js
+
 import User from "../models/User.js";
 import Campaign from "../models/Campaign.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
-/* --------------------------
+/* ---------------------------------------------------
    ADMIN LOGIN
---------------------------- */
+---------------------------------------------------- */
 export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -29,88 +30,63 @@ export const adminLogin = async (req, res) => {
   }
 };
 
-/* --------------------------
-   CAMPAIGNS
---------------------------- */
+/* ---------------------------------------------------
+   GET CAMPAIGNS (Pending / Approved / Rejected)
+---------------------------------------------------- */
 
+// ✅ Get Pending Campaigns
 export const getPendingCampaigns = async (req, res) => {
   try {
     const pending = await Campaign.find({ status: "pending" })
       .sort({ createdAt: -1 });
 
-    res.json(pending); // <-- FIXED
+    return res.json({ campaigns: pending });
   } catch (err) {
     console.error("Error loading pending:", err);
-    res.status(500).json({ message: "Failed to load pending" });
+    return res.status(500).json({ message: "Failed to load pending" });
   }
 };
 
-
-
+// ✅ Get Approved
 export const getApprovedCampaignsAdmin = async (req, res) => {
   try {
-    const approved = await Campaign.find({ status: "approved" }).sort({
-      createdAt: -1,
-    });
+    const approved = await Campaign.find({ status: "approved" })
+      .sort({ approvedAt: -1 });
 
-    res.json(approved);
+    return res.json({ campaigns: approved });
   } catch (err) {
-    res.status(500).json({ message: "Failed to load approved" });
+    return res.status(500).json({ message: "Failed to load approved" });
   }
 };
 
+// ✅ Get Rejected
 export const getRejectedCampaignsAdmin = async (req, res) => {
   try {
-    const rejected = await Campaign.find({ status: "rejected" }).sort({
-      createdAt: -1,
-    });
-
-    res.json(rejected);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to load rejected" });
-  }
-};
-
-/* --------------------------
-   ACTIONS
---------------------------- */
-// Approve campaign
-export const getApprovedCampaigns = async (req, res) => {
-  try {
-    const approved = await Campaign.find({ status: "approved" })
+    const rejected = await Campaign.find({ status: "rejected" })
       .sort({ createdAt: -1 });
 
-    res.json({ campaigns: approved }); // <-- FIXED
-  } catch (error) {
-    res.status(500).json({ message: "Failed to load approved campaigns" });
+    return res.json({ campaigns: rejected });
+  } catch (err) {
+    return res.status(500).json({ message: "Failed to load rejected" });
   }
 };
 
+/* ---------------------------------------------------
+   ACTIONS: Approve / Reject / Edit / Delete
+---------------------------------------------------- */
 
-export const rejectCampaign = async (req, res) => {
-  try {
-    const id = req.params.id;
-
-    const updated = await Campaign.findByIdAndUpdate(
-      id,
-      { status: "rejected", isApproved: false },
-      { new: true }
-    );
-
-    if (!updated) return res.status(404).json({ message: "Campaign not found" });
-
-    res.json({ message: "Campaign rejected", campaign: updated });
-  } catch (error) {
-    res.status(500).json({ message: "Rejection failed", error: error.message });
-  }
-};
+// ✅ APPROVE CAMPAIGN
 export const approveCampaign = async (req, res) => {
   try {
     const { id } = req.params;
 
     const updated = await Campaign.findByIdAndUpdate(
       id,
-      { status: "approved" },
+      {
+        status: "approved",
+        isApproved: true,
+        approvedAt: new Date()
+      },
       { new: true }
     );
 
@@ -118,13 +94,37 @@ export const approveCampaign = async (req, res) => {
       return res.status(404).json({ message: "Campaign not found" });
     }
 
-    res.json({ success: true, campaign: updated });
+    return res.json({ message: "Campaign approved", campaign: updated });
   } catch (error) {
-    res.status(500).json({ message: "Error approving campaign" });
+    return res.status(500).json({ message: "Error approving campaign" });
   }
 };
 
+// ✅ REJECT CAMPAIGN
+export const rejectCampaign = async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    const updated = await Campaign.findByIdAndUpdate(
+      id,
+      {
+        status: "rejected",
+        isApproved: false
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Campaign not found" });
+    }
+
+    return res.json({ message: "Campaign rejected", campaign: updated });
+  } catch (error) {
+    return res.status(500).json({ message: "Rejection failed" });
+  }
+};
+
+// ✅ EDIT CAMPAIGN
 export const editCampaign = async (req, res) => {
   try {
     const updated = await Campaign.findByIdAndUpdate(
@@ -133,22 +133,23 @@ export const editCampaign = async (req, res) => {
       { new: true }
     );
 
-    res.json(updated);
+    return res.json(updated);
   } catch (err) {
-    res.status(500).json({ message: "Edit failed" });
+    return res.status(500).json({ message: "Edit failed" });
   }
 };
+
+// ✅ DELETE CAMPAIGN
 export const deleteCampaign = async (req, res) => {
   try {
-    const { id } = req.params;
+    const deleted = await Campaign.findByIdAndDelete(req.params.id);
 
-    const deleted = await Campaign.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Campaign not found" });
+    }
 
-    if (!deleted) return res.status(404).json({ message: "Campaign not found" });
-
-    res.json({ message: "Campaign deleted successfully" });
+    return res.json({ message: "Campaign deleted successfully" });
   } catch (error) {
-    console.error("Delete error:", error);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };

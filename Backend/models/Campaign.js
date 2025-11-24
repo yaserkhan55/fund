@@ -15,16 +15,27 @@ const campaignSchema = new mongoose.Schema(
 
     zakatEligible: { type: Boolean, default: false },
 
-    // NEW FIELDS
+    // NEW FIELDS (User Input)
     educationQualification: { type: String, default: "" },
     employmentStatus: { type: String, default: "" },
-    duration: { type: Number, default: null }, // in days, optional
+    duration: { type: Number, default: null }, // days
 
+    // Cover image
     image: { type: String },
-    documents: [{ type: String }],
 
-    owner: { type: String, required: true },
+    // NEW: Multiple images for carousel (like Ketto)
+    imageGallery: [{ type: String }],  
 
+    // NEW: Documents (medical files, prescriptions, bills)
+    medicalDocuments: [{ type: String }],
+
+    // NEW: About section (separate from fullStory)
+    aboutSection: { type: String, default: "" },
+
+    // Owner reference (better than string)
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+
+    // Status (Admin control)
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
@@ -32,6 +43,12 @@ const campaignSchema = new mongoose.Schema(
     },
 
     isApproved: { type: Boolean, default: false },
+
+    // NEW: timestamp when admin approves
+    approvedAt: { type: Date, default: null },
+
+    // NEW: campaign auto-expire (optional use later)
+    endDate: { type: Date, default: null },
   },
   { timestamps: true }
 );
