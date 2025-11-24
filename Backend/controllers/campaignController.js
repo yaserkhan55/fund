@@ -35,7 +35,9 @@ export const getCampaignById = async (req, res) => {
   try {
     const campaign = await Campaign.findById(req.params.id);
     if (!campaign) {
-      return res.status(404).json({ success: false, message: "Campaign not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Campaign not found" });
     }
     res.json({ success: true, campaign });
   } catch (error) {
@@ -52,9 +54,9 @@ export const getMyCampaigns = async (req, res) => {
 
     const campaigns = await Campaign.find({
       $or: [
-        { owner: userId },  // new campaigns
-        { createdBy: userId } // old campaigns
-      ]
+        { owner: userId }, // new campaigns
+        { createdBy: userId }, // old campaigns
+      ],
     }).sort({ createdAt: -1 });
 
     res.json({ success: true, campaigns });
@@ -69,7 +71,10 @@ export const getMyCampaigns = async (req, res) => {
 export const createCampaign = async (req, res) => {
   try {
     const userId = req.auth.userId;
-    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "Unauthorized" });
 
     const {
       title,
@@ -81,6 +86,11 @@ export const createCampaign = async (req, res) => {
       city,
       relation,
       zakatEligible,
+
+      // NEW FIELDS
+      educationQualification,
+      employmentStatus,
+      duration,
     } = req.body;
 
     const image = req.files?.image ? req.files.image[0].path : null;
@@ -96,10 +106,16 @@ export const createCampaign = async (req, res) => {
       city,
       relation,
       zakatEligible,
+
+      // NEW FIELDS
+      educationQualification,
+      employmentStatus,
+      duration,
+
       image,
       documents,
       owner: userId,
-      status: "pending"
+      status: "pending",
     });
 
     res.json({ success: true, campaign: newCampaign });

@@ -11,6 +11,10 @@ const campaignSchema = new mongoose.Schema(
     beneficiaryName: String,
     city: String,
     relation: String,
+    educationQualification: { type: String },
+employmentStatus: { type: String },
+duration: { type: Number }, // duration in days or weeks (your choice)
+
 
     // Uploads
     image: String,
