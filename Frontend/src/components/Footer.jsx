@@ -1,38 +1,37 @@
 export default function Footer() {
   return (
-    <footer className="bg-gradient-to-b from-[#E6F5F3] to-[#C9ECE7] text-[#003D3B] py-12 px-6 mt-10 border-t border-[#00AEEF]/20">
+    <footer className="bg-[#002F2D] text-white py-12 px-6 mt-16">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10">
 
-        {/* LOGO + FOLLOWERS */}
+        {/* LOGO + FOLLOW */}
         <div>
           <div className="flex items-center gap-2">
+            {/* Replace this with your own image */}
             <img
-              src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
-              alt="Fund Logo"
-              className="w-10 h-10 rounded-full object-cover shadow-md"
+              src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg" 
+              alt="Logo"
+              className="w-10 h-10 object-contain"
             />
-            <h1 className="text-3xl font-bold">
-              <span className="text-[#00AEEF]">SEUMP</span>
+            <h1 className="text-3xl font-bold tracking-wide">
+              SEUMP<span className="text-teal-300"></span>
             </h1>
           </div>
 
-          <div className="h-[1px] bg-[#003D3B]/20 my-4 w-32"></div>
+          <div className="h-[1px] bg-white/20 my-4 w-32"></div>
 
-          {/* Simple Social Icons */}
           <div className="flex space-x-3">
-            <div className="w-8 h-8 rounded-full bg-[#003D3B]/10"></div>
-            <div className="w-8 h-8 rounded-full bg-[#003D3B]/10"></div>
-            <div className="w-8 h-8 rounded-full bg-[#003D3B]/10"></div>
-            <div className="w-8 h-8 rounded-full bg-[#003D3B]/10"></div>
-            <div className="w-8 h-8 rounded-full bg-[#003D3B]/10"></div>
+            <div className="w-8 h-8 rounded-full bg-white/20"></div>
+            <div className="w-8 h-8 rounded-full bg-white/20"></div>
+            <div className="w-8 h-8 rounded-full bg-white/20"></div>
+            <div className="w-8 h-8 rounded-full bg-white/20"></div>
+            <div className="w-8 h-8 rounded-full bg-white/20"></div>
           </div>
 
-          <p className="mt-4 font-semibold text-lg text-[#00AEEF]">2.5M +</p>
+          <p className="mt-4 font-semibold text-lg">2.5M +</p>
           <p className="text-sm opacity-80">Followers</p>
 
-          {/* Contact section */}
           <div className="mt-6 space-y-2 text-sm opacity-90">
-            <p className="font-semibold text-[#003D3B]">For any queries</p>
+            <p className="font-semibold">For any queries</p>
             <p>Email: info@fund.org</p>
             <p>Contact No: +91 9876543210</p>
           </div>
@@ -40,40 +39,40 @@ export default function Footer() {
 
         {/* Column 1 */}
         <div>
-          <h3 className="font-semibold text-lg mb-3 text-[#003D3B]">Causes</h3>
+          <h3 className="font-semibold text-lg mb-3">Causes</h3>
           <ul className="space-y-2 text-sm opacity-90">
-            <li className="hover:text-[#00AEEF] transition">Medical</li>
-            <li className="hover:text-[#00AEEF] transition">Education</li>
-            <li className="hover:text-[#00AEEF] transition">Sports</li>
-            <li className="hover:text-[#00AEEF] transition">Child Welfare</li>
+            <li>Medical</li>
+            <li>Education</li>
+            <li>Sports</li>
+            <li>Child Welfare</li>
           </ul>
         </div>
 
         {/* Column 2 */}
         <div>
-          <h3 className="font-semibold text-lg mb-3 text-[#003D3B]">How it works?</h3>
+          <h3 className="font-semibold text-lg mb-3">How it Works?</h3>
           <ul className="space-y-2 text-sm opacity-90">
-            <li className="hover:text-[#00AEEF] transition">Fundraising for NGOs</li>
-            <li className="hover:text-[#00AEEF] transition">Fundraising Tips</li>
-            <li className="hover:text-[#00AEEF] transition">Withdraw Funds</li>
-            <li className="hover:text-[#00AEEF] transition">Browse Fundraisers</li>
+            <li>Fundraising for NGOs</li>
+            <li>Fundraising Tips</li>
+            <li>Withdraw Funds</li>
+            <li>Browse Fundraisers</li>
           </ul>
         </div>
 
         {/* Column 3 */}
         <div>
-          <h3 className="font-semibold text-lg mb-3 text-[#003D3B]">Support</h3>
+          <h3 className="font-semibold text-lg mb-3">Support</h3>
           <ul className="space-y-2 text-sm opacity-90">
-            <li className="hover:text-[#00AEEF] transition">FAQs</li>
-            <li className="hover:text-[#00AEEF] transition">Help Center</li>
-            <li className="hover:text-[#00AEEF] transition">Trust & Safety</li>
-            <li className="hover:text-[#00AEEF] transition">Contact Us</li>
+            <li>FAQs</li>
+            <li>Help Center</li>
+            <li>Trust & Safety</li>
+            <li>Contact Us</li>
           </ul>
         </div>
       </div>
 
-      {/* Copyright */}
-      <div className="text-center mt-10 text-sm opacity-80 border-t border-[#003D3B]/20 pt-6">
+      {/* COPYRIGHT */}
+      <div className="text-center mt-10 text-sm opacity-80 border-t border-white/20 pt-6">
         © {new Date().getFullYear()} FundAid — Empowering Hope
       </div>
     </footer>
