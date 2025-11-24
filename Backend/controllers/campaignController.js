@@ -4,6 +4,20 @@ import Campaign from "../models/Campaign.js";
 // ---------------------------------------------------------------
 // GET APPROVED CAMPAIGNS (Homepage)
 // ---------------------------------------------------------------
+export const adminGetAllCampaigns = async (req, res) => {
+  try {
+    const campaigns = await Campaign.find().sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      campaigns
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 export const getApprovedCampaigns = async (req, res) => {
   try {
     const campaigns = await Campaign.find({ status: "approved" }).sort({

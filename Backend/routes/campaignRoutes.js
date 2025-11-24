@@ -10,6 +10,7 @@ import {
   getCampaignById,
   getApprovedCampaigns,
   getMyCampaigns,
+  adminGetAllCampaigns
 } from "../controllers/campaignController.js";
 
 const router = express.Router();
@@ -33,8 +34,11 @@ router.get("/", getAllCampaigns);
    PUBLIC — Single campaign
    =========================== */
 router.get("/:id", getCampaignById);
+router.get("/admin/all-campaigns", adminGetAllCampaigns);
+
 
 /* ===========================
+
    CREATE CAMPAIGN (Protected)
    =========================== */
 router.post(
