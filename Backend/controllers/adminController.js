@@ -35,15 +35,16 @@ export const adminLogin = async (req, res) => {
 
 export const getPendingCampaigns = async (req, res) => {
   try {
-    const pending = await Campaign.find({ status: "pending" }).sort({
-      createdAt: -1,
-    });
+    const pending = await Campaign.find({ status: { $in: ["pending", "Pending"] } })
+      .sort({ createdAt: -1 });
 
-    res.json(pending);
+    res.json({ success: true, pending });
   } catch (err) {
-    res.status(500).json({ message: "Failed to load pending" });
+    console.error("Error loading pending:", err);
+    res.status(500).json({ success: false, message: "Failed to load pending" });
   }
 };
+
 
 export const getApprovedCampaignsAdmin = async (req, res) => {
   try {

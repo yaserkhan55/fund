@@ -2,7 +2,7 @@
 import Campaign from "../models/Campaign.js";
 
 // ---------------------------------------------------------------
-// GET APPROVED CAMPAIGNS (Homepage)
+// GET ALL CAMPAIGNS FOR ADMIN PANEL
 // ---------------------------------------------------------------
 export const adminGetAllCampaigns = async (req, res) => {
   try {
@@ -17,7 +17,9 @@ export const adminGetAllCampaigns = async (req, res) => {
   }
 };
 
-
+// ---------------------------------------------------------------
+// GET ONLY APPROVED CAMPAIGNS FOR FRONTEND HOMEPAGE
+// ---------------------------------------------------------------
 export const getApprovedCampaigns = async (req, res) => {
   try {
     const campaigns = await Campaign.find({ status: "approved" }).sort({
@@ -31,7 +33,7 @@ export const getApprovedCampaigns = async (req, res) => {
 };
 
 // ---------------------------------------------------------------
-// GET ALL CAMPAIGNS (Public)
+// GET ALL CAMPAIGNS (PUBLIC)
 // ---------------------------------------------------------------
 export const getAllCampaigns = async (req, res) => {
   try {
@@ -43,7 +45,7 @@ export const getAllCampaigns = async (req, res) => {
 };
 
 // ---------------------------------------------------------------
-// GET SINGLE CAMPAIGN
+// SINGLE CAMPAIGN BY ID
 // ---------------------------------------------------------------
 export const getCampaignById = async (req, res) => {
   try {
@@ -60,7 +62,7 @@ export const getCampaignById = async (req, res) => {
 };
 
 // ---------------------------------------------------------------
-// GET USER'S OWN CAMPAIGNS (Clerk protected)
+// USER'S OWN CAMPAIGNS
 // ---------------------------------------------------------------
 export const getMyCampaigns = async (req, res) => {
   try {
@@ -68,8 +70,8 @@ export const getMyCampaigns = async (req, res) => {
 
     const campaigns = await Campaign.find({
       $or: [
-        { owner: userId }, // new campaigns
-        { createdBy: userId }, // old campaigns
+        { owner: userId },
+        { createdBy: userId },
       ],
     }).sort({ createdAt: -1 });
 
@@ -80,7 +82,7 @@ export const getMyCampaigns = async (req, res) => {
 };
 
 // ---------------------------------------------------------------
-// CREATE CAMPAIGN (Clerk protected)
+// CREATE CAMPAIGN
 // ---------------------------------------------------------------
 export const createCampaign = async (req, res) => {
   try {
@@ -119,7 +121,7 @@ export const createCampaign = async (req, res) => {
       beneficiaryName,
       city,
       relation,
-      zakatEligible,
+      zakatEligible: zakatEligible === "true" || zakatEligible === true,
 
       // NEW FIELDS
       educationQualification,
@@ -129,7 +131,10 @@ export const createCampaign = async (req, res) => {
       image,
       documents,
       owner: userId,
+
+      // VERY IMPORTANT
       status: "pending",
+      isApproved: false,
     });
 
     res.json({ success: true, campaign: newCampaign });
