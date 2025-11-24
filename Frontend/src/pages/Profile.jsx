@@ -70,7 +70,7 @@ export default function Profile() {
             </div>
             <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
               <div className="text-3xl font-bold text-[#00897B]">
-                {myCampaigns.filter((c) => c.isApproved).length}
+                {myCampaigns.filter((c) => c.status === "approved").length}
               </div>
               <div className="text-sm text-gray-600 mt-1">Approved</div>
             </div>
@@ -123,8 +123,9 @@ export default function Profile() {
               const raised = Number(c.raisedAmount || 0);
               const goal = Math.max(1, Number(c.goalAmount || 0));
               const percentage = Math.min(100, Math.round((raised / goal) * 100));
-              const status = c.isApproved ? "Approved" : "Pending Approval";
-              const statusColor = c.isApproved ? "bg-[#00897B] text-white" : "bg-[#F9A826] text-white";
+              const status = c.status === "approved" ? "Approved" : "Pending Approval";
+              const statusColor =
+                c.status === "approved" ? "bg-[#00897B] text-white" : "bg-[#F9A826] text-white";
 
               return (
                 <div
@@ -219,7 +220,7 @@ export default function Profile() {
                       >
                         View Details
                       </Link>
-                      {!c.isApproved && (
+                      {c.status !== "approved" && (
                         <Link
                           to={`/edit-campaign/${c._id}`}
                           className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 px-4 rounded-xl text-center transition text-sm"
