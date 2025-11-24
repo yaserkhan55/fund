@@ -1,34 +1,34 @@
 export default function Footer() {
   return (
-    <footer className="bg-[#002F2D] text-white py-12 px-6 mt-16">
+    <footer className="bg-[#E6F8F8] text-[#004445] py-12 px-6 mt-16 border-t-2 border-teal-300">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10">
 
         {/* LOGO + FOLLOW */}
         <div>
-          <div className="flex items-center gap-2">
-            {/* Replace this with your own image */}
+          <div className="flex items-center gap-3">
             <img
-              src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg" 
+              src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
               alt="Logo"
-              className="w-10 h-10 object-contain"
+              className="w-14 h-14 rounded-full border-4 border-teal-400 object-cover shadow-md"
             />
-            <h1 className="text-3xl font-bold tracking-wide">
-              SEUMP<span className="text-teal-300"></span>
+
+            <h1 className="text-3xl font-extrabold tracking-wide text-[#004445]">
+              SEUMP
             </h1>
           </div>
 
-          <div className="h-[1px] bg-white/20 my-4 w-32"></div>
+          <div className="h-[1px] bg-[#004445]/20 my-4 w-32"></div>
 
           <div className="flex space-x-3">
-            <div className="w-8 h-8 rounded-full bg-white/20"></div>
-            <div className="w-8 h-8 rounded-full bg-white/20"></div>
-            <div className="w-8 h-8 rounded-full bg-white/20"></div>
-            <div className="w-8 h-8 rounded-full bg-white/20"></div>
-            <div className="w-8 h-8 rounded-full bg-white/20"></div>
+            <div className="w-8 h-8 rounded-full bg-[#004445]/10"></div>
+            <div className="w-8 h-8 rounded-full bg-[#004445]/10"></div>
+            <div className="w-8 h-8 rounded-full bg-[#004445]/10"></div>
+            <div className="w-8 h-8 rounded-full bg-[#004445]/10"></div>
+            <div className="w-8 h-8 rounded-full bg-[#004445]/10"></div>
           </div>
 
-          <p className="mt-4 font-semibold text-lg">2.5M +</p>
-          <p className="text-sm opacity-80">Followers</p>
+          <p className="mt-4 font-semibold text-lg text-[#004445]">2.5M +</p>
+          <p className="text-sm opacity-70">Followers</p>
 
           <div className="mt-6 space-y-2 text-sm opacity-90">
             <p className="font-semibold">For any queries</p>
@@ -72,8 +72,8 @@ export default function Footer() {
       </div>
 
       {/* COPYRIGHT */}
-      <div className="text-center mt-10 text-sm opacity-80 border-t border-white/20 pt-6">
-        © {new Date().getFullYear()} FundAid — Empowering Hope
+      <div className="text-center mt-10 text-sm opacity-70 border-t border-[#004445]/20 pt-6">
+        © {new Date().getFullYear()} SEUMP — Empowering Hope
       </div>
     </footer>
   );
