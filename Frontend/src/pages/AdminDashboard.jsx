@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from "react";
 
-// AdminDashboard.jsx
-// Single-file admin UI with tabs: Pending | Approved | Rejected
-// Features: list campaigns, approve, reject, delete, edit (modal), refresh, basic error handling
-
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function AdminDashboard() {
@@ -18,14 +14,12 @@ export default function AdminDashboard() {
 
   const token = localStorage.getItem("adminToken");
 
-  // helper: build headers
   const authHeaders = (json = true) => {
     const h = { Authorization: `Bearer ${token}` };
     if (json) h["Content-Type"] = "application/json";
     return h;
   };
 
-  // resolve image path
   const resolveImg = (img) => {
     const FALLBACK = "https://via.placeholder.com/400x240?text=No+Image";
     if (!img) return FALLBACK;
@@ -33,7 +27,6 @@ export default function AdminDashboard() {
     return `${API_URL}/${img.replace(/^\/+/, "")}`;
   };
 
-  // fetch list depending on tab
   const load = async (tab = activeTab) => {
     setLoading(true);
     setError("");
@@ -43,22 +36,16 @@ export default function AdminDashboard() {
       if (tab === "rejected") url = `${API_URL}/api/admin/rejected-campaigns`;
 
       const res = await fetch(url, { headers: authHeaders(false) });
-      if (res.status === 401) {
-        setError("Unauthorized — please login again.");
-        // optionally redirect
-        return;
-      }
 
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || `HTTP ${res.status}`);
+      if (res.status === 401) {
+        setError("Unauthorized — login again.");
+        return;
       }
 
       const data = await res.json();
       setItems(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Load error:", err);
-      setError(err.message || "Failed to load");
+      setError("Failed to load campaigns");
     } finally {
       setLoading(false);
     }
@@ -66,10 +53,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     load(activeTab);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  // actions
   const approve = async (id) => {
     try {
       const res = await fetch(`${API_URL}/api/admin/approve/${id}`, {
@@ -77,11 +62,11 @@ export default function AdminDashboard() {
         headers: authHeaders(true),
         body: JSON.stringify({ status: "approved" }),
       });
+
       if (!res.ok) throw new Error("Approve failed");
-      await load();
+      load();
     } catch (err) {
-      console.error(err);
-      setError(err.message || "Approve failed");
+      setError(err.message);
     }
   };
 
@@ -92,45 +77,28 @@ export default function AdminDashboard() {
         headers: authHeaders(true),
         body: JSON.stringify({ status: "rejected" }),
       });
+
       if (!res.ok) throw new Error("Reject failed");
-      await load();
+      load();
     } catch (err) {
-      console.error(err);
-      setError(err.message || "Reject failed");
+      setError(err.message);
     }
   };
 
-  const remove = async (id) => {
-    if (!confirm("Delete this campaign permanently?")) return;
-    try {
-      const res = await fetch(`${API_URL}/api/admin/delete/${id}`, {
-        method: "DELETE",
-        headers: authHeaders(false),
-      });
-      if (!res.ok) throw new Error("Delete failed");
-      await load();
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Delete failed");
-    }
-  };
-
-  // open edit modal
   const openEdit = (item) => {
     setEditItem({ ...item });
     setShowEdit(true);
   };
 
-  // save edit
   const saveEdit = async () => {
-    if (!editItem || !editItem._id) return;
+    if (!editItem?._id) return;
+
     setSaving(true);
-    setError("");
     try {
       const payload = {
         title: editItem.title,
         shortDescription: editItem.shortDescription,
-        longDescription: editItem.longDescription,
+        fullStory: editItem.fullStory,
         goalAmount: editItem.goalAmount,
       };
 
@@ -140,23 +108,17 @@ export default function AdminDashboard() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || "Update failed");
-      }
+      if (!res.ok) throw new Error("Update failed");
 
       setShowEdit(false);
-      setEditItem(null);
-      await load();
+      load();
     } catch (err) {
-      console.error("saveEdit error", err);
-      setError(err.message || "Update failed");
+      setError(err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  // small components
   const Tabs = () => (
     <div className="flex gap-2 mb-4">
       {[
@@ -191,7 +153,6 @@ export default function AdminDashboard() {
           src={resolveImg(c.image || c.imageUrl)}
           alt={c.title}
           className="w-40 h-28 object-cover rounded"
-          onError={(e) => (e.target.src = "https://via.placeholder.com/400x240?text=No+Image")}
         />
 
         <div className="flex-1">
@@ -201,70 +162,25 @@ export default function AdminDashboard() {
           <div className="mt-3 flex gap-2 flex-wrap">
             {activeTab === "pending" && (
               <>
-                <button
-                  onClick={() => approve(c._id)}
-                  className="px-3 py-1 rounded bg-green-600 text-white"
-                >
-                  Approve
-                </button>
-
-                <button
-                  onClick={() => reject(c._id)}
-                  className="px-3 py-1 rounded bg-orange-600 text-white"
-                >
-                  Reject
-                </button>
+                <button onClick={() => approve(c._id)} className="px-3 py-1 rounded bg-green-600 text-white">Approve</button>
+                <button onClick={() => reject(c._id)} className="px-3 py-1 rounded bg-orange-600 text-white">Reject</button>
               </>
+            )}
+
+            {activeTab !== "pending" && (
+              <button onClick={() => openEdit(c)} className="px-3 py-1 rounded bg-blue-600 text-white">Edit</button>
             )}
 
             {activeTab === "approved" && (
-              <>
-                <button
-                  onClick={() => openEdit(c)}
-                  className="px-3 py-1 rounded bg-blue-600 text-white"
-                >
-                  Edit
-                </button>
-
-                <button
-                  onClick={() => remove(c._id)}
-                  className="px-3 py-1 rounded bg-red-600 text-white"
-                >
-                  Delete
-                </button>
-
-                <button
-                  onClick={() => reject(c._id)}
-                  className="px-3 py-1 rounded bg-orange-600 text-white"
-                >
-                  Mark Rejected
-                </button>
-              </>
+              <button onClick={() => reject(c._id)} className="px-3 py-1 rounded bg-orange-600 text-white">
+                Mark Rejected
+              </button>
             )}
 
             {activeTab === "rejected" && (
-              <>
-                <button
-                  onClick={() => openEdit(c)}
-                  className="px-3 py-1 rounded bg-blue-600 text-white"
-                >
-                  Edit
-                </button>
-
-                <button
-                  onClick={() => remove(c._id)}
-                  className="px-3 py-1 rounded bg-red-600 text-white"
-                >
-                  Delete
-                </button>
-
-                <button
-                  onClick={() => approve(c._id)}
-                  className="px-3 py-1 rounded bg-green-600 text-white"
-                >
-                  Mark Approved
-                </button>
-              </>
+              <button onClick={() => approve(c._id)} className="px-3 py-1 rounded bg-green-600 text-white">
+                Mark Approved
+              </button>
             )}
 
             <button
@@ -284,7 +200,9 @@ export default function AdminDashboard() {
       <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">{error}</div>
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+          {error}
+        </div>
       )}
 
       <Tabs />
@@ -301,7 +219,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Edit Modal */}
       {showEdit && editItem && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
           <div className="bg-white w-full max-w-2xl p-6 rounded shadow-lg">
@@ -322,10 +239,10 @@ export default function AdminDashboard() {
                 className="border p-2 rounded"
               />
 
-              <label className="text-sm">Long Description</label>
+              <label className="text-sm">Full Story</label>
               <textarea
-                value={editItem.longDescription || ""}
-                onChange={(e) => setEditItem({ ...editItem, longDescription: e.target.value })}
+                value={editItem.fullStory || ""}
+                onChange={(e) => setEditItem({ ...editItem, fullStory: e.target.value })}
                 className="border p-2 rounded h-28"
               />
 
