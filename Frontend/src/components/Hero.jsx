@@ -1,4 +1,5 @@
 import React from "react";
+import FlowChart from "./FlowChart";
 
 export default function Hero() {
   return (
@@ -41,13 +42,9 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* RIGHT SIDE IMAGE */}
+        {/* RIGHT SIDE — FLOW CHART */}
         <div className="flex-1 flex justify-center">
-          <img
-            src="https://cdn-icons-png.flaticon.com/512/3209/3209265.png"
-            alt="Helping Hands"
-            className="w-64 md:w-96 drop-shadow-md"
-          />
+          <FlowChart />
         </div>
       </div>
     </section>
