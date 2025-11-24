@@ -35,9 +35,9 @@ export const adminLogin = async (req, res) => {
 
 export const getPendingCampaigns = async (req, res) => {
   try {
-    const pending = await Campaign.find({
-      $or: [{ status: "pending" }, { status: { $exists: false } }],
-    }).sort({ createdAt: -1 });
+    const pending = await Campaign.find({ status: "pending" }).sort({
+      createdAt: -1,
+    });
 
     res.json(pending);
   } catch (err) {

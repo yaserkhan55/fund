@@ -6,12 +6,9 @@ import Campaign from "../models/Campaign.js";
 // ---------------------------------------------------------------
 export const getApprovedCampaigns = async (req, res) => {
   try {
-    const campaigns = await Campaign.find({
-      $or: [
-        { status: "approved" },        // new campaigns
-        { isApproved: true }           // old campaigns support
-      ]
-    }).sort({ createdAt: -1 });
+    const campaigns = await Campaign.find({ status: "approved" }).sort({
+      createdAt: -1,
+    });
 
     res.json({ success: true, campaigns });
   } catch (error) {
