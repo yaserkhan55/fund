@@ -1,22 +1,21 @@
+// controllers/adminController.js
 import User from "../models/User.js";
 import Campaign from "../models/Campaign.js";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 
-/* ============================
-      ADMIN LOGIN
-=============================== */
+/* --------------------------
+   ADMIN LOGIN
+--------------------------- */
 export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const admin = await User.findOne({ email, role: "admin" });
-    if (!admin)
-      return res.status(404).json({ success: false, message: "Admin not found" });
+    if (!admin) return res.status(400).json({ message: "Admin not found" });
 
     const match = await bcrypt.compare(password, admin.password);
-    if (!match)
-      return res.status(400).json({ success: false, message: "Incorrect password" });
+    if (!match) return res.status(400).json({ message: "Invalid password" });
 
     const token = jwt.sign(
       { id: admin._id, role: "admin" },
@@ -24,24 +23,25 @@ export const adminLogin = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.json({ success: true, message: "Logged in", token });
+    res.json({ token });
   } catch (err) {
-    console.error("adminLogin error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ message: "Login error", error: err.message });
   }
 };
 
-/* ============================
-      FETCH CAMPAIGNS
-=============================== */
+/* --------------------------
+   CAMPAIGNS
+--------------------------- */
+
 export const getPendingCampaigns = async (req, res) => {
   try {
-    const pending = await Campaign.find({ status: "pending" }).sort({
-      createdAt: -1,
-    });
+    const pending = await Campaign.find({
+      $or: [{ status: "pending" }, { status: { $exists: false } }],
+    }).sort({ createdAt: -1 });
+
     res.json(pending);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to load pending campaigns" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load pending" });
   }
 };
 
@@ -50,9 +50,10 @@ export const getApprovedCampaignsAdmin = async (req, res) => {
     const approved = await Campaign.find({ status: "approved" }).sort({
       createdAt: -1,
     });
+
     res.json(approved);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to load approved campaigns" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load approved" });
   }
 };
 
@@ -61,56 +62,52 @@ export const getRejectedCampaignsAdmin = async (req, res) => {
     const rejected = await Campaign.find({ status: "rejected" }).sort({
       createdAt: -1,
     });
+
     res.json(rejected);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to load rejected campaigns" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load rejected" });
   }
 };
 
-/* ============================
-      ACTIONS
-=============================== */
+/* --------------------------
+   ACTIONS
+--------------------------- */
+
+// Approve campaign
 export const approveCampaign = async (req, res) => {
   try {
+    const id = req.params.id;
+
     const updated = await Campaign.findByIdAndUpdate(
-      req.params.id,
-      { status: "approved" },
+      id,
+      { status: "approved", isApproved: true },
       { new: true }
     );
-    if (!updated)
-      return res.status(404).json({ message: "Campaign not found" });
 
-    res.json({ success: true, message: "Campaign approved", data: updated });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    if (!updated) return res.status(404).json({ message: "Campaign not found" });
+
+    res.json({ message: "Campaign approved", campaign: updated });
+  } catch (error) {
+    res.status(500).json({ message: "Approval failed", error: error.message });
   }
 };
+
 
 export const rejectCampaign = async (req, res) => {
   try {
+    const id = req.params.id;
+
     const updated = await Campaign.findByIdAndUpdate(
-      req.params.id,
-      { status: "rejected" },
+      id,
+      { status: "rejected", isApproved: false },
       { new: true }
     );
-    if (!updated)
-      return res.status(404).json({ message: "Campaign not found" });
 
-    res.json({ success: true, message: "Campaign rejected", data: updated });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
+    if (!updated) return res.status(404).json({ message: "Campaign not found" });
 
-export const deleteCampaign = async (req, res) => {
-  try {
-    const removed = await Campaign.findByIdAndDelete(req.params.id);
-    if (!removed)
-      return res.status(404).json({ message: "Campaign not found" });
-
-    res.json({ success: true, message: "Campaign deleted" });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    res.json({ message: "Campaign rejected", campaign: updated });
+  } catch (error) {
+    res.status(500).json({ message: "Rejection failed", error: error.message });
   }
 };
 
@@ -122,11 +119,22 @@ export const editCampaign = async (req, res) => {
       { new: true }
     );
 
-    if (!updated)
-      return res.status(404).json({ message: "Campaign not found" });
-
-    res.json({ success: true, message: "Campaign updated", data: updated });
+    res.json(updated);
   } catch (err) {
+    res.status(500).json({ message: "Edit failed" });
+  }
+};
+export const deleteCampaign = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deleted = await Campaign.findByIdAndDelete(id);
+
+    if (!deleted) return res.status(404).json({ message: "Campaign not found" });
+
+    res.json({ message: "Campaign deleted successfully" });
+  } catch (error) {
+    console.error("Delete error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

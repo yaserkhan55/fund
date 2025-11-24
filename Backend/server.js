@@ -1,3 +1,4 @@
+// server.js
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -8,7 +9,6 @@ import cookieParser from "cookie-parser";
 
 import connectDB from "./config/db.js";
 
-// ROUTES
 import campaignRoutes from "./routes/campaignRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import fundraiserRoutes from "./routes/fundraiserRoutes.js";
@@ -19,7 +19,6 @@ import googleAuthRoutes from "./routes/googleAuthRoutes.js";
 
 import User from "./models/User.js";
 
-// Clerk
 import { clerkMiddleware, requireAuth } from "@clerk/express";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -30,7 +29,7 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 const app = express();
 
 /* --------------------------
-   CORS
+   CORS FIXED ✔
 --------------------------- */
 app.use(
   cors({
@@ -39,61 +38,42 @@ app.use(
       process.env.FRONTEND_URL || "https://fund-liart.vercel.app",
     ],
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
 
 app.use(express.json());
 app.use(cookieParser());
 
-/* --------------------------
-   CLERK (Global)
---------------------------- */
 app.use(clerkMiddleware());
 
-/* --------------------------
-   ROOT
---------------------------- */
 app.get("/", (req, res) =>
-  res.send("Fund backend running with Clerk Auth 🔐 + Custom Auth 🎉")
+  res.send("Fund backend running correctly ✔")
 );
 
-/* --------------------------
-   STATIC FILES
---------------------------- */
 app.use("/uploads", express.static("uploads"));
 
-/* --------------------------
-   PUBLIC ROUTES (NO CLERK)
---------------------------- */
-
-// ⭐ Custom Auth (login, register, OTP)
+/* PUBLIC ROUTES */
 app.use("/api", authRoutes);
-
-// ⭐ Google Sign-in → create custom JWT
 app.use("/api/google", googleAuthRoutes);
-
-// ⭐ Campaigns public again
 app.use("/api/campaigns", campaignRoutes);
 
-/* --------------------------
-   PROTECTED ROUTES (CLERK)
---------------------------- */
-
+/* PROTECTED ROUTES */
 app.use("/api/profile", requireAuth(), profileRoutes);
 app.use("/api/fundraisers", requireAuth(), fundraiserRoutes);
 app.use("/api/donations", requireAuth(), donationRoutes);
 
-/* --------------------------
-   ADMIN (your JWT)
---------------------------- */
+/* ADMIN ROUTES */
 app.use("/api/admin", adminRoutes);
 
-/* --------------------------
-   CREATE DEFAULT ADMIN
---------------------------- */
+/* DEFAULT ADMIN */
 async function createDefaultAdmin() {
   try {
-    const existing = await User.findOne({ email: "admin@fund.com", role: "admin" });
+    const existing = await User.findOne({
+      email: "admin@fund.com",
+      role: "admin",
+    });
 
     if (!existing) {
       const hashed = await bcrypt.hash(
@@ -109,23 +89,14 @@ async function createDefaultAdmin() {
       });
 
       console.log("Default admin created ✔");
-    } else {
-      console.log("Admin already exists:", existing.email);
     }
   } catch (err) {
     console.error("Admin creation error:", err.message);
   }
 }
 
-/* --------------------------
-   START SERVER
---------------------------- */
-connectDB()
-  .then(() => {
-    createDefaultAdmin();
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-  })
-  .catch((err) => {
-    console.error("Fatal DB Error:", err.message);
-  });
+connectDB().then(() => {
+  createDefaultAdmin();
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+});
