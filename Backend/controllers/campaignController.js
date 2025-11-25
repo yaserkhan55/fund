@@ -158,9 +158,12 @@ export const createCampaign = async (req, res) => {
       image,
       documents,
       owner: userId,
-      status: "pending",
-      isApproved: false
+      status: "pending", // Explicitly set to pending
+      isApproved: false // Explicitly set to false
     });
+
+    console.log(`✅ New campaign created: ${campaign._id} - ${campaign.title}`);
+    console.log(`   Status: ${campaign.status}, isApproved: ${campaign.isApproved}`);
 
     await notifyOwner({
       ownerId: userId,

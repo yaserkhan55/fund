@@ -47,9 +47,20 @@ export const getPendingCampaigns = async (req, res) => {
         { status: { $ne: "approved" } },
         { status: { $ne: "rejected" } }
       ]
-    }).sort({ createdAt: -1 });
+    })
+    .sort({ createdAt: -1 }) // Newest first
+    .lean(); // Use lean() for better performance
 
-    console.log(`Found ${pending.length} pending campaigns`);
+    // Log campaign details for debugging
+    if (pending.length > 0) {
+      console.log(`📋 Found ${pending.length} pending campaigns:`);
+      pending.slice(0, 5).forEach((c, idx) => {
+        console.log(`   ${idx + 1}. ${c.title} (ID: ${c._id}, Status: ${c.status || 'null'}, Created: ${c.createdAt})`);
+      });
+    } else {
+      console.log("📋 No pending campaigns found");
+    }
+
     return res.json({ success: true, campaigns: pending });
 
   } catch (err) {
