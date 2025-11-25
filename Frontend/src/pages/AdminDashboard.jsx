@@ -71,6 +71,15 @@ export default function AdminDashboard() {
       const previousCount = items.length;
       const newCount = list.length;
       
+      // Debug: Log the actual campaigns data
+      console.log(`📊 API Response:`, data);
+      console.log(`📋 Parsed list:`, list);
+      console.log(`📋 List length:`, list.length);
+      if (list.length > 0) {
+        console.log(`📋 First campaign:`, list[0]);
+        console.log(`📋 Campaign IDs:`, list.map(c => c._id || c.id));
+      }
+      
       if (tab === "pending" && newCount > previousCount && previousCount > 0) {
         const newCampaigns = newCount - previousCount;
         console.log(`🆕 ${newCampaigns} new campaign(s) detected!`);
@@ -79,7 +88,8 @@ export default function AdminDashboard() {
         setTimeout(() => setNewCampaignsCount(0), 5000);
       }
       
-      console.log(`Loaded ${list.length} ${tab} campaigns (was ${previousCount})`);
+      console.log(`✅ Loaded ${list.length} ${tab} campaigns (was ${previousCount})`);
+      console.log(`✅ Setting items state with ${list.length} campaigns`);
       setItems(list);
       setLastRefresh(new Date());
     } catch (err) {
@@ -264,25 +274,35 @@ export default function AdminDashboard() {
     return diffMinutes < 30; // Show "NEW" badge for campaigns created in last 30 minutes
   };
 
-  const Card = ({ c }) => (
-    <div className="border rounded-lg p-4 shadow-sm bg-white hover:shadow-md transition">
-      <div className="flex gap-4">
-        <img
-          src={resolveImg(c.image || c.imageUrl)}
-          alt={c.title}
-          className="w-40 h-28 object-cover rounded"
-        />
+  const Card = ({ c }) => {
+    // Safety check: ensure campaign has required fields
+    if (!c || (!c._id && !c.id)) {
+      console.error("⚠️ Invalid campaign data:", c);
+      return null;
+    }
 
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-lg font-semibold">{c.title}</h3>
-            {isNewCampaign(c) && (
-              <span className="px-2 py-0.5 text-xs font-bold bg-green-500 text-white rounded-full animate-pulse">
-                NEW
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-gray-600 mt-1">{c.shortDescription}</p>
+    return (
+      <div className="border rounded-lg p-4 shadow-sm bg-white hover:shadow-md transition">
+        <div className="flex gap-4">
+          <img
+            src={resolveImg(c.image || c.imageUrl)}
+            alt={c.title || "Campaign"}
+            className="w-40 h-28 object-cover rounded"
+            onError={(e) => {
+              e.target.src = "https://via.placeholder.com/400x240?text=No+Image";
+            }}
+          />
+
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-lg font-semibold">{c.title || "Untitled Campaign"}</h3>
+              {isNewCampaign(c) && (
+                <span className="px-2 py-0.5 text-xs font-bold bg-green-500 text-white rounded-full animate-pulse">
+                  NEW
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-600 mt-1">{c.shortDescription || "No description"}</p>
 
           {c.requiresMoreInfo && (
             <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -343,7 +363,7 @@ export default function AdminDashboard() {
             )}
 
             <button
-              onClick={() => window.open(`/campaign/${c._id}`, "_blank")}
+              onClick={() => window.open(`/campaign/${c._id || c.id}`, "_blank")}
               className="px-3 py-1 rounded bg-gray-200"
             >
               View
@@ -351,8 +371,9 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-    </div>
-  );
+      </div>
+    );
+  };
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -407,10 +428,32 @@ export default function AdminDashboard() {
           <p className="text-gray-600">No {activeTab} campaigns.</p>
         )
       ) : (
-        <div className="grid md:grid-cols-2 gap-4">
-          {items.map((c) => (
-            <Card key={c._id} c={c} />
-          ))}
+        <div>
+          <div className="mb-2 text-sm text-gray-600">
+            Showing {items.length} campaign{items.length !== 1 ? 's' : ''}
+          </div>
+          {items.length > 0 ? (
+            <div className="grid md:grid-cols-2 gap-4">
+              {items.map((c, index) => {
+                // Debug: Log each campaign being rendered
+                if (index < 2) {
+                  console.log(`🎨 Rendering campaign ${index + 1}:`, {
+                    id: c._id || c.id,
+                    title: c.title,
+                    status: c.status,
+                    hasImage: !!(c.image || c.imageUrl)
+                  });
+                }
+                return <Card key={c._id || c.id || `campaign-${index}`} c={c} />;
+              })}
+            </div>
+          ) : (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
+              <p className="text-yellow-800">
+                ⚠️ Warning: API returned data but no campaigns to display. Check console for details.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
