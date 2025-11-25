@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
@@ -8,6 +8,9 @@ export default function Profile() {
   const token = localStorage.getItem("token");
   const [myCampaigns, setMyCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showRequestPopup, setShowRequestPopup] = useState(false);
+  const [activeRequest, setActiveRequest] = useState(null);
+  const popupShownRef = useRef(false);
 
   // Fetch my campaigns
   useEffect(() => {
@@ -42,6 +45,47 @@ export default function Profile() {
     return `${base}/${img.replace(/^\/+/, "")}`;
   };
 
+  const adminRequests = useMemo(() => {
+    if (!Array.isArray(myCampaigns)) return [];
+
+    return myCampaigns.flatMap((campaign) => {
+      if (!Array.isArray(campaign.infoRequests)) return [];
+
+      return campaign.infoRequests
+        .filter((req) => req.status === "pending")
+        .map((req) => ({
+          ...req,
+          campaignId: campaign._id,
+          campaignTitle: campaign.title,
+        }));
+    });
+  }, [myCampaigns]);
+
+  const formatRequestTime = (date) => {
+    if (!date) return "Just now";
+    const created = new Date(date);
+    const diff = Date.now() - created.getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
+
+  const openRequestPopup = (request) => {
+    setActiveRequest(request);
+    setShowRequestPopup(true);
+  };
+
+  useEffect(() => {
+    if (!loading && adminRequests.length > 0 && !popupShownRef.current) {
+      setActiveRequest(adminRequests[0]);
+      setShowRequestPopup(true);
+      popupShownRef.current = true;
+    }
+  }, [loading, adminRequests]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F9F5E7] pt-24 pb-12">
@@ -60,6 +104,46 @@ export default function Profile() {
           <h1 className="text-4xl font-bold text-[#003d3b] mb-2">My Fundraisers</h1>
           <p className="text-gray-600">Manage and track all your fundraising campaigns</p>
         </div>
+
+        {/* Admin notifications */}
+        {adminRequests.length > 0 && (
+          <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wide font-semibold">Action required</p>
+                <p className="text-base font-semibold">
+                  Admin needs more information for {adminRequests.length} campaign{adminRequests.length > 1 ? "s" : ""}.
+                </p>
+              </div>
+              <button
+                onClick={() => openRequestPopup(adminRequests[0])}
+                className="self-start rounded-md bg-[#00B5B8] px-4 py-2 text-sm font-semibold text-white shadow"
+              >
+                View request
+              </button>
+            </div>
+
+            <ul className="mt-4 space-y-3 text-sm">
+              {adminRequests.map((req) => (
+                <li key={`${req.campaignId}-${req._id}`} className="rounded-md border border-amber-100 bg-white/70 p-3 text-amber-900">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-[#8B5E00]">{req.campaignTitle}</p>
+                      <p>{req.message}</p>
+                    </div>
+                    <button
+                      onClick={() => openRequestPopup(req)}
+                      className="text-xs font-semibold uppercase tracking-wide text-[#C05621]"
+                    >
+                      Details
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-amber-700">Requested {formatRequestTime(req.createdAt)}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Stats */}
         {Array.isArray(myCampaigns) && myCampaigns.length > 0 && (
@@ -126,6 +210,9 @@ export default function Profile() {
               const status = c.status === "approved" ? "Approved" : "Pending Approval";
               const statusColor =
                 c.status === "approved" ? "bg-[#00897B] text-white" : "bg-[#F9A826] text-white";
+              const pendingRequest = Array.isArray(c.infoRequests)
+                ? c.infoRequests.find((req) => req.status === "pending")
+                : null;
 
               return (
                 <div
@@ -197,6 +284,25 @@ export default function Profile() {
                     {/* Description */}
                     <p className="text-sm text-gray-600 mb-4 line-clamp-3 flex-grow">{c.shortDescription || "No description provided."}</p>
 
+                    {pendingRequest && (
+                      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                        <p className="font-semibold">Admin request pending</p>
+                        <p>{pendingRequest.message}</p>
+                        <button
+                          onClick={() =>
+                            openRequestPopup({
+                              ...pendingRequest,
+                              campaignId: c._id,
+                              campaignTitle: c.title,
+                            })
+                          }
+                          className="mt-2 text-xs font-semibold uppercase tracking-wide text-[#C05621]"
+                        >
+                          View details
+                        </button>
+                      </div>
+                    )}
+
                     {/* Progress */}
                     <div className="mb-4">
                       <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
@@ -248,6 +354,40 @@ export default function Profile() {
           </div>
         )}
       </div>
+
+      {showRequestPopup && activeRequest && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#00B5B8]">
+              Admin request
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-[#003d3b]">Please upload the required documents.</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Admin request: Please upload the required documents.
+            </p>
+
+            <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-800">
+              <p className="text-xs uppercase tracking-wide text-gray-500">Campaign</p>
+              <p className="font-semibold text-[#003d3b]">{activeRequest.campaignTitle}</p>
+              <p className="mt-3">{activeRequest.message}</p>
+            </div>
+
+            <p className="mt-4 text-xs text-gray-500">
+              You can reply to this request by opening the campaign from your dashboard and uploading the
+              missing details or documents.
+            </p>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowRequestPopup(false)}
+                className="rounded-md bg-[#00B5B8] px-5 py-2 text-sm font-semibold text-white shadow"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

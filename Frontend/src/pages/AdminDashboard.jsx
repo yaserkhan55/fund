@@ -8,6 +8,13 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [infoTarget, setInfoTarget] = useState(null);
+  const [infoMessage, setInfoMessage] = useState(
+    "Please provide the missing information so we can complete verification."
+  );
+  const [requestingInfo, setRequestingInfo] = useState(false);
+
   const [showEdit, setShowEdit] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -42,6 +49,14 @@ export default function AdminDashboard() {
         return;
       }
 
+       if (!res.ok) {
+         throw new Error(
+           tab === "pending"
+             ? "Pending campaigns couldn’t be loaded. Check API /pending or server status."
+             : "Failed to load campaigns"
+         );
+       }
+
       const data = await res.json();
       const list = Array.isArray(data)
         ? data
@@ -50,7 +65,12 @@ export default function AdminDashboard() {
         : [];
       setItems(list);
     } catch (err) {
-      setError("Failed to load campaigns");
+      setError(
+        err.message ||
+          (tab === "pending"
+            ? "Pending campaigns couldn’t be loaded. Check API /pending or server status."
+            : "Failed to load campaigns")
+      );
     } finally {
       setLoading(false);
     }
@@ -124,6 +144,50 @@ export default function AdminDashboard() {
     }
   };
 
+  const openInfoModal = (campaign) => {
+    setInfoTarget(campaign);
+    setInfoMessage("Please provide the missing information so we can complete verification.");
+    setInfoModalOpen(true);
+  };
+
+  const closeInfoModal = () => {
+    setInfoModalOpen(false);
+    setInfoTarget(null);
+    setRequestingInfo(false);
+  };
+
+  const sendInfoRequest = async () => {
+    if (!infoTarget?._id || !infoMessage.trim()) return;
+    setRequestingInfo(true);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/admin/campaigns/${infoTarget._id}/request-info`,
+        {
+          method: "POST",
+          headers: authHeaders(true),
+          body: JSON.stringify({ message: infoMessage.trim() }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Unable to send information request");
+      }
+
+      closeInfoModal();
+      await load();
+    } catch (err) {
+      setError(err.message || "Unable to send information request");
+    } finally {
+      setRequestingInfo(false);
+    }
+  };
+
+  const latestInfoRequest = (campaign) => {
+    const list = Array.isArray(campaign?.infoRequests) ? campaign.infoRequests : [];
+    if (!list.length) return null;
+    return list[list.length - 1];
+  };
+
   const Tabs = () => (
     <div className="flex gap-2 mb-4">
       {[
@@ -164,6 +228,16 @@ export default function AdminDashboard() {
           <h3 className="text-lg font-semibold">{c.title}</h3>
           <p className="text-sm text-gray-600 mt-1">{c.shortDescription}</p>
 
+          {c.requiresMoreInfo && (
+            <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="font-semibold">Info requested</p>
+              <p>
+                {latestInfoRequest(c)?.message ||
+                  "Awaiting additional documents from the campaigner."}
+              </p>
+            </div>
+          )}
+
           {(Array.isArray(c.documents) && c.documents.length > 0) ||
           (Array.isArray(c.medicalDocuments) && c.medicalDocuments.length > 0) ? (
             <div className="mt-3">
@@ -190,6 +264,9 @@ export default function AdminDashboard() {
               <>
                 <button onClick={() => approve(c._id)} className="px-3 py-1 rounded bg-green-600 text-white">Approve</button>
                 <button onClick={() => reject(c._id)} className="px-3 py-1 rounded bg-orange-600 text-white">Reject</button>
+                <button onClick={() => openInfoModal(c)} className="px-3 py-1 rounded bg-amber-600 text-white">
+                  Request Info
+                </button>
               </>
             )}
 
@@ -236,7 +313,24 @@ export default function AdminDashboard() {
       {loading ? (
         <p>Loading...</p>
       ) : items.length === 0 ? (
-        <p className="text-gray-600">No {activeTab} campaigns.</p>
+        activeTab === "pending" ? (
+          <div className="rounded-xl border border-dashed border-gray-300 p-10 text-center text-gray-700 bg-white">
+            <p className="text-lg font-semibold">
+              No pending campaigns found. Please refresh or try again.
+            </p>
+            <p className="mt-2 text-sm text-gray-500">
+              No pending approvals available. Everything looks updated.
+            </p>
+            <button
+              onClick={() => load("pending")}
+              className="mt-4 px-4 py-2 rounded-md bg-gray-200 text-sm"
+            >
+              Refresh now
+            </button>
+          </div>
+        ) : (
+          <p className="text-gray-600">No {activeTab} campaigns.</p>
+        )
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {items.map((c) => (
@@ -296,6 +390,44 @@ export default function AdminDashboard() {
                 disabled={saving}
               >
                 {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {infoModalOpen && infoTarget && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+          <div className="bg-white w-full max-w-lg p-6 rounded shadow-lg">
+            <h2 className="text-xl font-semibold mb-2">Request Additional Information</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Tell the campaigner exactly what is blocking approval so they can respond quickly.
+            </p>
+
+            <div className="mb-4">
+              <label className="text-sm font-medium text-gray-700">Message</label>
+              <textarea
+                value={infoMessage}
+                onChange={(e) => setInfoMessage(e.target.value)}
+                placeholder="Tell the campaigner what you need (e.g., upload medical documents, add patient details, etc.)"
+                className="mt-1 w-full border rounded-md p-3 h-32"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={closeInfoModal}
+                className="px-4 py-2 rounded border"
+                disabled={requestingInfo}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendInfoRequest}
+                className="px-4 py-2 rounded bg-amber-600 text-white"
+                disabled={requestingInfo}
+              >
+                {requestingInfo ? "Sending..." : "Send Request"}
               </button>
             </div>
           </div>
