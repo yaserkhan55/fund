@@ -18,6 +18,8 @@ export default function AdminDashboard() {
   const [showEdit, setShowEdit] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [newCampaignsCount, setNewCampaignsCount] = useState(0);
 
   const token = localStorage.getItem("adminToken");
 
@@ -65,8 +67,21 @@ export default function AdminDashboard() {
         ? data.campaigns
         : [];
       
-      console.log(`Loaded ${list.length} ${tab} campaigns`);
+      // Check if new campaigns were added
+      const previousCount = items.length;
+      const newCount = list.length;
+      
+      if (tab === "pending" && newCount > previousCount && previousCount > 0) {
+        const newCampaigns = newCount - previousCount;
+        console.log(`🆕 ${newCampaigns} new campaign(s) detected!`);
+        setNewCampaignsCount(newCampaigns);
+        // Show notification for 5 seconds
+        setTimeout(() => setNewCampaignsCount(0), 5000);
+      }
+      
+      console.log(`Loaded ${list.length} ${tab} campaigns (was ${previousCount})`);
       setItems(list);
+      setLastRefresh(new Date());
     } catch (err) {
       console.error("Error loading campaigns:", err);
       setError(
@@ -82,6 +97,18 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     load(activeTab);
+  }, [activeTab]);
+
+  // Auto-refresh every 10 seconds when on pending tab
+  useEffect(() => {
+    if (activeTab !== "pending") return;
+
+    const interval = setInterval(() => {
+      console.log("Auto-refreshing pending campaigns...");
+      load("pending");
+    }, 10000); // Refresh every 10 seconds
+
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   const approve = async (id) => {
@@ -211,16 +238,34 @@ export default function AdminDashboard() {
       ))}
 
       <button
-        onClick={() => load(activeTab)}
-        className="ml-auto px-3 py-1 rounded-md bg-gray-200"
+        onClick={() => {
+          console.log("Manual refresh triggered");
+          load(activeTab);
+        }}
+        className="ml-auto px-4 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2"
+        title="Refresh campaigns (Auto-refreshes every 10 seconds)"
       >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
         Refresh
+        {activeTab === "pending" && (
+          <span className="text-xs bg-blue-500 px-2 py-0.5 rounded">Auto</span>
+        )}
       </button>
     </div>
   );
 
+  const isNewCampaign = (campaign) => {
+    if (!campaign.createdAt) return false;
+    const created = new Date(campaign.createdAt);
+    const now = new Date();
+    const diffMinutes = (now - created) / (1000 * 60);
+    return diffMinutes < 30; // Show "NEW" badge for campaigns created in last 30 minutes
+  };
+
   const Card = ({ c }) => (
-    <div className="border rounded-lg p-4 shadow-sm bg-white">
+    <div className="border rounded-lg p-4 shadow-sm bg-white hover:shadow-md transition">
       <div className="flex gap-4">
         <img
           src={resolveImg(c.image || c.imageUrl)}
@@ -229,7 +274,14 @@ export default function AdminDashboard() {
         />
 
         <div className="flex-1">
-          <h3 className="text-lg font-semibold">{c.title}</h3>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-lg font-semibold">{c.title}</h3>
+            {isNewCampaign(c) && (
+              <span className="px-2 py-0.5 text-xs font-bold bg-green-500 text-white rounded-full animate-pulse">
+                NEW
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-600 mt-1">{c.shortDescription}</p>
 
           {c.requiresMoreInfo && (
@@ -312,7 +364,26 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {newCampaignsCount > 0 && activeTab === "pending" && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🆕</span>
+            <span className="font-semibold">
+              {newCampaignsCount} new campaign{newCampaignsCount > 1 ? "s" : ""} detected!
+            </span>
+          </div>
+        </div>
+      )}
+
       <Tabs />
+
+      {activeTab === "pending" && (
+        <div className="mb-4 text-xs text-gray-500 flex items-center gap-2">
+          <span>Last refreshed: {lastRefresh.toLocaleTimeString()}</span>
+          <span>•</span>
+          <span>Auto-refreshes every 10 seconds</span>
+        </div>
+      )}
 
       {loading ? (
         <p>Loading...</p>
