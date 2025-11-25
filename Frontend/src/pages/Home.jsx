@@ -11,7 +11,7 @@ import FAQ from "../components/FAQ";
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 function Home() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, getToken } = useAuth();
   const [myCampaigns, setMyCampaigns] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showRequestPopup, setShowRequestPopup] = useState(false);
@@ -25,16 +25,32 @@ function Home() {
     const fetchCampaigns = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
-        if (!token) return;
+        
+        // Try Clerk token first, fallback to localStorage token
+        let token = null;
+        try {
+          token = await getToken();
+        } catch (e) {
+          token = localStorage.getItem("token");
+        }
+        
+        if (!token) {
+          console.log("No token found");
+          return;
+        }
 
         const res = await axios.get(`${API_URL}/api/campaigns/my`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        
         const list = Array.isArray(res.data?.campaigns) ? res.data.campaigns : [];
+        console.log("Fetched campaigns:", list.length);
+        console.log("Campaigns with infoRequests:", list.filter(c => c.infoRequests?.length > 0));
+        
         setMyCampaigns(list);
       } catch (err) {
         console.error("Error fetching campaigns:", err);
+        console.error("Error details:", err.response?.data);
         setMyCampaigns([]);
       } finally {
         setLoading(false);
@@ -42,14 +58,19 @@ function Home() {
     };
 
     fetchCampaigns();
-  }, [isSignedIn]);
+  }, [isSignedIn, getToken]);
 
   // Extract admin requests from campaigns
   const adminRequests = useMemo(() => {
-    if (!Array.isArray(myCampaigns)) return [];
+    if (!Array.isArray(myCampaigns)) {
+      console.log("myCampaigns is not an array:", myCampaigns);
+      return [];
+    }
 
-    return myCampaigns.flatMap((campaign) => {
-      if (!Array.isArray(campaign.infoRequests)) return [];
+    const requests = myCampaigns.flatMap((campaign) => {
+      if (!Array.isArray(campaign.infoRequests)) {
+        return [];
+      }
 
       return campaign.infoRequests
         .filter((req) => req.status === "pending")
@@ -59,6 +80,9 @@ function Home() {
           campaignTitle: campaign.title,
         }));
     });
+    
+    console.log("Found admin requests:", requests.length);
+    return requests;
   }, [myCampaigns]);
 
   // Auto-show popup when admin requests are found
