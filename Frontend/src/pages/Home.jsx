@@ -1,6 +1,6 @@
 // src/pages/Home.jsx
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import Hero from "../components/Hero";
@@ -16,7 +16,6 @@ function Home() {
   const [loading, setLoading] = useState(false);
   const [showRequestPopup, setShowRequestPopup] = useState(false);
   const [activeRequest, setActiveRequest] = useState(null);
-  const popupShownRef = useRef(false);
 
   // Fetch user's campaigns to check for admin requests
   useEffect(() => {
@@ -85,12 +84,18 @@ function Home() {
     return requests;
   }, [myCampaigns]);
 
-  // Auto-show popup when admin requests are found
+  // Auto-show popup when admin requests are found (every time user visits)
   useEffect(() => {
-    if (!loading && adminRequests.length > 0 && !popupShownRef.current && isSignedIn) {
-      setActiveRequest(adminRequests[0]);
+    if (!loading && adminRequests.length > 0 && isSignedIn) {
+      // Always show the most recent pending request
+      const mostRecent = adminRequests.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return dateB - dateA;
+      })[0];
+      
+      setActiveRequest(mostRecent);
       setShowRequestPopup(true);
-      popupShownRef.current = true;
     }
   }, [loading, adminRequests, isSignedIn]);
 
@@ -123,10 +128,7 @@ function Home() {
                 Admin Request
               </p>
               <button
-                onClick={() => {
-                  setShowRequestPopup(false);
-                  popupShownRef.current = true;
-                }}
+                onClick={() => setShowRequestPopup(false)}
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
               >
                 ×
@@ -153,10 +155,7 @@ function Home() {
 
             <div className="mt-6 flex justify-end gap-2">
               <button
-                onClick={() => {
-                  setShowRequestPopup(false);
-                  popupShownRef.current = true;
-                }}
+                onClick={() => setShowRequestPopup(false)}
                 className="rounded-md bg-gray-200 px-5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-300 transition"
               >
                 Remind me later
