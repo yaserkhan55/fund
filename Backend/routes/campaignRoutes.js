@@ -25,47 +25,18 @@ import {
 
 const router = express.Router();
 
-/* ===========================
-   PUBLIC — Homepage campaigns
-   =========================== */
-router.get("/approved", getApprovedCampaigns);
-
-/* ===========================
-   USER’S OWN CAMPAIGNS (Protected)
-   =========================== */
-router.get("/my", requireAuth(), getMyCampaigns);
-
-/* ===========================
-   PUBLIC — All campaigns
-   =========================== */
-router.get("/", getAllCampaigns);
-
-/* ===========================
-   PUBLIC — Single campaign
-   =========================== */
-router.get("/:id", getCampaignById);
-
-router.get("/admin/all-campaigns", adminGetAllCampaigns);
-
-/* ===========================
-   CREATE CAMPAIGN (Protected)
-   =========================== */
-router.post(
-  "/create",
-  requireAuth(),
-  upload.fields([
-    { name: "image", maxCount: 1 },
-    { name: "documents", maxCount: 10 },
-  ]),
-  createCampaign
-);
-
 /* ===========================================================
-   ⭐ NEW — KETTO STYLE CAMPAIGN DETAILS SYSTEM (NO CHANGES ABOVE)
+   ⭐ NEW — KETTO STYLE CAMPAIGN DETAILS MUST COME FIRST
    =========================================================== */
 
 // Full detailed campaign page
 router.get("/details/:id", getCampaignDetails);
+
+// Suggested campaigns
+router.get("/details/:id/suggested", getSuggestedCampaigns);
+
+// Recent donors
+router.get("/details/:id/donors", getRecentDonors);
 
 // Upload gallery images
 router.post(
@@ -86,10 +57,40 @@ router.post(
 // Update About Section
 router.put("/details/:id/about", requireAuth(), updateAboutSection);
 
-// Suggested campaigns
-router.get("/details/:id/suggested", getSuggestedCampaigns);
+/* ===========================
+   PUBLIC — Homepage campaigns
+=========================== */
+router.get("/approved", getApprovedCampaigns);
 
-// Recent donors
-router.get("/details/:id/donors", getRecentDonors);
+/* ===========================
+   USER’S OWN CAMPAIGNS
+=========================== */
+router.get("/my", requireAuth(), getMyCampaigns);
+
+/* ===========================
+   PUBLIC — All campaigns
+=========================== */
+router.get("/", getAllCampaigns);
+
+router.get("/admin/all-campaigns", adminGetAllCampaigns);
+
+/* ===========================
+   PUBLIC — Single campaign
+   MUST BE LAST!!
+=========================== */
+router.get("/:id", getCampaignById);
+
+/* ===========================
+   CREATE CAMPAIGN
+=========================== */
+router.post(
+  "/create",
+  requireAuth(),
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "documents", maxCount: 10 },
+  ]),
+  createCampaign
+);
 
 export default router;
