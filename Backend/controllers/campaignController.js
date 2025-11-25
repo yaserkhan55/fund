@@ -1,9 +1,9 @@
 // controllers/campaignController.js
 import Campaign from "../models/Campaign.js";
 
-// ---------------------------------------------------------------
-// GET ALL CAMPAIGNS FOR ADMIN PANEL
-// ---------------------------------------------------------------
+/* =====================================================
+   ADMIN: GET ALL CAMPAIGNS
+===================================================== */
 export const adminGetAllCampaigns = async (req, res) => {
   try {
     const campaigns = await Campaign.find().sort({ createdAt: -1 });
@@ -17,14 +17,13 @@ export const adminGetAllCampaigns = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------
-// GET ONLY APPROVED CAMPAIGNS FOR FRONTEND HOMEPAGE
-// ---------------------------------------------------------------
+/* =====================================================
+   PUBLIC: GET ONLY APPROVED CAMPAIGNS (Homepage)
+===================================================== */
 export const getApprovedCampaigns = async (req, res) => {
   try {
-    const campaigns = await Campaign.find({ status: "approved" }).sort({
-      createdAt: -1,
-    });
+    const campaigns = await Campaign.find({ status: "approved" })
+      .sort({ createdAt: -1 });
 
     res.json({ success: true, campaigns });
   } catch (error) {
@@ -32,9 +31,9 @@ export const getApprovedCampaigns = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------
-// GET ALL CAMPAIGNS (PUBLIC)
-// ---------------------------------------------------------------
+/* =====================================================
+   PUBLIC: GET ALL CAMPAIGNS
+===================================================== */
 export const getAllCampaigns = async (req, res) => {
   try {
     const campaigns = await Campaign.find().sort({ createdAt: -1 });
@@ -44,26 +43,30 @@ export const getAllCampaigns = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------------
-// SINGLE CAMPAIGN BY ID
-// ---------------------------------------------------------------
+/* =====================================================
+   PUBLIC: SINGLE CAMPAIGN
+===================================================== */
 export const getCampaignById = async (req, res) => {
   try {
     const campaign = await Campaign.findById(req.params.id);
+
     if (!campaign) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Campaign not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Campaign not found"
+      });
     }
+
     res.json({ success: true, campaign });
+
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ---------------------------------------------------------------
-// USER'S OWN CAMPAIGNS
-// ---------------------------------------------------------------
+/* =====================================================
+   USER'S OWN CAMPAIGNS (Clerk user)
+===================================================== */
 export const getMyCampaigns = async (req, res) => {
   try {
     const userId = req.auth.userId;
@@ -71,26 +74,30 @@ export const getMyCampaigns = async (req, res) => {
     const campaigns = await Campaign.find({
       $or: [
         { owner: userId },
-        { createdBy: userId },
-      ],
+        { createdBy: userId }
+      ]
     }).sort({ createdAt: -1 });
 
     res.json({ success: true, campaigns });
+
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ---------------------------------------------------------------
-// CREATE CAMPAIGN
-// ---------------------------------------------------------------
+/* =====================================================
+   CREATE CAMPAIGN
+===================================================== */
 export const createCampaign = async (req, res) => {
   try {
     const userId = req.auth.userId;
-    if (!userId)
-      return res
-        .status(401)
-        .json({ success: false, message: "Unauthorized" });
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
 
     const {
       title,
@@ -102,17 +109,18 @@ export const createCampaign = async (req, res) => {
       city,
       relation,
       zakatEligible,
-
-      // NEW FIELDS
       educationQualification,
       employmentStatus,
-      duration,
+      duration
     } = req.body;
 
-    const image = req.files?.image ? req.files.image[0].path : null;
+    const image = req.files?.image?.length
+      ? req.files.image[0].path
+      : null;
+
     const documents = req.files?.documents?.map((doc) => doc.path) || [];
 
-    const newCampaign = await Campaign.create({
+    const campaign = await Campaign.create({
       title,
       shortDescription,
       fullStory,
@@ -122,23 +130,20 @@ export const createCampaign = async (req, res) => {
       city,
       relation,
       zakatEligible: zakatEligible === "true" || zakatEligible === true,
-
-      // NEW FIELDS
       educationQualification,
       employmentStatus,
       duration,
-
       image,
       documents,
       owner: userId,
-
-      // VERY IMPORTANT
       status: "pending",
-      isApproved: false,
+      isApproved: false
     });
 
-    res.json({ success: true, campaign: newCampaign });
+    res.json({ success: true, campaign });
+
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+

@@ -13,6 +13,16 @@ import {
   adminGetAllCampaigns
 } from "../controllers/campaignController.js";
 
+// NEW CONTROLLERS (Ketto-style details)
+import {
+  getCampaignDetails,
+  uploadGalleryImages,
+  uploadMedicalDocs,
+  updateAboutSection,
+  getSuggestedCampaigns,
+  getRecentDonors
+} from "../controllers/campaignDetailsController.js";
+
 const router = express.Router();
 
 /* ===========================
@@ -34,11 +44,10 @@ router.get("/", getAllCampaigns);
    PUBLIC — Single campaign
    =========================== */
 router.get("/:id", getCampaignById);
+
 router.get("/admin/all-campaigns", adminGetAllCampaigns);
 
-
 /* ===========================
-
    CREATE CAMPAIGN (Protected)
    =========================== */
 router.post(
@@ -50,5 +59,37 @@ router.post(
   ]),
   createCampaign
 );
+
+/* ===========================================================
+   ⭐ NEW — KETTO STYLE CAMPAIGN DETAILS SYSTEM (NO CHANGES ABOVE)
+   =========================================================== */
+
+// Full detailed campaign page
+router.get("/details/:id", getCampaignDetails);
+
+// Upload gallery images
+router.post(
+  "/details/:id/gallery",
+  requireAuth(),
+  upload.array("images", 10),
+  uploadGalleryImages
+);
+
+// Upload medical documents
+router.post(
+  "/details/:id/documents",
+  requireAuth(),
+  upload.array("documents", 10),
+  uploadMedicalDocs
+);
+
+// Update About Section
+router.put("/details/:id/about", requireAuth(), updateAboutSection);
+
+// Suggested campaigns
+router.get("/details/:id/suggested", getSuggestedCampaigns);
+
+// Recent donors
+router.get("/details/:id/donors", getRecentDonors);
 
 export default router;
