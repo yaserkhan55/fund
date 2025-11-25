@@ -77,11 +77,25 @@ export const getMyCampaigns = async (req, res) => {
         { owner: userId },
         { createdBy: userId }
       ]
-    }).sort({ createdAt: -1 });
+    })
+    .sort({ createdAt: -1 })
+    .lean(); // Use lean() for better performance and to ensure all fields are returned
+
+    console.log(`Found ${campaigns.length} campaigns for user ${userId}`);
+    
+    // Log campaigns with infoRequests for debugging
+    const campaignsWithRequests = campaigns.filter(c => c.infoRequests && c.infoRequests.length > 0);
+    if (campaignsWithRequests.length > 0) {
+      console.log(`Found ${campaignsWithRequests.length} campaigns with infoRequests`);
+      campaignsWithRequests.forEach(c => {
+        console.log(`Campaign ${c.title} has ${c.infoRequests.length} requests`);
+      });
+    }
 
     res.json({ success: true, campaigns });
 
   } catch (error) {
+    console.error("Error in getMyCampaigns:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
