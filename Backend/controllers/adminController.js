@@ -4,6 +4,7 @@ import User from "../models/User.js";
 import Campaign from "../models/Campaign.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { notifyOwner } from "../utils/notifyOwner.js";
 
 /* ---------------------------------------------------
    ADMIN LOGIN
@@ -100,7 +101,8 @@ export const approveCampaign = async (req, res) => {
       {
         status: "approved",
         isApproved: true,
-        approvedAt: new Date()
+        approvedAt: new Date(),
+        requiresMoreInfo: false,
       },
       { new: true }
     );
@@ -129,7 +131,8 @@ export const rejectCampaign = async (req, res) => {
       id,
       {
         status: "rejected",
-        isApproved: false
+        isApproved: false,
+        requiresMoreInfo: false,
       },
       { new: true }
     );
@@ -178,5 +181,64 @@ export const deleteCampaign = async (req, res) => {
 
   } catch (error) {
     return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ✅ REQUEST ADDITIONAL INFORMATION
+export const requestAdditionalInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const rawMessage = req.body?.message || "";
+    const message = rawMessage.trim();
+
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        message: "Message is required",
+      });
+    }
+
+    const requestPayload = {
+      message,
+      createdAt: new Date(),
+      status: "pending",
+      requestedBy: req.admin?.id || "admin",
+    };
+
+    const campaign = await Campaign.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          requiresMoreInfo: true,
+          lastInfoRequestAt: requestPayload.createdAt,
+        },
+        $push: { infoRequests: requestPayload },
+      },
+      { new: true }
+    );
+
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        message: "Campaign not found",
+      });
+    }
+
+    await notifyOwner({
+      ownerId: campaign.owner,
+      overrideName: campaign?.beneficiaryName,
+      message: `Admin request: ${message}`,
+    });
+
+    return res.json({
+      success: true,
+      message: "Information request sent",
+      campaign,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to request additional information",
+    });
   }
 };

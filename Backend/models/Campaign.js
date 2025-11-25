@@ -53,6 +53,22 @@ const campaignSchema = new mongoose.Schema(
 
     // NEW: campaign auto-expire (optional use later)
     endDate: { type: Date, default: null },
+
+    // Admin <> campaigner review loop
+    requiresMoreInfo: { type: Boolean, default: false },
+    lastInfoRequestAt: { type: Date, default: null },
+    infoRequests: [
+      {
+        message: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
+        status: {
+          type: String,
+          enum: ["pending", "resolved"],
+          default: "pending",
+        },
+        requestedBy: { type: String, default: "admin" },
+      },
+    ],
   },
   { timestamps: true }
 );
