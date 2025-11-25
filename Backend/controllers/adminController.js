@@ -39,20 +39,22 @@ export const adminLogin = async (req, res) => {
 // ✅ PENDING CAMPAIGNS
 export const getPendingCampaigns = async (req, res) => {
   try {
+    // Get all campaigns that are NOT explicitly approved or rejected
+    // This will catch: status="pending", status=null, status=undefined, status="", 
+    // and any old campaigns without status field
     const pending = await Campaign.find({
-      $or: [
-        { status: "pending" },
-        {
-          status: { $exists: false },
-          $or: [{ isApproved: { $exists: false } }, { isApproved: false }],
-        },
-      ],
+      $and: [
+        { status: { $ne: "approved" } },
+        { status: { $ne: "rejected" } }
+      ]
     }).sort({ createdAt: -1 });
 
+    console.log(`Found ${pending.length} pending campaigns`);
     return res.json({ success: true, campaigns: pending });
 
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Failed to load pending" });
+    console.error("Error fetching pending campaigns:", err);
+    return res.status(500).json({ success: false, message: "Failed to load pending", error: err.message });
   }
 };
 
