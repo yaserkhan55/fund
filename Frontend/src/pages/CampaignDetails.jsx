@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";   // ← Already added
+import axios from "axios";
 import DonationModal from "../components/DonationModal";
 
 const FALLBACK = "/no-image.png";
@@ -8,41 +8,36 @@ const FALLBACK = "/no-image.png";
 export default function CampaignDetails() {
   const { id } = useParams();
   const [campaign, setCampaign] = useState(null);
+  const [patientImages, setPatientImages] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDonation, setShowDonation] = useState(false);
 
-  // New states for extra dynamic content
-  const [patientImages, setPatientImages] = useState([]);
-  const [documents, setDocuments] = useState([]);
-
   useEffect(() => {
-    async function fetchCampaign() {
+    async function fetchCampaignDetails() {
       setLoading(true);
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/campaigns/${id}`
+          `${import.meta.env.VITE_API_URL}/api/campaigns/details/${id}`
         );
 
-        const campaignData = res.data?.campaign || res.data?.data || null;
-        setCampaign(campaignData);
+        const data = res.data || {};
 
-        // New dynamic fields (won't break if empty)
-        setPatientImages(res.data?.patientImages || campaignData?.patientImages || []);
-        setDocuments(res.data?.documents || campaignData?.documents || []);
-        
+        setCampaign(data.campaign || null);
+        setPatientImages(data.patientImages || []);
+        setDocuments(data.documents || []);
+
       } catch (error) {
-        console.error("Campaign fetch error:", error);
+        console.error("Details fetch error:", error);
         setCampaign(null);
       }
       setLoading(false);
     }
 
-    fetchCampaign();
+    fetchCampaignDetails();
   }, [id]);
 
-  if (loading) {
-    return <div className="text-center pt-20">Loading campaign...</div>;
-  }
+  if (loading) return <div className="text-center pt-20">Loading campaign...</div>;
 
   if (!campaign) {
     return (
@@ -54,8 +49,8 @@ export default function CampaignDetails() {
 
   return (
     <div className="container mx-auto p-6 mb-20">
-      
-      {/* Main Campaign Image */}
+
+      {/* Main Image */}
       <img
         src={campaign.imageUrl || campaign.image || FALLBACK}
         alt={campaign.title}
@@ -63,7 +58,7 @@ export default function CampaignDetails() {
         onError={(e) => (e.target.src = FALLBACK)}
       />
 
-      {/* Patient Image Carousel */}
+      {/* Patient Gallery Carousel */}
       {patientImages.length > 0 && (
         <div className="mt-6">
           <h2 className="text-xl font-semibold mb-3 text-[#003d3b]">
@@ -89,22 +84,20 @@ export default function CampaignDetails() {
         {campaign.title}
       </h1>
 
-      {/* Story / Full Description */}
+      {/* Story */}
       <div className="mt-4 text-gray-700 leading-relaxed">
-        {campaign.fullStory || "No full story available."}
+        {campaign.fullStory || "No story available."}
       </div>
 
       {/* ABOUT SECTION */}
       <div className="mt-10 p-5 rounded-xl bg-gray-50 shadow-md">
         <h2 className="text-2xl font-semibold mb-3 text-[#003d3b]">About</h2>
         <p className="text-gray-700 leading-relaxed">
-          {campaign.about ||
-            campaign.fullStory ||
-            "No additional details available."}
+          {campaign.about || "No additional information."}
         </p>
       </div>
 
-      {/* DOCUMENTS SECTION */}
+      {/* MEDICAL DOCUMENTS */}
       {documents.length > 0 && (
         <div className="mt-10 p-5 rounded-xl bg-gray-50 shadow-md">
           <h2 className="text-2xl font-semibold mb-3 text-[#003d3b]">
@@ -123,8 +116,8 @@ export default function CampaignDetails() {
                 <img
                   src={doc}
                   className="h-40 w-full object-cover rounded-xl shadow-md border hover:scale-105 transition"
-                  onError={(e) => (e.target.src = FALLBACK)}
                   alt={`document-${i}`}
+                  onError={(e) => (e.target.src = FALLBACK)}
                 />
               </a>
             ))}
@@ -132,7 +125,7 @@ export default function CampaignDetails() {
         </div>
       )}
 
-      {/* Donate Button */}
+      {/* DONATE BUTTON */}
       <button
         className="
           mt-8 w-full py-3 rounded-xl font-semibold 
