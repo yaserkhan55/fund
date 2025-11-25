@@ -71,8 +71,11 @@ export default function TrendingFundraisers() {
   }
 
   return (
-    <section className="w-[90%] mx-auto my-16">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+    <section className="w-[90%] mx-auto mt-20 mb-32 relative">
+      {/* Decorative light effect */}
+      <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-[#00B5B8] to-transparent opacity-30 blur-sm"></div>
+      
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
         <div>
           <p className="uppercase text-xs tracking-[0.4em] text-[#00B5B8] font-semibold">
             Trending Now
@@ -103,7 +106,11 @@ export default function TrendingFundraisers() {
       )}
 
       {!loading && (
-        <div className="overflow-hidden">
+        <div className="overflow-hidden relative">
+          {/* Subtle gradient overlay on edges */}
+          <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+          
           <div
             className="flex transition-transform duration-700 ease-out"
             style={{ transform: `translateX(-${activeIndex * 100}%)` }}
@@ -121,8 +128,10 @@ export default function TrendingFundraisers() {
                 >
                   <Link
                     to={`/campaign/${c._id}`}
-                    className="bg-white shadow-md rounded-2xl overflow-hidden hover:shadow-lg transition flex flex-col h-[500px] block"
+                    className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col h-[500px] block border border-[#E0F2F2] relative group"
                   >
+                    {/* Subtle light effect on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
                     <div className="h-[200px] w-full overflow-hidden bg-gray-200">
                       <img
                         src={resolveImg(c.image || c.imageUrl)}

@@ -43,8 +43,14 @@ export default function SuccessStories() {
   }, []);
 
   return (
-    <section className="w-[90%] mx-auto my-16">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+    <section className="w-[90%] mx-auto mt-32 mb-20 relative">
+      {/* Decorative separator with light effect */}
+      <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 w-full max-w-2xl">
+        <div className="h-px bg-gradient-to-r from-transparent via-[#CFE7E7] to-transparent"></div>
+        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-1 bg-gradient-to-r from-transparent via-[#00B5B8] to-transparent opacity-40 blur-sm"></div>
+      </div>
+      
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
         <div>
           <p className="uppercase text-xs tracking-[0.4em] text-[#00B5B8] font-semibold">
             Voices of Trust
@@ -67,7 +73,11 @@ export default function SuccessStories() {
         </div>
       </div>
 
-      <div className="overflow-hidden">
+      <div className="overflow-hidden relative">
+        {/* Subtle gradient overlay on edges */}
+        <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+        
         <div
           className="flex transition-transform duration-700 ease-out"
           style={{ transform: `translateX(-${activeIndex * 100}%)` }}
@@ -77,7 +87,9 @@ export default function SuccessStories() {
               key={story.name}
               className="min-w-full md:min-w-[50%] lg:min-w-[33.3333%] px-4"
             >
-              <div className="bg-white border border-[#CFE7E7] rounded-2xl p-6 shadow-sm h-full">
+              <div className="bg-white border border-[#CFE7E7] rounded-2xl p-6 shadow-md h-full hover:shadow-lg hover:border-[#00B5B8]/30 transition-all duration-300 relative group">
+                {/* Subtle light effect on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
                 <div className="flex items-center gap-4 mb-4">
                   <div className="h-16 w-16 rounded-full bg-[#E6F7F7] flex items-center justify-center text-[#00B5B8] font-semibold text-xl">
                     {story.avatar ? (
