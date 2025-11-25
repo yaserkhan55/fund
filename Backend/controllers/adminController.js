@@ -39,13 +39,28 @@ export const adminLogin = async (req, res) => {
 // ✅ PENDING CAMPAIGNS
 export const getPendingCampaigns = async (req, res) => {
   try {
-    // Get all campaigns that are NOT explicitly approved or rejected
-    // This will catch: status="pending", status=null, status=undefined, status="", 
-    // and any old campaigns without status field
+    // More comprehensive query to catch ALL pending campaigns
+    // This includes: status="pending", null, undefined, "", or missing status field
+    // AND campaigns where isApproved is false or not set
     const pending = await Campaign.find({
-      $and: [
-        { status: { $ne: "approved" } },
-        { status: { $ne: "rejected" } }
+      $or: [
+        { status: "pending" },
+        { status: { $exists: false } },
+        { status: null },
+        { status: "" },
+        {
+          $and: [
+            { status: { $ne: "approved" } },
+            { status: { $ne: "rejected" } },
+            {
+              $or: [
+                { isApproved: { $exists: false } },
+                { isApproved: false },
+                { isApproved: null }
+              ]
+            }
+          ]
+        }
       ]
     })
     .sort({ createdAt: -1 }) // Newest first
@@ -54,8 +69,8 @@ export const getPendingCampaigns = async (req, res) => {
     // Log campaign details for debugging
     if (pending.length > 0) {
       console.log(`📋 Found ${pending.length} pending campaigns:`);
-      pending.slice(0, 5).forEach((c, idx) => {
-        console.log(`   ${idx + 1}. ${c.title} (ID: ${c._id}, Status: ${c.status || 'null'}, Created: ${c.createdAt})`);
+      pending.slice(0, 10).forEach((c, idx) => {
+        console.log(`   ${idx + 1}. ${c.title} (ID: ${c._id}, Status: ${c.status || 'null'}, isApproved: ${c.isApproved}, Created: ${c.createdAt})`);
       });
     } else {
       console.log("📋 No pending campaigns found");
