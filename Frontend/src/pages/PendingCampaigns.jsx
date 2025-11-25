@@ -17,7 +17,12 @@ const PendingCampaigns = () => {
       });
 
       const data = await res.json();
-      setCampaigns(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.campaigns)
+        ? data.campaigns
+        : [];
+      setCampaigns(list);
     } catch (err) {
       console.error("Error loading pending:", err);
     } finally {

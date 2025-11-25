@@ -43,7 +43,12 @@ export default function AdminDashboard() {
       }
 
       const data = await res.json();
-      setItems(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.campaigns)
+        ? data.campaigns
+        : [];
+      setItems(list);
     } catch (err) {
       setError("Failed to load campaigns");
     } finally {
@@ -158,6 +163,27 @@ export default function AdminDashboard() {
         <div className="flex-1">
           <h3 className="text-lg font-semibold">{c.title}</h3>
           <p className="text-sm text-gray-600 mt-1">{c.shortDescription}</p>
+
+          {(Array.isArray(c.documents) && c.documents.length > 0) ||
+          (Array.isArray(c.medicalDocuments) && c.medicalDocuments.length > 0) ? (
+            <div className="mt-3">
+              <p className="text-xs uppercase tracking-wide text-gray-500">
+                Medical documents
+              </p>
+              <div className="flex gap-2 overflow-x-auto pt-2">
+                {(c.documents?.length ? c.documents : c.medicalDocuments || []).map(
+                  (doc, idx) => (
+                    <img
+                      key={`${c._id}-doc-${idx}`}
+                      src={resolveImg(doc)}
+                      alt="Document"
+                      className="h-16 w-16 object-cover rounded border"
+                    />
+                  )
+                )}
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-3 flex gap-2 flex-wrap">
             {activeTab === "pending" && (

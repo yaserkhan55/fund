@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
+import { FaWhatsapp } from "react-icons/fa";
 import DonationModal from "../components/DonationModal";
 
 const FALLBACK = "/no-image.png";
 const TABS = [
   { id: "about", label: "About" },
   { id: "documents", label: "Documents" },
-  { id: "updates", label: "Updates" },
-  { id: "comments", label: "Comments" },
 ];
 
 export default function CampaignDetails() {
@@ -238,17 +237,6 @@ export default function CampaignDetails() {
     ) : (
       <p className="text-gray-500">Medical documents will appear here once uploaded.</p>
     ),
-    updates: (
-      <div className="text-gray-500">
-        No updates yet. Campaigners can share treatment progress for supporters.
-      </div>
-    ),
-    comments: (
-      <div className="text-gray-500">
-        Comments are disabled for now. Reach out via the share buttons to
-        support this fundraiser.
-      </div>
-    ),
   };
 
   const galleryItems = patientImages.length
@@ -264,7 +252,7 @@ export default function CampaignDetails() {
               <img
                 src={heroMedia}
                 alt={campaign.title}
-                className="w-full h-[360px] object-cover"
+                className="w-full h-[300px] object-cover"
                 onError={(e) => (e.currentTarget.src = FALLBACK)}
               />
               <button
@@ -375,27 +363,16 @@ export default function CampaignDetails() {
               className="w-full mt-6 py-3 rounded-2xl bg-[#00B5B8] text-white font-semibold shadow-md hover:bg-[#009EA1] transition"
               onClick={() => setShowDonation(true)}
             >
-              ❤️ Contribute Now
+              Contribute Now
             </button>
 
-            <div className="grid grid-cols-2 gap-3 mt-4">
+            <div className="mt-4">
               <button
                 onClick={() => handleShare("whatsapp")}
-                className="py-3 rounded-2xl border border-[#00B5B8] text-[#00B5B8] font-semibold hover:bg-[#E0F7F8] transition flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-2xl border border-[#00B5B8] text-[#00B5B8] font-semibold hover:bg-[#E0F7F8] transition flex items-center justify-center gap-2"
               >
-                <span role="img" aria-label="whatsapp">
-                  📱
-                </span>
-                Share
-              </button>
-              <button
-                onClick={() => handleShare("facebook")}
-                className="py-3 rounded-2xl border border-[#3B5998] text-[#3B5998] font-semibold hover:bg-[#EDF1FB] transition flex items-center justify-center gap-2"
-              >
-                <span role="img" aria-label="facebook">
-                  📣
-                </span>
-                Share
+                <FaWhatsapp className="text-xl" />
+                Share on WhatsApp
               </button>
             </div>
             <button

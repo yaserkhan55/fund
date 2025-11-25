@@ -43,6 +43,12 @@ export default function CreateCampaign() {
     e.preventDefault();
     setLoading(true);
     try {
+      if (documents.length === 0) {
+        showPopup("error", "Please upload at least one supporting document.");
+        setLoading(false);
+        return;
+      }
+
       const fd = new FormData();
       Object.keys(formData).forEach((key) => fd.append(key, formData[key]));
 
@@ -280,14 +286,18 @@ export default function CreateCampaign() {
           {/* DOCUMENT UPLOAD */}
           <div>
             <label className="block font-semibold text-[#003D3B] mb-1">
-              Upload Documents (Optional)
+              Upload Medical Documents *
             </label>
             <input
               type="file"
               multiple
               onChange={handleDocsChange}
               className="w-full p-2"
+              required
             />
+            <p className="text-sm text-gray-500 mt-1">
+              Share discharge summaries, prescriptions or bills to help our admin team verify.
+            </p>
           </div>
 
           {/* SUBMIT BUTTON */}
