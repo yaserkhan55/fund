@@ -49,13 +49,14 @@ export default function AdminDashboard() {
         return;
       }
 
-       if (!res.ok) {
-         throw new Error(
-           tab === "pending"
-             ? "Pending campaigns couldn’t be loaded. Check API /pending or server status."
-             : "Failed to load campaigns"
-         );
-       }
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(
+          tab === "pending"
+            ? `Pending campaigns couldn't be loaded. ${errorData.message || "Check API /pending or server status."}`
+            : "Failed to load campaigns"
+        );
+      }
 
       const data = await res.json();
       const list = Array.isArray(data)
@@ -63,12 +64,15 @@ export default function AdminDashboard() {
         : Array.isArray(data?.campaigns)
         ? data.campaigns
         : [];
+      
+      console.log(`Loaded ${list.length} ${tab} campaigns`);
       setItems(list);
     } catch (err) {
+      console.error("Error loading campaigns:", err);
       setError(
         err.message ||
           (tab === "pending"
-            ? "Pending campaigns couldn’t be loaded. Check API /pending or server status."
+            ? "Pending campaigns couldn't be loaded. Check API /pending or server status."
             : "Failed to load campaigns")
       );
     } finally {
