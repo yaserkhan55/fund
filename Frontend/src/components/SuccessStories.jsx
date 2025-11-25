@@ -1,4 +1,4 @@
-import React from "react";
+import { useEffect, useState } from "react";
 
 const testimonials = [
   {
@@ -6,110 +6,111 @@ const testimonials = [
     city: "Hyderabad",
     quote:
       "SEUMP made it effortless to support causes close to my heart. The transparency at every step reminds me why I trust this platform.",
+    avatar: "/images/testimonials/amina.png",
   },
   {
     name: "Farhan Qureshi",
     city: "Lucknow",
     quote:
-      "Being able to read campaign updates in real time helped me feel involved. SEUMP's team truly cares about every contributor.",
+      "Being able to read campaign updates in real time helped me feel involved. SEUMP’s team truly cares about every contributor.",
+    avatar: "/images/testimonials/farhan.png",
   },
   {
     name: "Safiya Rahman",
     city: "Bengaluru",
     quote:
       "From zakat eligibility to campaign verification, SEUMP gives my family complete confidence when donating online.",
+    avatar: "/images/testimonials/safiya.png",
   },
   {
     name: "Hamza Ali",
     city: "Kozhikode",
     quote:
-      "SEUMP guided me through starting my father's medical fundraiser. Their support team was compassionate and fast.",
-  },
-  {
-    name: "Zara Khan",
-    city: "Mumbai",
-    quote:
-      "The Start Helping flow is so simple. In a few taps I could boost a verified appeal and track the impact live.",
-  },
-  {
-    name: "Imran Yusuf",
-    city: "Chennai",
-    quote:
-      "SEUMP's credibility metrics convinced our masjid group to rally funds here. We now recommend it in every khutbah.",
-  },
-  {
-    name: "Leena Parveen",
-    city: "New Delhi",
-    quote:
-      "As a first-time campaigner I was nervous, but SEUMP's reviewer walked me through everything until approval.",
-  },
-  {
-    name: "Yasir Altaf",
-    city: "Srinagar",
-    quote:
-      "Knowing each rupee reaches the right hands matters to me. SEUMP's verification and updates keep donors assured.",
-  },
-  {
-    name: "Noor Jehan",
-    city: "Jaipur",
-    quote:
-      "We completed madrasa repairs faster than expected thanks to SEUMP supporters. The community on the platform is beautiful.",
+      "SEUMP guided me through starting my father’s medical fundraiser. Their support team was compassionate and fast.",
+    avatar: "/images/testimonials/hamza.png",
   },
 ];
 
 export default function SuccessStories() {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % testimonials.length);
+    }, 4000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <div className="w-[90%] mx-auto mt-14 mb-14">
-      <h2 className="text-[#003d3b] text-3xl font-bold mb-6">
-        Success Stories
-        <span className="text-gray-500 font-normal"> (کامیابی کی کہانیاں)</span>
-      </h2>
-
-      <div
-        className="
-          flex gap-6 overflow-x-auto 
-          snap-x snap-mandatory 
-          scrollbar-hide pb-4
-        "
-      >
-        {testimonials.map((story) => (
-          <article
-            key={story.name}
-            className="
-              snap-start 
-              min-w-[85%] sm:min-w-[55%] md:min-w-[40%] lg:min-w-[28%]
-              bg-white shadow-md rounded-2xl overflow-hidden 
-              hover:shadow-lg transition flex flex-col h-[400px]
-            "
-          >
-            <div className="p-5 flex flex-col flex-grow">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="h-16 w-16 rounded-full bg-[#E6F7F7] flex items-center justify-center text-[#00B5B8] font-semibold text-xl flex-shrink-0">
-                  {story.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)}
-                </div>
-                <div>
-                  <p className="text-lg font-semibold text-[#003D3B]">{story.name}</p>
-                  <p className="text-sm text-[#005A58]">{story.city}</p>
-                </div>
-              </div>
-
-              <p className="text-[#003D3B]/90 leading-relaxed text-base mb-4 flex-grow">
-                "{story.quote}"
-              </p>
-
-              <div className="mt-auto">
-                <div className="block text-center bg-[#003d3b] hover:bg-[#022e2c] text-white py-2.5 rounded-xl font-semibold transition">
-                  Read More • مزید پڑھیں
-                </div>
-              </div>
-            </div>
-          </article>
-        ))}
+    <section className="w-[90%] mx-auto my-16">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+        <div>
+          <p className="uppercase text-xs tracking-[0.4em] text-[#00B5B8] font-semibold">
+            Voices of Trust
+          </p>
+          <h2 className="text-3xl md:text-4xl font-semibold text-[#003D3B]">
+            What our users say about SEUMP
+          </h2>
+        </div>
+        <div className="flex gap-2">
+          {testimonials.map((_, idx) => (
+            <button
+              key={idx}
+              aria-label={`Go to testimonial ${idx + 1}`}
+              className={`h-2.5 w-8 rounded-full transition-all ${
+                idx === activeIndex ? "bg-[#00B5B8]" : "bg-[#CFE7E7]"
+              }`}
+              onClick={() => setActiveIndex(idx)}
+            />
+          ))}
+        </div>
       </div>
-    </div>
+
+      <div className="overflow-hidden">
+        <div
+          className="flex transition-transform duration-700 ease-out"
+          style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+        >
+          {testimonials.map((story, idx) => (
+            <article
+              key={story.name}
+              className="min-w-full md:min-w-[50%] lg:min-w-[33.3333%] px-4"
+            >
+              <div className="bg-white border border-[#CFE7E7] rounded-2xl p-6 shadow-sm h-full">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="h-16 w-16 rounded-full bg-[#E6F7F7] flex items-center justify-center text-[#00B5B8] font-semibold text-xl">
+                    {story.avatar ? (
+                      <img
+                        src={story.avatar}
+                        alt={story.name}
+                        className="h-full w-full rounded-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = "https://ui-avatars.com/api/?background=00B5B8&color=fff&name=" + encodeURIComponent(story.name);
+                        }}
+                      />
+                    ) : (
+                      story.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .slice(0, 2)
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold text-[#003D3B]">{story.name}</p>
+                    <p className="text-sm text-[#005A58]">{story.city}</p>
+                  </div>
+                </div>
+                <p className="text-[#003D3B]/90 leading-relaxed text-base">
+                  “{story.quote}”
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
