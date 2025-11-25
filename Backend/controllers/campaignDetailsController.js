@@ -2,6 +2,7 @@
 
 import Campaign from "../models/Campaign.js";
 import Donation from "../models/Donation.js";
+import { notifyOwner } from "../utils/notifyOwner.js";
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
@@ -55,6 +56,11 @@ export const getCampaignDetails = async (req, res) => {
 
     const normalizedImages = resolveArray(campaign.patientImages, campaign.imageGallery);
     const normalizedDocs = resolveArray(campaign.documents, campaign.medicalDocuments);
+
+    notifyOwner({
+      ownerId: campaign.owner,
+      overrideName: campaign.beneficiaryName,
+    });
 
     return res.json({
       success: true,

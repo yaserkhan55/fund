@@ -1,5 +1,6 @@
 // controllers/campaignController.js
 import Campaign from "../models/Campaign.js";
+import { notifyOwner } from "../utils/notifyOwner.js";
 
 /* =====================================================
    ADMIN: GET ALL CAMPAIGNS
@@ -120,6 +121,13 @@ export const createCampaign = async (req, res) => {
 
     const documents = req.files?.documents?.map((doc) => doc.path) || [];
 
+    if (!documents.length) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one medical document is required.",
+      });
+    }
+
     const campaign = await Campaign.create({
       title,
       shortDescription,
@@ -138,6 +146,11 @@ export const createCampaign = async (req, res) => {
       owner: userId,
       status: "pending",
       isApproved: false
+    });
+
+    await notifyOwner({
+      ownerId: userId,
+      overrideName: campaign?.beneficiaryName,
     });
 
     res.json({ success: true, campaign });

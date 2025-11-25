@@ -38,8 +38,15 @@ export const adminLogin = async (req, res) => {
 // ✅ PENDING CAMPAIGNS
 export const getPendingCampaigns = async (req, res) => {
   try {
-    const pending = await Campaign.find({ status: "pending" })
-      .sort({ createdAt: -1 });
+    const pending = await Campaign.find({
+      $or: [
+        { status: "pending" },
+        {
+          status: { $exists: false },
+          $or: [{ isApproved: { $exists: false } }, { isApproved: false }],
+        },
+      ],
+    }).sort({ createdAt: -1 });
 
     return res.json({ success: true, campaigns: pending });
 
@@ -51,8 +58,12 @@ export const getPendingCampaigns = async (req, res) => {
 // ✅ APPROVED CAMPAIGNS
 export const getApprovedCampaignsAdmin = async (req, res) => {
   try {
-    const approved = await Campaign.find({ status: "approved" })
-      .sort({ approvedAt: -1 });
+    const approved = await Campaign.find({
+      $or: [
+        { status: "approved" },
+        { status: { $exists: false }, isApproved: true },
+      ],
+    }).sort({ approvedAt: -1, createdAt: -1 });
 
     return res.json({ success: true, campaigns: approved });
 
@@ -64,8 +75,9 @@ export const getApprovedCampaignsAdmin = async (req, res) => {
 // ✅ REJECTED CAMPAIGNS
 export const getRejectedCampaignsAdmin = async (req, res) => {
   try {
-    const rejected = await Campaign.find({ status: "rejected" })
-      .sort({ createdAt: -1 });
+    const rejected = await Campaign.find({
+      $or: [{ status: "rejected" }],
+    }).sort({ createdAt: -1 });
 
     return res.json({ success: true, campaigns: rejected });
 
