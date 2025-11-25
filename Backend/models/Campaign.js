@@ -7,6 +7,7 @@ const campaignSchema = new mongoose.Schema(
     fullStory: { type: String, required: true },
 
     goalAmount: { type: Number, required: true },
+    raisedAmount: { type: Number, default: 0 },
     category: { type: String, required: true },
 
     beneficiaryName: { type: String, required: true },
@@ -24,13 +25,16 @@ const campaignSchema = new mongoose.Schema(
     image: { type: String },
 
     // NEW: Multiple images for carousel (like Ketto)
-    imageGallery: [{ type: String }],  
+    imageGallery: [{ type: String }],
+    patientImages: [{ type: String }],
 
     // NEW: Documents (medical files, prescriptions, bills)
     medicalDocuments: [{ type: String }],
+    documents: [{ type: String }],
 
     // NEW: About section (separate from fullStory)
     aboutSection: { type: String, default: "" },
+    about: { type: String, default: "" },
 
     // Owner reference (better than string)
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
