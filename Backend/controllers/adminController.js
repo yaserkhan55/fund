@@ -39,28 +39,12 @@ export const adminLogin = async (req, res) => {
 // ✅ PENDING CAMPAIGNS
 export const getPendingCampaigns = async (req, res) => {
   try {
-    // More comprehensive query to catch ALL pending campaigns
-    // This includes: status="pending", null, undefined, "", or missing status field
-    // AND campaigns where isApproved is false or not set
+    // Simple and reliable: Get ALL campaigns that are NOT approved and NOT rejected
+    // This catches everything: pending, null, undefined, "", or missing status
     const pending = await Campaign.find({
-      $or: [
-        { status: "pending" },
-        { status: { $exists: false } },
-        { status: null },
-        { status: "" },
-        {
-          $and: [
-            { status: { $ne: "approved" } },
-            { status: { $ne: "rejected" } },
-            {
-              $or: [
-                { isApproved: { $exists: false } },
-                { isApproved: false },
-                { isApproved: null }
-              ]
-            }
-          ]
-        }
+      $and: [
+        { status: { $ne: "approved" } },
+        { status: { $ne: "rejected" } }
       ]
     })
     .sort({ createdAt: -1 }) // Newest first
