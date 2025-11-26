@@ -43,16 +43,18 @@ export const getPendingCampaigns = async (req, res) => {
     // This catches everything: pending, null, undefined, "", or missing status
     // Also include campaigns where isApproved is false or not set
     const pending = await Campaign.find({
-      $and: [
+      $or: [
+        { status: { $exists: false } },
+        { status: null },
+        { status: "" },
         {
-          $or: [
-            { status: "pending" },
-            { status: { $exists: false } },
-            { status: null }
-          ]
+          status: {
+            $not: {
+              $in: ["approved", "Approved", "rejected", "Rejected"],
+            },
+          },
         },
-        { isApproved: { $ne: true } }
-      ]
+      ],
     })
     .populate({
       path: "owner",
