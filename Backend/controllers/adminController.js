@@ -58,12 +58,20 @@ export const getPendingCampaigns = async (req, res) => {
           (typeof c.owner === 'object' ? `${c.owner.name || 'Unknown'} (${c.owner.email || 'No email'})` : c.owner) :
           'No owner';
         console.log(`   ${idx + 1}. ${c.title}`);
-        console.log(`      ID: ${c._id}, Status: ${c.status || 'null'}, isApproved: ${c.isApproved}`);
+        console.log(`      ID: ${c._id}`);
+        console.log(`      Status: ${c.status || 'null'}, isApproved: ${c.isApproved}`);
         console.log(`      Owner: ${ownerInfo}`);
         console.log(`      Created: ${c.createdAt}`);
+        console.log(`      Owner Type: ${typeof c.owner}`);
       });
     } else {
       console.log("📋 No pending campaigns found");
+      
+      // Debug: Check total campaigns in database
+      const totalCampaigns = await Campaign.countDocuments({});
+      const approvedCount = await Campaign.countDocuments({ status: "approved" });
+      const rejectedCount = await Campaign.countDocuments({ status: "rejected" });
+      console.log(`📊 Database stats: Total=${totalCampaigns}, Approved=${approvedCount}, Rejected=${rejectedCount}`);
     }
 
     return res.json({ success: true, campaigns: pending });

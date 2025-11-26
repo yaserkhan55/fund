@@ -222,7 +222,8 @@ export const createCampaign = async (req, res) => {
       });
     }
 
-    const campaign = await Campaign.create({
+    // Ensure status is explicitly set
+    const campaignData = {
       title,
       shortDescription,
       fullStory,
@@ -240,13 +241,25 @@ export const createCampaign = async (req, res) => {
       owner: userId, // Now using MongoDB ObjectId
       status: "pending", // Explicitly set to pending
       isApproved: false // Explicitly set to false
+    };
+
+    console.log(`📝 Creating campaign with data:`, {
+      title: campaignData.title,
+      owner: campaignData.owner,
+      status: campaignData.status,
+      isApproved: campaignData.isApproved
     });
 
+    const campaign = await Campaign.create(campaignData);
+
+    // Verify campaign was created correctly
+    const verifyCampaign = await Campaign.findById(campaign._id);
     console.log(`✅ New campaign created: ${campaign._id} - ${campaign.title}`);
     console.log(`   Owner (MongoDB ID): ${userId}`);
     console.log(`   Owner (Clerk ID): ${clerkUserId}`);
-    console.log(`   Status: ${campaign.status}, isApproved: ${campaign.isApproved}`);
+    console.log(`   Status: ${verifyCampaign.status}, isApproved: ${verifyCampaign.isApproved}`);
     console.log(`   User Email: ${mongoUser.email}, User Name: ${mongoUser.name}`);
+    console.log(`   Campaign verified in DB: Status=${verifyCampaign.status}, isApproved=${verifyCampaign.isApproved}`);
 
     await notifyOwner({
       ownerId: userId,

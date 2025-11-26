@@ -12,17 +12,19 @@ const router = express.Router();
 
 router.post("/google-auth", async (req, res) => {
   try {
-    const { email, name } = req.body;
+    const { email, name, clerkId } = req.body;
 
     if (!email) {
       return res.status(400).json({ success: false, message: "Email missing" });
     }
 
+    console.log(`🔄 Syncing user to MongoDB: ${email}, Clerk ID: ${clerkId || 'none'}`);
+
     // Check if user already exists (by email or Clerk ID)
     let user = await User.findOne({ 
       $or: [
         { email: email.toLowerCase() },
-        { clerkId: req.body.clerkId }
+        ...(clerkId ? [{ clerkId }] : [])
       ]
     });
 
@@ -33,16 +35,25 @@ router.post("/google-auth", async (req, res) => {
         email: email.toLowerCase(),
         password: "clerk-auth", // Placeholder for Clerk/Google users
         provider: "clerk", // Default to clerk for Clerk-authenticated users
+        clerkId: clerkId || null,
         role: "user"
       });
-      console.log(`✅ Created new MongoDB user: ${email} (ID: ${user._id})`);
+      console.log(`✅ Created new MongoDB user: ${email} (ID: ${user._id}, Clerk ID: ${clerkId || 'none'})`);
     } else {
       // Update existing user if needed
-      if (req.body.clerkId && !user.clerkId) {
-        user.clerkId = req.body.clerkId;
+      if (clerkId && !user.clerkId) {
+        user.clerkId = clerkId;
         user.provider = user.provider || "clerk";
+        if (name && name !== user.name) {
+          user.name = name;
+        }
         await user.save();
-        console.log(`✅ Updated existing user with Clerk ID: ${email}`);
+        console.log(`✅ Updated existing user with Clerk ID: ${email} (MongoDB ID: ${user._id})`);
+      } else if (clerkId && user.clerkId !== clerkId) {
+        // Update Clerk ID if different
+        user.clerkId = clerkId;
+        await user.save();
+        console.log(`✅ Updated Clerk ID for user: ${email}`);
       }
     }
 
