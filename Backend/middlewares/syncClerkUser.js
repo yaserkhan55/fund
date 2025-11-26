@@ -2,6 +2,7 @@
 // Ensures Clerk users are synced to MongoDB User collection
 
 import User from "../models/User.js";
+import ClerkProfile from "../models/ClerkProfile.js";
 import { clerkClient } from "@clerk/express";
 
 /**
@@ -25,11 +26,14 @@ export const syncClerkUser = async (req, res, next) => {
     });
 
     // If user doesn't exist, create it from Clerk data
+    let clerkPayload = null;
+
     if (!mongoUser) {
       try {
         // Fetch user details from Clerk
         const clerkUser = await clerkClient.users.getUser(clerkUserId);
-        
+        clerkPayload = clerkUser;
+
         const email = clerkUser.emailAddresses?.[0]?.emailAddress || 
                      req.auth?.sessionClaims?.email || 
                      `${clerkUserId}@clerk-user.com`;
@@ -42,7 +46,8 @@ export const syncClerkUser = async (req, res, next) => {
             "User";
 
         // Check if email already exists (might be from different auth method)
-        const existingByEmail = await User.findOne({ email: email.toLowerCase() });
+        const lowerEmail = email.toLowerCase();
+        const existingByEmail = await User.findOne({ email: lowerEmail });
         
         if (existingByEmail) {
           // Update existing user with Clerk ID
@@ -55,7 +60,7 @@ export const syncClerkUser = async (req, res, next) => {
           // Create new user
           mongoUser = await User.create({
             name,
-            email: email.toLowerCase(),
+            email: lowerEmail,
             clerkId: clerkUserId,
             picture: clerkUser.imageUrl || "",
             provider: "clerk",
@@ -78,6 +83,47 @@ export const syncClerkUser = async (req, res, next) => {
         });
         console.log(`✅ Created fallback MongoDB user for Clerk ID: ${clerkUserId}`);
       }
+    }
+
+    try {
+      // Always ensure ClerkProfile is stored/updated for this user (simple no-webhook setup)
+      const payload =
+        clerkPayload ||
+        (await clerkClient.users.getUser(clerkUserId).catch(() => null));
+
+      if (payload) {
+        const primaryEmailId = payload.primaryEmailAddressId || payload.primary_email_address_id;
+        const emailList =
+          payload.emailAddresses || payload.email_addresses || [];
+        const primaryEmail =
+          emailList.find((e) => e.id === primaryEmailId)?.emailAddress ||
+          emailList[0]?.email_address ||
+          emailList[0]?.emailAddress ||
+          mongoUser.email;
+
+        await ClerkProfile.findOneAndUpdate(
+          { clerkId: clerkUserId },
+          {
+            clerkId: clerkUserId,
+            email: (primaryEmail || mongoUser.email || "").toLowerCase(),
+            firstName: payload.firstName || payload.first_name || "",
+            lastName: payload.lastName || payload.last_name || "",
+            username: payload.username || "",
+            imageUrl: payload.imageUrl || payload.image_url || "",
+            phoneNumbers: (payload.phoneNumbers || payload.phone_numbers || []).map(
+              (p) => p.phoneNumber || p.phone_number
+            ),
+            primaryEmailId: primaryEmailId || "",
+            status: payload.deleted ? "deleted" : "active",
+            lastSyncedAt: new Date(),
+            raw: payload,
+            deletedAt: payload.deleted ? new Date() : null,
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      }
+    } catch (profileErr) {
+      console.error("Error syncing ClerkProfile:", profileErr);
     }
 
     // Attach MongoDB user ID to request for use in controllers
