@@ -86,14 +86,34 @@ router.get("/:id", getCampaignById);
 /* ===========================
    CREATE CAMPAIGN
 =========================== */
+const uploadMiddleware = upload.fields([
+  { name: "image", maxCount: 1 },
+  { name: "documents", maxCount: 10 },
+]);
+
 router.post(
   "/create",
   requireAuth(),
   syncClerkUser,
-  upload.fields([
-    { name: "image", maxCount: 1 },
-    { name: "documents", maxCount: 10 },
-  ]),
+  (req, res, next) => {
+    uploadMiddleware(req, res, (err) => {
+      if (err) {
+        console.error("❌ File upload error:", err);
+        return res.status(400).json({
+          success: false,
+          message: `File upload failed: ${err.message || "Unknown error"}`
+        });
+      }
+      // Log file upload info for debugging
+      console.log("📤 File upload middleware completed");
+      console.log("Files received:", {
+        hasFiles: !!req.files,
+        image: req.files?.image?.length || 0,
+        documents: req.files?.documents?.length || 0
+      });
+      next();
+    });
+  },
   createCampaign
 );
 

@@ -230,11 +230,35 @@ export const createCampaign = async (req, res) => {
     // Set default category if missing
     const finalCategory = category || "medical";
 
-    const image = req.files?.image?.length
-      ? req.files.image[0].path
-      : null;
+    // Handle file uploads - Cloudinary returns secure_url in the file object
+    let image = null;
+    let documents = [];
 
-    const documents = req.files?.documents?.map((doc) => doc.path) || [];
+    if (req.files) {
+      // Image file
+      if (req.files.image && req.files.image.length > 0) {
+        const imgFile = req.files.image[0];
+        // Cloudinary returns secure_url or path
+        image = imgFile.secure_url || imgFile.path || imgFile.url;
+        console.log(`📷 Image uploaded: ${image}`);
+      }
+
+      // Document files
+      if (req.files.documents && req.files.documents.length > 0) {
+        documents = req.files.documents.map((doc) => {
+          return doc.secure_url || doc.path || doc.url;
+        });
+        console.log(`📄 Documents uploaded: ${documents.length} files`);
+      }
+    }
+
+    console.log(`📦 Files received:`, {
+      hasFiles: !!req.files,
+      imageCount: req.files?.image?.length || 0,
+      documentCount: req.files?.documents?.length || 0,
+      image: image,
+      documents: documents
+    });
 
     if (!documents.length) {
       return res.status(400).json({
