@@ -147,6 +147,11 @@ export default function TrendingFundraisers() {
                 c.goalAmount > 0
                   ? Math.min((c.raisedAmount / c.goalAmount) * 100, 100)
                   : 0;
+              
+              // Calculate days remaining if endDate exists
+              const daysRemaining = c.endDate 
+                ? Math.ceil((new Date(c.endDate) - new Date()) / (1000 * 60 * 60 * 24))
+                : null;
 
               return (
                 <div
@@ -160,59 +165,100 @@ export default function TrendingFundraisers() {
                 >
                   <Link
                     to={`/campaign/${c._id}`}
-                    className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col h-[500px] block border border-[#E0F2F2] relative group w-full"
+                    className="bg-white shadow-md rounded-xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col block border border-gray-100 relative group w-full min-h-[520px]"
                   >
-                    {/* Subtle light effect on hover */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                    <div className="h-[200px] w-full overflow-hidden bg-gray-200">
+                    {/* Image Section - Professional 16:9 aspect ratio */}
+                    <div className="relative w-full h-[240px] overflow-hidden bg-gray-100">
                       <img
                         src={resolveImg(c.image || c.imageUrl)}
                         alt={c.title}
-                        className="h-full w-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => (e.currentTarget.src = "/no-image.png")}
                       />
-                    </div>
-
-                    <div className="p-5 flex flex-col flex-grow">
-                      <div className="flex items-center justify-between mb-2">
-                        {c.category && (
-                          <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-full">
+                      {/* Gradient overlay for better text readability if needed */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      
+                      {/* Category badge on image */}
+                      {c.category && (
+                        <div className="absolute top-3 left-3">
+                          <span className="text-xs font-semibold text-white uppercase bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
                             {c.category}
                           </span>
-                        )}
-                        {c.zakatEligible && (
-                          <span className="text-xs font-semibold text-[#00897B] bg-[#E6F5F3] px-3 py-1 rounded-full">
+                        </div>
+                      )}
+                      
+                      {/* Zakat badge on image */}
+                      {c.zakatEligible && (
+                        <div className="absolute top-3 right-3">
+                          <span className="text-xs font-semibold text-white bg-[#00897B] px-3 py-1.5 rounded-full shadow-md">
                             ✓ Zakat Eligible
                           </span>
-                        )}
-                      </div>
+                        </div>
+                      )}
+                    </div>
 
-                      <h3 className="text-lg font-bold text-[#003d3b] mb-2 line-clamp-2">
+                    {/* Content Section */}
+                    <div className="p-5 flex flex-col flex-grow">
+                      {/* Title */}
+                      <h3 className="text-lg font-bold text-[#1a1a1a] mb-2 line-clamp-2 leading-tight group-hover:text-[#00B5B8] transition-colors duration-200">
                         {c.title}
                       </h3>
 
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                      {/* Description */}
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed">
                         {c.shortDescription || "No description available."}
                       </p>
 
-                      <div className="mt-auto">
-                        <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
-                          <div
-                            className="h-2 rounded-full transition-all"
-                            style={{
-                              width: `${progress}%`,
-                              background: "#F9A826",
-                            }}
-                          ></div>
+                      {/* Progress Section */}
+                      <div className="mt-auto space-y-3">
+                        {/* Progress Bar */}
+                        <div className="space-y-2">
+                          <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${progress}%`,
+                                background: "linear-gradient(90deg, #F9A826 0%, #FFB84D 100%)",
+                              }}
+                            ></div>
+                          </div>
+                          
+                          {/* Amount Display */}
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-xs text-gray-500 font-medium">Raised</p>
+                              <p className="text-lg font-bold text-[#1a1a1a]">₹{(c.raisedAmount || 0).toLocaleString('en-IN')}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500 font-medium">Goal</p>
+                              <p className="text-lg font-bold text-[#1a1a1a]">₹{(c.goalAmount || 0).toLocaleString('en-IN')}</p>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="flex justify-between text-sm font-semibold text-[#003d3b] mb-4">
-                          <span>₹{(c.raisedAmount || 0).toLocaleString()}</span>
-                          <span>of ₹{(c.goalAmount || 0).toLocaleString()}</span>
+                        {/* Campaign Info */}
+                        <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                          {daysRemaining !== null && daysRemaining > 0 && (
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              {daysRemaining} {daysRemaining === 1 ? 'Day' : 'Days'} left
+                            </span>
+                          )}
+                          {c.contributors && (
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                              {c.contributors >= 1000 ? `${(c.contributors / 1000).toFixed(1)}k` : c.contributors} {c.contributors === 1 ? 'contributor' : 'contributors'}
+                            </span>
+                          )}
                         </div>
 
-                        <div className="block text-center bg-[#00B5B8] hover:bg-[#009EA1] text-white py-2.5 rounded-xl font-semibold transition">
-                          View Details • مزید معلومات
+                        {/* CTA Button */}
+                        <div className="w-full bg-[#00B5B8] group-hover:bg-[#009EA1] text-white py-3 rounded-lg font-semibold text-sm transition-all duration-200 shadow-sm group-hover:shadow-md mt-3 text-center">
+                          Contribute Now
                         </div>
                       </div>
                     </div>
