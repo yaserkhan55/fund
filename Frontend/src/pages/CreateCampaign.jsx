@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import api from "../lib/api";
 
 export default function CreateCampaign() {
+  const { isSignedIn, getToken } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     shortDescription: "",
@@ -55,7 +57,24 @@ export default function CreateCampaign() {
       if (image) fd.append("image", image);
       documents.forEach((doc) => fd.append("documents", doc));
 
-      const token = localStorage.getItem("token");
+      if (!isSignedIn) {
+        showPopup("error", "Please sign in to create a fundraiser.");
+        setLoading(false);
+        return;
+      }
+
+      let token = null;
+      try {
+        token = await getToken();
+      } catch (err) {
+        token = localStorage.getItem("token");
+      }
+
+      if (!token) {
+        showPopup("error", "Session expired. Please sign in again.");
+        setLoading(false);
+        return;
+      }
 
       await api.post(`/api/campaigns/create`, fd, {
         headers: {
