@@ -137,6 +137,26 @@ export default function CreateCampaign() {
             />
           </div>
 
+          {/* CATEGORY */}
+          <div>
+            <label className="block font-semibold text-[#003D3B] mb-1">
+              Category *
+            </label>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#00AEEF]"
+              required
+            >
+              <option value="">Select category</option>
+              <option value="medical">Medical</option>
+              <option value="education">Education</option>
+              <option value="emergency">Emergency</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
           {/* RELATION */}
           <div>
             <label className="block font-semibold text-[#003D3B] mb-1">
