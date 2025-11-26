@@ -18,17 +18,32 @@ router.post("/google-auth", async (req, res) => {
       return res.status(400).json({ success: false, message: "Email missing" });
     }
 
-    // Check if this Google user already exists
-    let user = await User.findOne({ email });
+    // Check if user already exists (by email or Clerk ID)
+    let user = await User.findOne({ 
+      $or: [
+        { email: email.toLowerCase() },
+        { clerkId: req.body.clerkId }
+      ]
+    });
 
     // If first time → create user
     if (!user) {
       user = await User.create({
-        name,
-        email,
-        password: "", // Google users have no password
+        name: name || email.split('@')[0] || "User",
+        email: email.toLowerCase(),
+        password: "clerk-auth", // Placeholder for Clerk/Google users
+        provider: "clerk", // Default to clerk for Clerk-authenticated users
         role: "user"
       });
+      console.log(`✅ Created new MongoDB user: ${email} (ID: ${user._id})`);
+    } else {
+      // Update existing user if needed
+      if (req.body.clerkId && !user.clerkId) {
+        user.clerkId = req.body.clerkId;
+        user.provider = user.provider || "clerk";
+        await user.save();
+        console.log(`✅ Updated existing user with Clerk ID: ${email}`);
+      }
     }
 
     // Create your own JWT
@@ -45,8 +60,8 @@ router.post("/google-auth", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Google auth error:", err);
-    return res.status(500).json({ success: false, message: "Google auth failed" });
+    console.error("Google/Clerk auth error:", err);
+    return res.status(500).json({ success: false, message: "Auth failed", error: err.message });
   }
 });
 

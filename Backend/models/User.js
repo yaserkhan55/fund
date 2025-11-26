@@ -16,8 +16,20 @@ const userSchema = new mongoose.Schema(
 
     password: {
       type: String,
-      required: [true, "Password is required"],
-      minlength: 6,
+      required: function() {
+        // Password not required for Clerk/Google users
+        return this.provider === "local";
+      },
+      validate: {
+        validator: function(v) {
+          // If provider is local, password must be at least 6 chars
+          if (this.provider === "local") {
+            return !v || v.length >= 6;
+          }
+          return true; // No validation for non-local providers
+        },
+        message: "Password must be at least 6 characters"
+      }
     },
 
     role: {
@@ -41,9 +53,19 @@ const userSchema = new mongoose.Schema(
 
     provider: {
       type: String,
-      enum: ["local", "google"],
+      enum: ["local", "google", "clerk"],
       default: "local",
     },
+
+    // ============================
+    // ✅ CLERK LOGIN FIELDS (ADDED)
+    // ============================
+    clerkId: {
+      type: String,
+      default: null,
+      sparse: true, // Allows multiple nulls
+    },
+    // ============================
     // ============================
 
     // ============================

@@ -1,6 +1,8 @@
 // controllers/campaignController.js
 import Campaign from "../models/Campaign.js";
+import User from "../models/User.js";
 import { notifyOwner } from "../utils/notifyOwner.js";
+import { clerkClient } from "@clerk/express";
 
 /* =====================================================
    ADMIN: GET ALL CAMPAIGNS
@@ -70,18 +72,33 @@ export const getCampaignById = async (req, res) => {
 ===================================================== */
 export const getMyCampaigns = async (req, res) => {
   try {
-    const userId = req.auth.userId;
+    const clerkUserId = req.auth?.userId;
+
+    if (!clerkUserId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    // Find MongoDB user by Clerk ID
+    const mongoUser = await User.findOne({ clerkId: clerkUserId });
+    
+    if (!mongoUser) {
+      console.log(`⚠️ No MongoDB user found for Clerk ID: ${clerkUserId}`);
+      return res.json({ success: true, campaigns: [] });
+    }
+
+    const mongoUserId = mongoUser._id.toString();
 
     const campaigns = await Campaign.find({
       $or: [
-        { owner: userId },
-        { createdBy: userId }
+        { owner: mongoUserId },
+        { owner: mongoUser._id },
+        { createdBy: mongoUserId }
       ]
     })
     .sort({ createdAt: -1 })
-    .lean(); // Use lean() for better performance and to ensure all fields are returned
+    .lean();
 
-    console.log(`Found ${campaigns.length} campaigns for user ${userId}`);
+    console.log(`Found ${campaigns.length} campaigns for user ${mongoUser.email} (MongoDB ID: ${mongoUserId}, Clerk ID: ${clerkUserId})`);
     
     // Log campaigns with infoRequests for debugging
     const campaignsWithRequests = campaigns.filter(c => c.infoRequests && c.infoRequests.length > 0);
@@ -105,14 +122,77 @@ export const getMyCampaigns = async (req, res) => {
 ===================================================== */
 export const createCampaign = async (req, res) => {
   try {
-    const userId = req.auth.userId;
+    const clerkUserId = req.auth?.userId;
 
-    if (!userId) {
+    if (!clerkUserId) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized"
       });
     }
+
+    // Ensure user exists in MongoDB (sync Clerk user)
+    let mongoUser = await User.findOne({ 
+      $or: [
+        { clerkId: clerkUserId },
+        { email: req.auth?.sessionClaims?.email }
+      ]
+    });
+
+    if (!mongoUser) {
+      try {
+        // Fetch user details from Clerk
+        const clerkUser = await clerkClient.users.getUser(clerkUserId);
+        
+        const email = clerkUser.emailAddresses?.[0]?.emailAddress || 
+                     req.auth?.sessionClaims?.email || 
+                     `${clerkUserId}@clerk-user.com`;
+        
+        const name = clerkUser.firstName && clerkUser.lastName
+          ? `${clerkUser.firstName} ${clerkUser.lastName}`
+          : clerkUser.firstName || 
+            clerkUser.username || 
+            email.split('@')[0] ||
+            "User";
+
+        // Check if email already exists
+        const existingByEmail = await User.findOne({ email: email.toLowerCase() });
+        
+        if (existingByEmail) {
+          existingByEmail.clerkId = clerkUserId;
+          existingByEmail.picture = clerkUser.imageUrl || existingByEmail.picture;
+          await existingByEmail.save();
+          mongoUser = existingByEmail;
+          console.log(`✅ Synced existing user with Clerk ID: ${email}`);
+        } else {
+          mongoUser = await User.create({
+            name,
+            email: email.toLowerCase(),
+            clerkId: clerkUserId,
+            picture: clerkUser.imageUrl || "",
+            provider: "clerk",
+            password: "clerk-auth",
+            role: "user"
+          });
+          console.log(`✅ Created new MongoDB user from Clerk: ${email} (ID: ${mongoUser._id})`);
+        }
+      } catch (clerkError) {
+        console.error("Error syncing Clerk user:", clerkError);
+        // Fallback: create minimal user
+        const email = req.auth?.sessionClaims?.email || `${clerkUserId}@clerk-user.com`;
+        mongoUser = await User.create({
+          name: "User",
+          email: email.toLowerCase(),
+          clerkId: clerkUserId,
+          provider: "clerk",
+          password: "clerk-auth",
+          role: "user"
+        });
+        console.log(`✅ Created fallback MongoDB user for Clerk ID: ${clerkUserId}`);
+      }
+    }
+
+    const userId = mongoUser._id.toString(); // Use MongoDB ObjectId
 
     const {
       title,
@@ -157,13 +237,16 @@ export const createCampaign = async (req, res) => {
       duration,
       image,
       documents,
-      owner: userId,
+      owner: userId, // Now using MongoDB ObjectId
       status: "pending", // Explicitly set to pending
       isApproved: false // Explicitly set to false
     });
 
     console.log(`✅ New campaign created: ${campaign._id} - ${campaign.title}`);
+    console.log(`   Owner (MongoDB ID): ${userId}`);
+    console.log(`   Owner (Clerk ID): ${clerkUserId}`);
     console.log(`   Status: ${campaign.status}, isApproved: ${campaign.isApproved}`);
+    console.log(`   User Email: ${mongoUser.email}, User Name: ${mongoUser.name}`);
 
     await notifyOwner({
       ownerId: userId,

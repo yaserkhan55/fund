@@ -47,14 +47,20 @@ export const getPendingCampaigns = async (req, res) => {
         { status: { $ne: "rejected" } }
       ]
     })
-    .sort({ createdAt: -1 }) // Newest first
-    .lean(); // Use lean() for better performance
+    .populate("owner", "name email clerkId provider") // Populate owner to see user details
+    .sort({ createdAt: -1 }); // Newest first
 
     // Log campaign details for debugging
     if (pending.length > 0) {
       console.log(`📋 Found ${pending.length} pending campaigns:`);
       pending.slice(0, 10).forEach((c, idx) => {
-        console.log(`   ${idx + 1}. ${c.title} (ID: ${c._id}, Status: ${c.status || 'null'}, isApproved: ${c.isApproved}, Created: ${c.createdAt})`);
+        const ownerInfo = c.owner ? 
+          (typeof c.owner === 'object' ? `${c.owner.name || 'Unknown'} (${c.owner.email || 'No email'})` : c.owner) :
+          'No owner';
+        console.log(`   ${idx + 1}. ${c.title}`);
+        console.log(`      ID: ${c._id}, Status: ${c.status || 'null'}, isApproved: ${c.isApproved}`);
+        console.log(`      Owner: ${ownerInfo}`);
+        console.log(`      Created: ${c.createdAt}`);
       });
     } else {
       console.log("📋 No pending campaigns found");
