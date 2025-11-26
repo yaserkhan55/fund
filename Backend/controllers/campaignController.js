@@ -3,6 +3,7 @@ import Campaign from "../models/Campaign.js";
 import User from "../models/User.js";
 import { notifyOwner } from "../utils/notifyOwner.js";
 import { clerkClient } from "@clerk/express";
+import mongoose from "mongoose";
 
 /* =====================================================
    ADMIN: GET ALL CAMPAIGNS
@@ -192,7 +193,8 @@ export const createCampaign = async (req, res) => {
       }
     }
 
-    const userId = mongoUser._id.toString(); // Use MongoDB ObjectId
+    // Use MongoDB ObjectId directly (not string)
+    const userId = mongoUser._id;
 
     const {
       title,
@@ -222,12 +224,12 @@ export const createCampaign = async (req, res) => {
       });
     }
 
-    // Ensure status is explicitly set
+    // Ensure status is explicitly set and owner is ObjectId
     const campaignData = {
       title,
       shortDescription,
       fullStory,
-      goalAmount,
+      goalAmount: Number(goalAmount),
       category,
       beneficiaryName,
       city,
@@ -235,10 +237,10 @@ export const createCampaign = async (req, res) => {
       zakatEligible: zakatEligible === "true" || zakatEligible === true,
       educationQualification,
       employmentStatus,
-      duration,
+      duration: duration ? Number(duration) : null,
       image,
       documents,
-      owner: userId, // Now using MongoDB ObjectId
+      owner: userId, // MongoDB ObjectId (not string)
       status: "pending", // Explicitly set to pending
       isApproved: false // Explicitly set to false
     };
@@ -246,20 +248,36 @@ export const createCampaign = async (req, res) => {
     console.log(`📝 Creating campaign with data:`, {
       title: campaignData.title,
       owner: campaignData.owner,
+      ownerType: typeof campaignData.owner,
+      ownerIsObjectId: campaignData.owner instanceof mongoose.Types.ObjectId,
       status: campaignData.status,
-      isApproved: campaignData.isApproved
+      isApproved: campaignData.isApproved,
+      userEmail: mongoUser.email,
+      userName: mongoUser.name
     });
 
     const campaign = await Campaign.create(campaignData);
 
-    // Verify campaign was created correctly
-    const verifyCampaign = await Campaign.findById(campaign._id);
+    // Verify campaign was created correctly by fetching it fresh from DB
+    const verifyCampaign = await Campaign.findById(campaign._id)
+      .populate("owner", "name email clerkId provider")
+      .lean();
+    
+    if (!verifyCampaign) {
+      console.error(`❌ Campaign creation failed - campaign not found after creation!`);
+      return res.status(500).json({
+        success: false,
+        message: "Campaign creation failed - verification error"
+      });
+    }
+
     console.log(`✅ New campaign created: ${campaign._id} - ${campaign.title}`);
     console.log(`   Owner (MongoDB ID): ${userId}`);
     console.log(`   Owner (Clerk ID): ${clerkUserId}`);
     console.log(`   Status: ${verifyCampaign.status}, isApproved: ${verifyCampaign.isApproved}`);
     console.log(`   User Email: ${mongoUser.email}, User Name: ${mongoUser.name}`);
     console.log(`   Campaign verified in DB: Status=${verifyCampaign.status}, isApproved=${verifyCampaign.isApproved}`);
+    console.log(`   Owner populated: ${verifyCampaign.owner ? 'Yes' : 'No'}`);
 
     await notifyOwner({
       ownerId: userId,

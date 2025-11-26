@@ -39,21 +39,63 @@ export const adminLogin = async (req, res) => {
 // ✅ PENDING CAMPAIGNS
 export const getPendingCampaigns = async (req, res) => {
   try {
-    // Simple and reliable: Get ALL campaigns that are NOT approved and NOT rejected
+    // Get ALL campaigns that are NOT approved and NOT rejected
     // This catches everything: pending, null, undefined, "", or missing status
+    // Also include campaigns where isApproved is false or not set
     const pending = await Campaign.find({
-      $and: [
-        { status: { $ne: "approved" } },
-        { status: { $ne: "rejected" } }
+      $or: [
+        {
+          $and: [
+            { status: { $ne: "approved" } },
+            { status: { $ne: "rejected" } }
+          ]
+        },
+        {
+          $and: [
+            { status: { $exists: false } },
+            { isApproved: { $ne: true } }
+          ]
+        },
+        {
+          status: null,
+          isApproved: { $ne: true }
+        }
       ]
     })
-    .populate("owner", "name email clerkId provider") // Populate owner to see user details
-    .sort({ createdAt: -1 }); // Newest first
+    .populate({
+      path: "owner",
+      select: "name email clerkId provider",
+      options: { strictPopulate: false } // Don't fail if owner doesn't exist
+    })
+    .sort({ createdAt: -1 }) // Newest first
+    .lean(); // Use lean for better performance
+
+    // Convert to plain objects and ensure owner is handled properly
+    const campaigns = pending.map(campaign => {
+      const campaignObj = { ...campaign };
+      
+      // If owner is null or doesn't exist, set a default
+      if (!campaignObj.owner || (typeof campaignObj.owner === 'object' && !campaignObj.owner._id)) {
+        campaignObj.owner = {
+          name: "Unknown User",
+          email: "unknown@user.com",
+          clerkId: null,
+          provider: "unknown"
+        };
+      }
+      
+      // Ensure status is set
+      if (!campaignObj.status) {
+        campaignObj.status = "pending";
+      }
+      
+      return campaignObj;
+    });
 
     // Log campaign details for debugging
-    if (pending.length > 0) {
-      console.log(`📋 Found ${pending.length} pending campaigns:`);
-      pending.slice(0, 10).forEach((c, idx) => {
+    if (campaigns.length > 0) {
+      console.log(`📋 Found ${campaigns.length} pending campaigns:`);
+      campaigns.slice(0, 10).forEach((c, idx) => {
         const ownerInfo = c.owner ? 
           (typeof c.owner === 'object' ? `${c.owner.name || 'Unknown'} (${c.owner.email || 'No email'})` : c.owner) :
           'No owner';
@@ -62,7 +104,7 @@ export const getPendingCampaigns = async (req, res) => {
         console.log(`      Status: ${c.status || 'null'}, isApproved: ${c.isApproved}`);
         console.log(`      Owner: ${ownerInfo}`);
         console.log(`      Created: ${c.createdAt}`);
-        console.log(`      Owner Type: ${typeof c.owner}`);
+        console.log(`      Owner ID: ${c.owner?._id || c.owner || 'Missing'}`);
       });
     } else {
       console.log("📋 No pending campaigns found");
@@ -71,10 +113,22 @@ export const getPendingCampaigns = async (req, res) => {
       const totalCampaigns = await Campaign.countDocuments({});
       const approvedCount = await Campaign.countDocuments({ status: "approved" });
       const rejectedCount = await Campaign.countDocuments({ status: "rejected" });
-      console.log(`📊 Database stats: Total=${totalCampaigns}, Approved=${approvedCount}, Rejected=${rejectedCount}`);
+      const pendingCount = await Campaign.countDocuments({
+        $or: [
+          {
+            $and: [
+              { status: { $ne: "approved" } },
+              { status: { $ne: "rejected" } }
+            ]
+          },
+          { status: null },
+          { status: { $exists: false } }
+        ]
+      });
+      console.log(`📊 Database stats: Total=${totalCampaigns}, Approved=${approvedCount}, Rejected=${rejectedCount}, Pending=${pendingCount}`);
     }
 
-    return res.json({ success: true, campaigns: pending });
+    return res.json(campaigns); // Return array directly for frontend compatibility
 
   } catch (err) {
     console.error("Error fetching pending campaigns:", err);
@@ -89,13 +143,36 @@ export const getApprovedCampaignsAdmin = async (req, res) => {
       $or: [
         { status: "approved" },
         { status: { $exists: false }, isApproved: true },
+        { isApproved: true }
       ],
-    }).sort({ approvedAt: -1, createdAt: -1 });
+    })
+    .populate({
+      path: "owner",
+      select: "name email clerkId provider",
+      options: { strictPopulate: false }
+    })
+    .sort({ approvedAt: -1, createdAt: -1 })
+    .lean();
 
-    return res.json({ success: true, campaigns: approved });
+    // Handle missing owners
+    const campaigns = approved.map(campaign => {
+      const campaignObj = { ...campaign };
+      if (!campaignObj.owner || (typeof campaignObj.owner === 'object' && !campaignObj.owner._id)) {
+        campaignObj.owner = {
+          name: "Unknown User",
+          email: "unknown@user.com",
+          clerkId: null,
+          provider: "unknown"
+        };
+      }
+      return campaignObj;
+    });
+
+    return res.json(campaigns); // Return array directly
 
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Failed to load approved" });
+    console.error("Error fetching approved campaigns:", err);
+    return res.status(500).json({ success: false, message: "Failed to load approved", error: err.message });
   }
 };
 
@@ -103,13 +180,35 @@ export const getApprovedCampaignsAdmin = async (req, res) => {
 export const getRejectedCampaignsAdmin = async (req, res) => {
   try {
     const rejected = await Campaign.find({
-      $or: [{ status: "rejected" }],
-    }).sort({ createdAt: -1 });
+      status: "rejected"
+    })
+    .populate({
+      path: "owner",
+      select: "name email clerkId provider",
+      options: { strictPopulate: false }
+    })
+    .sort({ createdAt: -1 })
+    .lean();
 
-    return res.json({ success: true, campaigns: rejected });
+    // Handle missing owners
+    const campaigns = rejected.map(campaign => {
+      const campaignObj = { ...campaign };
+      if (!campaignObj.owner || (typeof campaignObj.owner === 'object' && !campaignObj.owner._id)) {
+        campaignObj.owner = {
+          name: "Unknown User",
+          email: "unknown@user.com",
+          clerkId: null,
+          provider: "unknown"
+        };
+      }
+      return campaignObj;
+    });
+
+    return res.json(campaigns); // Return array directly
 
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Failed to load rejected" });
+    console.error("Error fetching rejected campaigns:", err);
+    return res.status(500).json({ success: false, message: "Failed to load rejected", error: err.message });
   }
 };
 
