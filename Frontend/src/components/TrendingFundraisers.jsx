@@ -107,10 +107,6 @@ export default function TrendingFundraisers() {
 
       {!loading && (
         <div className="overflow-hidden relative">
-          {/* Subtle gradient overlay on edges */}
-          <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
-          
           <div
             className="flex transition-transform duration-700 ease-out"
             style={{ transform: `translateX(-${activeIndex * 100}%)` }}
@@ -179,7 +175,7 @@ export default function TrendingFundraisers() {
                           <span>of ₹{(c.goalAmount || 0).toLocaleString()}</span>
                         </div>
 
-                        <div className="block text-center bg-[#003d3b] hover:bg-[#022e2c] text-white py-2.5 rounded-xl font-semibold transition">
+                        <div className="block text-center bg-[#00B5B8] hover:bg-[#009EA1] text-white py-2.5 rounded-xl font-semibold transition">
                           View Details • مزید معلومات
                         </div>
                       </div>

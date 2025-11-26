@@ -64,18 +64,24 @@ export function AuthProvider({ children }) {
       try {
         // Call backend → backend syncs user to MongoDB and returns JWT
         const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
+        const clerkId = clerkUser.id; // Get Clerk user ID
+        
         const res = await axios.post(`${API_URL}/api/google/google-auth`, {
           email,
           name,
+          clerkId, // Pass Clerk ID to backend
         });
 
         if (res.data?.success) {
           setUser(res.data.user);
           localStorage.setItem("token", res.data.token);
-          console.log("✅ Clerk user synced to MongoDB:", email);
+          console.log("✅ Clerk user synced to MongoDB:", email, "Clerk ID:", clerkId);
+        } else {
+          console.error("Failed to sync user:", res.data);
         }
       } catch (err) {
         console.error("Error syncing Clerk user:", err);
+        console.error("Error details:", err.response?.data || err.message);
       }
     };
 
