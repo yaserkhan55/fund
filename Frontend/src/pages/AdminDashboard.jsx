@@ -44,6 +44,8 @@ export default function AdminDashboard() {
       if (tab === "approved") url = `${API_URL}/api/admin/approved-campaigns`;
       if (tab === "rejected") url = `${API_URL}/api/admin/rejected-campaigns`;
 
+      console.log(`🔄 Loading ${tab} campaigns from: ${url}`);
+
       const res = await fetch(url, { headers: authHeaders(false) });
 
       if (res.status === 401) {
@@ -53,31 +55,79 @@ export default function AdminDashboard() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.message || errorData.error || `HTTP ${res.status}`;
         throw new Error(
           tab === "pending"
-            ? `Pending campaigns couldn't be loaded. ${errorData.message || "Check API /pending or server status."}`
-            : "Failed to load campaigns"
+            ? `Pending campaigns couldn't be loaded. ${errorMessage}`
+            : `Failed to load ${tab} campaigns: ${errorMessage}`
         );
       }
 
       const data = await res.json();
-      const list = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.campaigns)
-        ? data.campaigns
-        : [];
+      
+      // Handle both array response and object with campaigns property
+      let list = [];
+      if (Array.isArray(data)) {
+        list = data;
+      } else if (data && Array.isArray(data.campaigns)) {
+        list = data.campaigns;
+      } else if (data && data.success && Array.isArray(data.campaigns)) {
+        list = data.campaigns;
+      } else if (data && Array.isArray(data.data)) {
+        list = data.data;
+      }
+      
+      // Ensure all items have required fields and normalize data
+      list = list
+        .filter(item => item && (item._id || item.id))
+        .map(item => {
+          // Normalize the item to ensure it has all required fields
+          const normalized = { ...item };
+          
+          // Ensure _id exists
+          if (!normalized._id && normalized.id) {
+            normalized._id = normalized.id;
+          }
+          
+          // Ensure owner has default values if missing
+          if (!normalized.owner || (typeof normalized.owner === 'object' && !normalized.owner._id && !normalized.owner.name)) {
+            normalized.owner = {
+              name: "Unknown User",
+              email: "unknown@user.com",
+              ...(normalized.owner || {})
+            };
+          }
+          
+          // Ensure status is set
+          if (!normalized.status) {
+            normalized.status = tab === "pending" ? "pending" : normalized.status || "unknown";
+          }
+          
+          return normalized;
+        });
       
       // Check if new campaigns were added
       const previousCount = items.length;
       const newCount = list.length;
       
       // Debug: Log the actual campaigns data
-      console.log(`📊 API Response:`, data);
-      console.log(`📋 Parsed list:`, list);
-      console.log(`📋 List length:`, list.length);
+      console.log(`📊 API Response for ${tab}:`, {
+        rawData: data,
+        isArray: Array.isArray(data),
+        hasCampaigns: !!(data?.campaigns),
+        parsedListLength: list.length
+      });
+      console.log(`📋 Parsed list (${list.length} items):`, list);
       if (list.length > 0) {
-        console.log(`📋 First campaign:`, list[0]);
-        console.log(`📋 Campaign IDs:`, list.map(c => c._id || c.id));
+        console.log(`📋 First campaign:`, {
+          id: list[0]._id || list[0].id,
+          title: list[0].title,
+          status: list[0].status,
+          owner: list[0].owner
+        });
+        console.log(`📋 All campaign IDs:`, list.map(c => c._id || c.id));
+      } else {
+        console.log(`⚠️ No campaigns found in ${tab} tab`);
       }
       
       if (tab === "pending" && newCount > previousCount && previousCount > 0) {
@@ -93,12 +143,12 @@ export default function AdminDashboard() {
       setItems(list);
       setLastRefresh(new Date());
     } catch (err) {
-      console.error("Error loading campaigns:", err);
+      console.error(`❌ Error loading ${tab} campaigns:`, err);
       setError(
         err.message ||
           (tab === "pending"
             ? "Pending campaigns couldn't be loaded. Check API /pending or server status."
-            : "Failed to load campaigns")
+            : `Failed to load ${tab} campaigns`)
       );
     } finally {
       setLoading(false);
