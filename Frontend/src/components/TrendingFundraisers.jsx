@@ -6,6 +6,7 @@ export default function TrendingFundraisers() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [itemsPerView, setItemsPerView] = useState(1);
 
   const resolveImg = (img) => {
     if (!img) return "/no-image.png";
@@ -36,15 +37,42 @@ export default function TrendingFundraisers() {
     load();
   }, []);
 
+  // Calculate items per view based on screen size
+  useEffect(() => {
+    const updateItemsPerView = () => {
+      const width = window.innerWidth;
+      if (width >= 1024) {
+        setItemsPerView(3); // Desktop: 3 items
+      } else if (width >= 768) {
+        setItemsPerView(2); // Tablet: 2 items
+      } else {
+        setItemsPerView(1); // Mobile: 1 item
+      }
+    };
+
+    updateItemsPerView();
+    window.addEventListener('resize', updateItemsPerView);
+    return () => window.removeEventListener('resize', updateItemsPerView);
+  }, []);
+
   // Auto-rotate carousel - move one by one through all campaigns
   useEffect(() => {
     if (!campaigns.length) return;
+    
+    // Calculate max index based on items per view
+    const maxIndex = Math.max(0, campaigns.length - itemsPerView);
+    
     const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % campaigns.length);
+      setActiveIndex((prev) => {
+        if (prev >= maxIndex) {
+          return 0; // Loop back to start
+        }
+        return prev + 1;
+      });
     }, 4000);
 
     return () => clearInterval(timer);
-  }, [campaigns.length]);
+  }, [campaigns.length, itemsPerView]);
 
   if (!campaigns.length && !loading) {
     return (
@@ -87,7 +115,7 @@ export default function TrendingFundraisers() {
         </div>
         {!loading && campaigns.length > 0 && (
           <div className="flex gap-2">
-            {campaigns.map((_, idx) => (
+            {Array.from({ length: Math.max(1, campaigns.length - itemsPerView + 1) }).map((_, idx) => (
               <button
                 key={idx}
                 aria-label={`Go to campaign ${idx + 1}`}
@@ -109,7 +137,9 @@ export default function TrendingFundraisers() {
         <div className="overflow-hidden relative">
           <div
             className="flex transition-transform duration-700 ease-out"
-            style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+            style={{ 
+              transform: `translateX(-${activeIndex * (100 / itemsPerView)}%)`
+            }}
           >
             {campaigns.map((c, idx) => {
               const progress =
@@ -120,7 +150,7 @@ export default function TrendingFundraisers() {
               return (
                 <div
                   key={c._id}
-                  className="min-w-full md:min-w-[50%] lg:min-w-[33.3333%] px-4"
+                  className="min-w-full md:min-w-[50%] lg:min-w-[33.3333%] px-4 flex-shrink-0"
                 >
                   <Link
                     to={`/campaign/${c._id}`}

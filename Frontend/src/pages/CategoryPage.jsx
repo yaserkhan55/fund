@@ -70,52 +70,76 @@ export default function CategoryPage() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {campaigns.map((c) => (
-          <Link
-            key={c._id}
-            to={`/campaign/${c._id}`}
-            className="bg-white rounded-2xl shadow-md hover:shadow-xl transition p-4 border border-transparent hover:border-[#003d3b]"
-          >
-            <img
-              src={resolveImg(c.image || c.imageUrl)}
-              alt={c.title}
-              className="w-full h-52 object-cover rounded-xl"
-            />
+        {campaigns.map((c) => {
+          const progress =
+            c.goalAmount > 0
+              ? Math.min((c.raisedAmount / c.goalAmount) * 100, 100)
+              : 0;
 
-            <h3 className="text-xl font-bold text-[#003d3b] mt-3 line-clamp-2">
-              {c.title}
-            </h3>
-
-            <p className="text-gray-600 text-sm mt-1 line-clamp-2">
-              {c.shortDescription}
-            </p>
-
-            <div className="mt-4">
-              <div className="w-full bg-gray-200 h-2 rounded-full">
-                <div
-                  className="h-2 rounded-full"
-                  style={{
-                    width: `${Math.min(
-                      (c.raisedAmount / c.goalAmount) * 100,
-                      100
-                    )}%`,
-                    background: "#003d3b",
-                  }}
-                ></div>
+          return (
+            <Link
+              key={c._id}
+              to={`/campaign/${c._id}`}
+              className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col h-[500px] block border border-[#E0F2F2] relative group"
+            >
+              {/* Subtle light effect on hover */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
+              
+              <div className="h-[200px] w-full overflow-hidden bg-gray-200">
+                <img
+                  src={resolveImg(c.image || c.imageUrl)}
+                  alt={c.title}
+                  className="h-full w-full object-cover"
+                  onError={(e) => (e.currentTarget.src = "/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg")}
+                />
               </div>
 
-              <div className="flex justify-between text-sm font-semibold text-[#003d3b] mt-2">
-                <span>₹{(c.raisedAmount || 0).toLocaleString()}</span>
-                <span>of ₹{(c.goalAmount || 0).toLocaleString()}</span>
-              </div>
+              <div className="p-5 flex flex-col flex-grow">
+                <div className="flex items-center justify-between mb-2">
+                  {c.category && (
+                    <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-full">
+                      {c.category}
+                    </span>
+                  )}
+                  {c.zakatEligible && (
+                    <span className="text-xs font-semibold text-[#00897B] bg-[#E6F5F3] px-3 py-1 rounded-full">
+                      ✓ Zakat Eligible
+                    </span>
+                  )}
+                </div>
 
-              {/* UPDATED BUTTON COLOR */}
-              <div className="block text-center bg-[#003d3b] hover:bg-[#022e2c] text-white py-2.5 rounded-xl font-semibold mt-4 transition">
-                View Details • مزید معلومات
+                <h3 className="text-lg font-bold text-[#003d3b] mb-2 line-clamp-2">
+                  {c.title}
+                </h3>
+
+                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                  {c.shortDescription || "No description available."}
+                </p>
+
+                <div className="mt-auto">
+                  <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
+                    <div
+                      className="h-2 rounded-full transition-all"
+                      style={{
+                        width: `${progress}%`,
+                        background: "#F9A826",
+                      }}
+                    ></div>
+                  </div>
+
+                  <div className="flex justify-between text-sm font-semibold text-[#003d3b] mb-4">
+                    <span>₹{(c.raisedAmount || 0).toLocaleString()}</span>
+                    <span>of ₹{(c.goalAmount || 0).toLocaleString()}</span>
+                  </div>
+
+                  <div className="block text-center bg-[#00B5B8] hover:bg-[#009EA1] text-white py-2.5 rounded-xl font-semibold transition">
+                    View Details • مزید معلومات
+                  </div>
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
