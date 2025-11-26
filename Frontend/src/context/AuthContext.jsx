@@ -50,28 +50,36 @@ export function AuthProvider({ children }) {
   };
 
   // -----------------------
-  // AUTO LOGIN FOR GOOGLE USERS
+  // AUTO SYNC CLERK USERS TO MONGODB
   // -----------------------
   useEffect(() => {
-    const activateGoogleUser = async () => {
+    const syncClerkUser = async () => {
       if (!isSignedIn || !clerkUser) return;
 
-      const email = clerkUser.primaryEmailAddress.emailAddress;
-      const name = clerkUser.fullName;
+      const email = clerkUser.primaryEmailAddress?.emailAddress;
+      const name = clerkUser.fullName || clerkUser.firstName || "User";
 
-      // Call backend → backend creates your JWT
-      const res = await axios.post("http://localhost:5000/api/google/google-auth", {
-        email,
-        name,
-      });
+      if (!email) return;
 
-      if (res.data?.success) {
-        setUser(res.data.user);
-        localStorage.setItem("token", res.data.token);
+      try {
+        // Call backend → backend syncs user to MongoDB and returns JWT
+        const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
+        const res = await axios.post(`${API_URL}/api/google/google-auth`, {
+          email,
+          name,
+        });
+
+        if (res.data?.success) {
+          setUser(res.data.user);
+          localStorage.setItem("token", res.data.token);
+          console.log("✅ Clerk user synced to MongoDB:", email);
+        }
+      } catch (err) {
+        console.error("Error syncing Clerk user:", err);
       }
     };
 
-    activateGoogleUser();
+    syncClerkUser();
   }, [isSignedIn, clerkUser]);
 
   // -----------------------
