@@ -43,23 +43,15 @@ export const getPendingCampaigns = async (req, res) => {
     // This catches everything: pending, null, undefined, "", or missing status
     // Also include campaigns where isApproved is false or not set
     const pending = await Campaign.find({
-      $or: [
+      $and: [
         {
-          $and: [
-            { status: { $ne: "approved" } },
-            { status: { $ne: "rejected" } }
-          ]
-        },
-        {
-          $and: [
+          $or: [
+            { status: "pending" },
             { status: { $exists: false } },
-            { isApproved: { $ne: true } }
+            { status: null }
           ]
         },
-        {
-          status: null,
-          isApproved: { $ne: true }
-        }
+        { isApproved: { $ne: true } }
       ]
     })
     .populate({
@@ -128,7 +120,7 @@ export const getPendingCampaigns = async (req, res) => {
       console.log(`📊 Database stats: Total=${totalCampaigns}, Approved=${approvedCount}, Rejected=${rejectedCount}, Pending=${pendingCount}`);
     }
 
-    return res.json(campaigns); // Return array directly for frontend compatibility
+    return res.json({ success: true, campaigns }); // Return consistent shape
 
   } catch (err) {
     console.error("Error fetching pending campaigns:", err);
@@ -168,7 +160,7 @@ export const getApprovedCampaignsAdmin = async (req, res) => {
       return campaignObj;
     });
 
-    return res.json(campaigns); // Return array directly
+    return res.json({ success: true, campaigns });
 
   } catch (err) {
     console.error("Error fetching approved campaigns:", err);
@@ -204,7 +196,7 @@ export const getRejectedCampaignsAdmin = async (req, res) => {
       return campaignObj;
     });
 
-    return res.json(campaigns); // Return array directly
+    return res.json({ success: true, campaigns });
 
   } catch (err) {
     console.error("Error fetching rejected campaigns:", err);
