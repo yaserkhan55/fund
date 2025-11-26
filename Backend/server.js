@@ -20,6 +20,8 @@ import googleAuthRoutes from "./routes/googleAuthRoutes.js";
 import User from "./models/User.js";
 
 import { clerkMiddleware, requireAuth } from "@clerk/express";
+import { handleClerkWebhook } from "./controllers/clerkController.js";
+import { syncClerkUser } from "./middlewares/syncClerkUser.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,9 +45,16 @@ app.use(
   })
 );
 
-app.use(express.json());
 app.use(cookieParser());
 
+// Clerk webhooks require raw body for signature verification
+app.post(
+  "/api/clerk/webhook",
+  express.raw({ type: "application/json" }),
+  handleClerkWebhook
+);
+
+app.use(express.json());
 app.use(clerkMiddleware());
 
 app.get("/", (req, res) =>
@@ -60,9 +69,9 @@ app.use("/api/google", googleAuthRoutes);
 app.use("/api/campaigns", campaignRoutes);
 
 /* PROTECTED ROUTES */
-app.use("/api/profile", requireAuth(), profileRoutes);
-app.use("/api/fundraisers", requireAuth(), fundraiserRoutes);
-app.use("/api/donations", requireAuth(), donationRoutes);
+app.use("/api/profile", requireAuth(), syncClerkUser, profileRoutes);
+app.use("/api/fundraisers", requireAuth(), syncClerkUser, fundraiserRoutes);
+app.use("/api/donations", requireAuth(), syncClerkUser, donationRoutes);
 
 /* ADMIN ROUTES */
 app.use("/api/admin", adminRoutes);

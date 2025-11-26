@@ -3,6 +3,7 @@ import upload from "../middlewares/upload.js";
 
 // Clerk
 import { requireAuth } from "@clerk/express";
+import { syncClerkUser } from "../middlewares/syncClerkUser.js";
 
 import {
   createCampaign,
@@ -42,6 +43,7 @@ router.get("/details/:id/donors", getRecentDonors);
 router.post(
   "/details/:id/gallery",
   requireAuth(),
+  syncClerkUser,
   upload.array("images", 10),
   uploadGalleryImages
 );
@@ -50,12 +52,13 @@ router.post(
 router.post(
   "/details/:id/documents",
   requireAuth(),
+  syncClerkUser,
   upload.array("documents", 10),
   uploadMedicalDocs
 );
 
 // Update About Section
-router.put("/details/:id/about", requireAuth(), updateAboutSection);
+router.put("/details/:id/about", requireAuth(), syncClerkUser, updateAboutSection);
 
 /* ===========================
    PUBLIC — Homepage campaigns
@@ -65,7 +68,7 @@ router.get("/approved", getApprovedCampaigns);
 /* ===========================
    USER’S OWN CAMPAIGNS
 =========================== */
-router.get("/my", requireAuth(), getMyCampaigns);
+router.get("/my", requireAuth(), syncClerkUser, getMyCampaigns);
 
 /* ===========================
    PUBLIC — All campaigns
@@ -86,6 +89,7 @@ router.get("/:id", getCampaignById);
 router.post(
   "/create",
   requireAuth(),
+  syncClerkUser,
   upload.fields([
     { name: "image", maxCount: 1 },
     { name: "documents", maxCount: 10 },

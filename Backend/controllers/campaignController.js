@@ -79,8 +79,12 @@ export const getMyCampaigns = async (req, res) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    // Find MongoDB user by Clerk ID
-    const mongoUser = await User.findOne({ clerkId: clerkUserId });
+    // Prefer MongoDB user provided by sync middleware
+    let mongoUser = req.mongoUser;
+
+    if (!mongoUser) {
+      mongoUser = await User.findOne({ clerkId: clerkUserId });
+    }
     
     if (!mongoUser) {
       console.log(`⚠️ No MongoDB user found for Clerk ID: ${clerkUserId}`);
@@ -133,12 +137,16 @@ export const createCampaign = async (req, res) => {
     }
 
     // Ensure user exists in MongoDB (sync Clerk user)
-    let mongoUser = await User.findOne({ 
-      $or: [
-        { clerkId: clerkUserId },
-        { email: req.auth?.sessionClaims?.email }
-      ]
-    });
+    let mongoUser = req.mongoUser;
+
+    if (!mongoUser) {
+      mongoUser = await User.findOne({ 
+        $or: [
+          { clerkId: clerkUserId },
+          { email: req.auth?.sessionClaims?.email }
+        ]
+      });
+    }
 
     if (!mongoUser) {
       try {
