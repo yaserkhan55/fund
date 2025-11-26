@@ -99,7 +99,7 @@ export default function TrendingFundraisers() {
   }
 
   return (
-    <section className="w-[90%] mx-auto mt-20 mb-32 relative">
+    <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-20 mb-32 relative">
       {/* Decorative light effect */}
       <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-[#00B5B8] to-transparent opacity-30 blur-sm"></div>
       
@@ -134,11 +134,12 @@ export default function TrendingFundraisers() {
       )}
 
       {!loading && (
-        <div className="overflow-hidden relative">
+        <div className="overflow-hidden relative w-full">
           <div
             className="flex transition-transform duration-700 ease-out"
             style={{ 
-              transform: `translateX(-${activeIndex * (100 / itemsPerView)}%)`
+              transform: `translateX(-${activeIndex * (100 / itemsPerView)}%)`,
+              width: `${(campaigns.length / itemsPerView) * 100}%`
             }}
           >
             {campaigns.map((c, idx) => {
@@ -150,11 +151,16 @@ export default function TrendingFundraisers() {
               return (
                 <div
                   key={c._id}
-                  className="min-w-full md:min-w-[50%] lg:min-w-[33.3333%] px-4 flex-shrink-0"
+                  className="flex-shrink-0"
+                  style={{
+                    width: `${100 / itemsPerView}%`,
+                    paddingLeft: idx === 0 ? '0' : '0.75rem',
+                    paddingRight: idx === campaigns.length - 1 ? '0' : '0.75rem'
+                  }}
                 >
                   <Link
                     to={`/campaign/${c._id}`}
-                    className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col h-[500px] block border border-[#E0F2F2] relative group"
+                    className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col h-[500px] block border border-[#E0F2F2] relative group w-full"
                   >
                     {/* Subtle light effect on hover */}
                     <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
