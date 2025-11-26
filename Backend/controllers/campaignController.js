@@ -219,6 +219,17 @@ export const createCampaign = async (req, res) => {
       duration
     } = req.body;
 
+    // Validate required fields
+    if (!title || !shortDescription || !fullStory || !goalAmount || !beneficiaryName || !city || !relation) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: title, shortDescription, fullStory, goalAmount, beneficiaryName, city, and relation are required."
+      });
+    }
+
+    // Set default category if missing
+    const finalCategory = category || "medical";
+
     const image = req.files?.image?.length
       ? req.files.image[0].path
       : null;
@@ -234,17 +245,17 @@ export const createCampaign = async (req, res) => {
 
     // Ensure status is explicitly set and owner is ObjectId
     const campaignData = {
-      title,
-      shortDescription,
-      fullStory,
+      title: title.trim(),
+      shortDescription: shortDescription.trim(),
+      fullStory: fullStory.trim(),
       goalAmount: Number(goalAmount),
-      category,
-      beneficiaryName,
-      city,
-      relation,
+      category: finalCategory,
+      beneficiaryName: beneficiaryName.trim(),
+      city: city.trim(),
+      relation: relation.trim(),
       zakatEligible: zakatEligible === "true" || zakatEligible === true,
-      educationQualification,
-      employmentStatus,
+      educationQualification: educationQualification || "",
+      employmentStatus: employmentStatus || "",
       duration: duration ? Number(duration) : null,
       image,
       documents,
@@ -295,7 +306,15 @@ export const createCampaign = async (req, res) => {
     res.json({ success: true, campaign });
 
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("❌ Error creating campaign:", error);
+    console.error("Error stack:", error.stack);
+    console.error("Request body:", req.body);
+    console.error("Request files:", req.files);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || "Failed to create campaign",
+      error: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
   }
 };
 
