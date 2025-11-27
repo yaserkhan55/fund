@@ -10,6 +10,7 @@ import Footer from "./components/Footer";
 // Pages
 import Home from "./pages/Home";
 import CreateCampaign from "./pages/CreateCampaign";
+import EditCampaign from "./pages/EditCampaign";
 import CampaignDetails from "./pages/CampaignDetails";
 import Profile from "./pages/Profile";
 import CategoryPage from "./pages/CategoryPage";   // ✅ ADDED
@@ -113,6 +114,17 @@ export default function App() {
           <Layout>
             <ClerkProtectedRoute>
               <CreateCampaign />
+            </ClerkProtectedRoute>
+          </Layout>
+        }
+      />
+
+      <Route
+        path="/edit-campaign/:id"
+        element={
+          <Layout>
+            <ClerkProtectedRoute>
+              <EditCampaign />
             </ClerkProtectedRoute>
           </Layout>
         }
