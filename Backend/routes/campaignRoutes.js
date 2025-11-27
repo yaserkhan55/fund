@@ -13,7 +13,9 @@ import {
   getMyCampaigns,
   adminGetAllCampaigns,
   markAdminActionAsViewed,
-  respondToInfoRequest
+  respondToInfoRequest,
+  getCampaignForOwner,
+  updateCampaignByOwner
 } from "../controllers/campaignController.js";
 
 // NEW CONTROLLERS (Ketto-style details)
@@ -96,12 +98,6 @@ router.get("/", getAllCampaigns);
 router.get("/admin/all-campaigns", adminGetAllCampaigns);
 
 /* ===========================
-   PUBLIC — Single campaign
-   MUST BE LAST!!
-=========================== */
-router.get("/:id", getCampaignById);
-
-/* ===========================
    CREATE CAMPAIGN
 =========================== */
 const uploadMiddleware = upload.fields([
@@ -134,5 +130,35 @@ router.post(
   },
   createCampaign
 );
+
+/* ===========================
+   OWNER CAMPAIGN FETCH/UPDATE
+=========================== */
+router.get("/:id/owner", requireAuth(), syncClerkUser, getCampaignForOwner);
+
+router.put(
+  "/:id/update",
+  requireAuth(),
+  syncClerkUser,
+  (req, res, next) => {
+    uploadMiddleware(req, res, (err) => {
+      if (err) {
+        console.error("❌ File upload error:", err);
+        return res.status(400).json({
+          success: false,
+          message: `File upload failed: ${err.message || "Unknown error"}`
+        });
+      }
+      next();
+    });
+  },
+  updateCampaignByOwner
+);
+
+/* ===========================
+   PUBLIC — Single campaign
+   MUST BE LAST!!
+=========================== */
+router.get("/:id", getCampaignById);
 
 export default router;

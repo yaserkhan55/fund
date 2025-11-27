@@ -123,6 +123,43 @@ export const getMyCampaigns = async (req, res) => {
 };
 
 /* =====================================================
+   GET SINGLE CAMPAIGN (OWNER VIEW)
+===================================================== */
+export const getCampaignForOwner = async (req, res) => {
+  try {
+    const clerkUserId = req.auth?.userId;
+
+    if (!clerkUserId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    let mongoUser = req.mongoUser;
+
+    if (!mongoUser) {
+      mongoUser = await User.findOne({ clerkId: clerkUserId });
+    }
+
+    if (!mongoUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const campaign = await Campaign.findOne({
+      _id: req.params.id,
+      $or: [{ owner: mongoUser._id }, { createdBy: mongoUser._id }, { owner: mongoUser._id.toString() }],
+    }).lean();
+
+    if (!campaign) {
+      return res.status(404).json({ success: false, message: "Campaign not found" });
+    }
+
+    return res.json({ success: true, campaign });
+  } catch (error) {
+    console.error("Error fetching campaign for owner:", error);
+    return res.status(500).json({ success: false, message: "Failed to load campaign" });
+  }
+};
+
+/* =====================================================
    RESPOND TO ADMIN INFO REQUEST
 ===================================================== */
 export const respondToInfoRequest = async (req, res) => {
@@ -210,6 +247,90 @@ export const respondToInfoRequest = async (req, res) => {
       success: false,
       message: "Failed to submit documents",
     });
+  }
+};
+
+/* =====================================================
+   UPDATE CAMPAIGN (OWNER)
+===================================================== */
+export const updateCampaignByOwner = async (req, res) => {
+  try {
+    const clerkUserId = req.auth?.userId;
+
+    if (!clerkUserId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    let mongoUser = req.mongoUser;
+    if (!mongoUser) {
+      mongoUser = await User.findOne({ clerkId: clerkUserId });
+    }
+
+    if (!mongoUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const campaign = await Campaign.findOne({
+      _id: req.params.id,
+      $or: [{ owner: mongoUser._id }, { createdBy: mongoUser._id }, { owner: mongoUser._id.toString() }],
+    });
+
+    if (!campaign) {
+      return res.status(404).json({ success: false, message: "Campaign not found" });
+    }
+
+    const editableFields = [
+      "title",
+      "shortDescription",
+      "fullStory",
+      "goalAmount",
+      "category",
+      "beneficiaryName",
+      "city",
+      "relation",
+      "zakatEligible",
+      "educationQualification",
+      "employmentStatus",
+      "duration",
+    ];
+
+    editableFields.forEach((field) => {
+      if (typeof req.body[field] !== "undefined") {
+        if (["goalAmount", "duration"].includes(field)) {
+          campaign[field] = Number(req.body[field]) || 0;
+        } else if (field === "zakatEligible") {
+          campaign[field] = req.body[field] === "true" || req.body[field] === true;
+        } else {
+          campaign[field] = req.body[field];
+        }
+      }
+    });
+
+    if (req.files?.image?.length) {
+      const img = req.files.image[0];
+      campaign.image = img.secure_url || img.path || img.url || campaign.image;
+    }
+
+    const newDocs =
+      req.files?.documents?.map(
+        (doc) => doc.secure_url || doc.path || doc.url || `/uploads/${doc.filename}`
+      ) || [];
+
+    if (newDocs.length) {
+      campaign.documents = Array.isArray(campaign.documents) ? campaign.documents : [];
+      campaign.medicalDocuments = Array.isArray(campaign.medicalDocuments)
+        ? campaign.medicalDocuments
+        : [];
+      campaign.documents.push(...newDocs);
+      campaign.medicalDocuments.push(...newDocs);
+    }
+
+    await campaign.save();
+
+    return res.json({ success: true, campaign });
+  } catch (error) {
+    console.error("Error updating campaign:", error);
+    return res.status(500).json({ success: false, message: "Failed to update campaign" });
   }
 };
 
