@@ -6,9 +6,8 @@ import DonationModal from "../components/DonationModal";
 
 const FALLBACK = "/no-image.png";
 const TABS = [
+  { id: "about", label: "About" },
   { id: "documents", label: "Documents" },
-  { id: "updates", label: "Updates" },
-  { id: "comments", label: "Comments" },
 ];
 
 export default function CampaignDetails() {
@@ -22,7 +21,7 @@ export default function CampaignDetails() {
   const [suggested, setSuggested] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDonation, setShowDonation] = useState(false);
-  const [activeTab, setActiveTab] = useState("documents");
+  const [activeTab, setActiveTab] = useState("about");
   const [heroMedia, setHeroMedia] = useState(FALLBACK);
   const [copied, setCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -156,6 +155,44 @@ export default function CampaignDetails() {
   const fullText = aboutContent;
 
   const tabsContent = {
+    about: (
+      <div className="space-y-6">
+        <h2 className="text-3xl font-bold text-[#003d3b] mb-4">About the Fundraiser</h2>
+        <div className="prose max-w-none text-[#003d3b]">
+          <p className="leading-relaxed whitespace-pre-line text-gray-700">
+            {isExpanded ? fullText : previewText}
+          </p>
+          {shouldShowReadMore && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="mt-6 px-6 py-3 rounded-full bg-white border-2 border-[#00B5B8] text-[#00B5B8] font-semibold hover:bg-[#E0F7F8] transition-colors"
+            >
+              {isExpanded ? "Read Less" : "Read More"}
+            </button>
+          )}
+        </div>
+        <div className="grid md:grid-cols-2 gap-4 mt-6">
+          <div className="p-4 rounded-2xl border border-[#E0F2F2] bg-[#F8FEFE]">
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+              Beneficiary
+            </p>
+            <p className="text-lg font-semibold text-[#003d3b]">
+              {campaign.beneficiaryName}
+            </p>
+            <p className="text-sm text-gray-500">{campaign.relation}</p>
+          </div>
+          <div className="p-4 rounded-2xl border border-[#E0F2F2] bg-[#F8FEFE]">
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+              Location
+            </p>
+            <p className="text-lg font-semibold text-[#003d3b]">
+              {campaign.city}
+            </p>
+            <p className="text-sm text-gray-500">{campaign.category}</p>
+          </div>
+        </div>
+      </div>
+    ),
     documents: documents.length ? (
       <div className="space-y-4">
         <p className="text-gray-600">
@@ -203,16 +240,6 @@ export default function CampaignDetails() {
     ) : (
       <p className="text-gray-500">Medical documents will appear here once uploaded.</p>
     ),
-    updates: (
-      <div className="space-y-4">
-        <p className="text-gray-500">No updates available yet.</p>
-      </div>
-    ),
-    comments: (
-      <div className="space-y-4">
-        <p className="text-gray-500">No comments yet. Be the first to comment!</p>
-      </div>
-    ),
   };
 
   const galleryItems = patientImages.length
@@ -220,8 +247,8 @@ export default function CampaignDetails() {
     : [campaign.imageUrl || campaign.image].filter(Boolean);
 
   return (
-    <div className="bg-[#F1FAFA] min-h-screen">
-      <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
+    <div className="bg-[#F1FAFA] min-h-screen pb-8">
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         <div className="grid lg:grid-cols-[3fr,2fr] gap-8">
           <div className="bg-white rounded-3xl shadow-lg p-4">
             <div className="relative rounded-3xl overflow-hidden bg-gray-100">
@@ -371,45 +398,7 @@ export default function CampaignDetails() {
           </aside>
         </div>
 
-        {/* About Section */}
-        <div className="bg-white rounded-3xl shadow-lg p-6">
-          <div className="space-y-6">
-            <div className="prose max-w-none text-[#003d3b]">
-              <p className="leading-relaxed whitespace-pre-line text-gray-700">
-                {isExpanded ? fullText : previewText}
-              </p>
-              {shouldShowReadMore && (
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="mt-4 px-6 py-2 rounded-full bg-white border-2 border-[#00B5B8] text-[#00B5B8] font-semibold hover:bg-[#E0F7F8] transition-colors"
-                >
-                  {isExpanded ? "Read Less" : "Read More"}
-                </button>
-              )}
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl border border-[#E0F2F2] bg-[#F8FEFE]">
-                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                  Beneficiary
-                </p>
-                <p className="text-lg font-semibold text-[#003d3b]">
-                  {campaign.beneficiaryName}
-                </p>
-                <p className="text-sm text-gray-500">{campaign.relation}</p>
-              </div>
-              <div className="p-4 rounded-2xl border border-[#E0F2F2] bg-[#F8FEFE]">
-                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                  Location
-                </p>
-                <p className="text-lg font-semibold text-[#003d3b]">
-                  {campaign.city}
-                </p>
-                <p className="text-sm text-gray-500">{campaign.category}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
+        {/* Navigation Tabs and Content Section */}
         <div className="bg-white rounded-3xl shadow-lg">
           <div className="flex items-center justify-between border-b border-[#E0F2F2] overflow-x-auto">
             <div className="flex">
@@ -424,8 +413,6 @@ export default function CampaignDetails() {
                   }`}
                 >
                   {tab.label}
-                  {tab.id === "updates" && " 4"}
-                  {tab.id === "comments" && " 5"}
                 </button>
               ))}
             </div>
@@ -441,7 +428,7 @@ export default function CampaignDetails() {
         </div>
 
         {suggested.length > 0 && (
-          <section className="bg-white rounded-3xl shadow-lg p-6">
+          <section className="bg-white rounded-3xl shadow-lg p-6 mb-0">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-semibold text-[#003d3b]">
                 People also viewed
