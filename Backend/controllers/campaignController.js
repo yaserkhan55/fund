@@ -123,6 +123,52 @@ export const getMyCampaigns = async (req, res) => {
 };
 
 /* =====================================================
+   MARK ADMIN ACTION AS VIEWED
+===================================================== */
+export const markAdminActionAsViewed = async (req, res) => {
+  try {
+    const { campaignId, actionId } = req.params;
+    const clerkUserId = req.auth?.userId;
+
+    if (!clerkUserId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    let mongoUser = req.mongoUser;
+    if (!mongoUser) {
+      mongoUser = await User.findOne({ clerkId: clerkUserId });
+    }
+
+    if (!mongoUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const campaign = await Campaign.findOne({
+      _id: campaignId,
+      owner: mongoUser._id,
+    });
+
+    if (!campaign) {
+      return res.status(404).json({ success: false, message: "Campaign not found" });
+    }
+
+    // Find and update the specific admin action
+    const adminAction = campaign.adminActions.id(actionId);
+    if (!adminAction) {
+      return res.status(404).json({ success: false, message: "Action not found" });
+    }
+
+    adminAction.viewed = true;
+    await campaign.save();
+
+    return res.json({ success: true, message: "Action marked as viewed" });
+  } catch (error) {
+    console.error("Error marking admin action as viewed:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* =====================================================
    CREATE CAMPAIGN
 ===================================================== */
 export const createCampaign = async (req, res) => {

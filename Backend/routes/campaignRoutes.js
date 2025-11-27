@@ -11,7 +11,8 @@ import {
   getCampaignById,
   getApprovedCampaigns,
   getMyCampaigns,
-  adminGetAllCampaigns
+  adminGetAllCampaigns,
+  markAdminActionAsViewed
 } from "../controllers/campaignController.js";
 
 // NEW CONTROLLERS (Ketto-style details)
@@ -66,9 +67,14 @@ router.put("/details/:id/about", requireAuth(), syncClerkUser, updateAboutSectio
 router.get("/approved", getApprovedCampaigns);
 
 /* ===========================
-   USER’S OWN CAMPAIGNS
+   USER'S OWN CAMPAIGNS
 =========================== */
 router.get("/my", requireAuth(), syncClerkUser, getMyCampaigns);
+
+/* ===========================
+   MARK ADMIN ACTION AS VIEWED
+=========================== */
+router.put("/:campaignId/admin-actions/:actionId/view", requireAuth(), syncClerkUser, markAdminActionAsViewed);
 
 /* ===========================
    PUBLIC — All campaigns

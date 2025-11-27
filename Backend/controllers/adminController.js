@@ -218,10 +218,20 @@ export const approveCampaign = async (req, res) => {
     const updated = await Campaign.findByIdAndUpdate(
       id,
       {
-        status: "approved",
-        isApproved: true,
-        approvedAt: new Date(),
-        requiresMoreInfo: false,
+        $set: {
+          status: "approved",
+          isApproved: true,
+          approvedAt: new Date(),
+          requiresMoreInfo: false,
+        },
+        $push: {
+          adminActions: {
+            action: "approved",
+            createdAt: new Date(),
+            message: "Your campaign has been approved and is now live!",
+            viewed: false,
+          },
+        },
       },
       { new: true }
     );
@@ -245,13 +255,24 @@ export const approveCampaign = async (req, res) => {
 export const rejectCampaign = async (req, res) => {
   try {
     const { id } = req.params;
+    const { message } = req.body;
 
     const updated = await Campaign.findByIdAndUpdate(
       id,
       {
-        status: "rejected",
-        isApproved: false,
-        requiresMoreInfo: false,
+        $set: {
+          status: "rejected",
+          isApproved: false,
+          requiresMoreInfo: false,
+        },
+        $push: {
+          adminActions: {
+            action: "rejected",
+            createdAt: new Date(),
+            message: message || "Your campaign has been rejected. Please review the requirements and resubmit.",
+            viewed: false,
+          },
+        },
       },
       { new: true }
     );
@@ -290,9 +311,28 @@ export const editCampaign = async (req, res) => {
 // ✅ DELETE CAMPAIGN
 export const deleteCampaign = async (req, res) => {
   try {
-    const deleted = await Campaign.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    
+    const updated = await Campaign.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          status: "deleted",
+          deleted: true,
+        },
+        $push: {
+          adminActions: {
+            action: "deleted",
+            createdAt: new Date(),
+            message: "Your campaign has been deleted by the admin.",
+            viewed: false,
+          },
+        },
+      },
+      { new: true }
+    );
 
-    if (!deleted) {
+    if (!updated) {
       return res.status(404).json({ success: false, message: "Campaign not found" });
     }
 

@@ -47,6 +47,7 @@ const campaignSchema = new mongoose.Schema(
     },
 
     isApproved: { type: Boolean, default: false },
+    deleted: { type: Boolean, default: false },
 
     // NEW: timestamp when admin approves
     approvedAt: { type: Date, default: null },
@@ -67,6 +68,19 @@ const campaignSchema = new mongoose.Schema(
           default: "pending",
         },
         requestedBy: { type: String, default: "admin" },
+      },
+    ],
+    // Admin actions notifications (approve/reject/delete)
+    adminActions: [
+      {
+        action: {
+          type: String,
+          enum: ["approved", "rejected", "deleted"],
+          required: true,
+        },
+        createdAt: { type: Date, default: Date.now },
+        message: { type: String, default: "" },
+        viewed: { type: Boolean, default: false },
       },
     ],
   },
