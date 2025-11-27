@@ -396,20 +396,30 @@ export default function AdminDashboard() {
               </>
             )}
 
-            {activeTab !== "pending" && (
-              <button onClick={() => openEdit(c)} className="px-3 py-1 rounded bg-blue-600 text-white">Edit</button>
-            )}
-
             {activeTab === "approved" && (
-              <button onClick={() => reject(c._id)} className="px-3 py-1 rounded bg-orange-600 text-white">
-                Mark Rejected
-              </button>
+              <>
+                <button onClick={() => reject(c._id)} className="px-3 py-1 rounded bg-orange-600 text-white">
+                  Mark Rejected
+                </button>
+                <button onClick={() => openInfoModal(c)} className="px-3 py-1 rounded bg-amber-600 text-white">
+                  Request Info
+                </button>
+              </>
             )}
 
             {activeTab === "rejected" && (
-              <button onClick={() => approve(c._id)} className="px-3 py-1 rounded bg-green-600 text-white">
-                Mark Approved
-              </button>
+              <>
+                <button onClick={() => approve(c._id)} className="px-3 py-1 rounded bg-green-600 text-white">
+                  Mark Approved
+                </button>
+                <button onClick={() => openInfoModal(c)} className="px-3 py-1 rounded bg-amber-600 text-white">
+                  Request Info
+                </button>
+              </>
+            )}
+
+            {activeTab !== "pending" && (
+              <button onClick={() => openEdit(c)} className="px-3 py-1 rounded bg-blue-600 text-white">Edit</button>
             )}
 
             <button
