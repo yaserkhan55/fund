@@ -10,7 +10,8 @@ import {
   rejectCampaign,
   editCampaign,
   deleteCampaign,
-  requestAdditionalInfo
+  requestAdditionalInfo,
+  resolveInfoRequest
 } from "../controllers/adminController.js";
 
 import { adminAuth } from "../middlewares/adminAuth.js";
@@ -37,5 +38,6 @@ router.put("/reject/:id", adminAuth, rejectCampaign);
 router.put("/edit/:id", adminAuth, editCampaign);
 router.delete("/delete/:id", adminAuth, deleteCampaign);
 router.post("/campaigns/:id/request-info", adminAuth, requestAdditionalInfo);
+router.put("/campaigns/:id/info-requests/:requestId/resolve", adminAuth, resolveInfoRequest);
 
 export default router;

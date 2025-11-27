@@ -123,6 +123,97 @@ export const getMyCampaigns = async (req, res) => {
 };
 
 /* =====================================================
+   RESPOND TO ADMIN INFO REQUEST
+===================================================== */
+export const respondToInfoRequest = async (req, res) => {
+  try {
+    const clerkUserId = req.auth?.userId;
+
+    if (!clerkUserId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    let mongoUser = req.mongoUser;
+    if (!mongoUser) {
+      mongoUser = await User.findOne({ clerkId: clerkUserId });
+    }
+
+    if (!mongoUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const { id, requestId } = req.params;
+    const note = (req.body?.note || "").trim();
+    const uploadedDocs = Array.isArray(req.files)
+      ? req.files.map(
+          (file) => file.secure_url || file.path || file.url || `/uploads/${file.filename}`
+        )
+      : [];
+
+    if (!uploadedDocs.length && !note) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload at least one document or add a note for the admin.",
+      });
+    }
+
+    const campaign = await Campaign.findOne({ _id: id, owner: mongoUser._id });
+
+    if (!campaign) {
+      return res.status(404).json({ success: false, message: "Campaign not found" });
+    }
+
+    const request = campaign.infoRequests?.id(requestId);
+
+    if (!request) {
+      return res.status(404).json({ success: false, message: "Admin request not found" });
+    }
+
+    const responsePayload = {
+      note,
+      documents: uploadedDocs,
+      uploadedAt: new Date(),
+      uploadedBy: mongoUser._id,
+      uploadedByName: mongoUser.name || mongoUser.email,
+    };
+
+    if (!Array.isArray(request.responses)) {
+      request.responses = [];
+    }
+    request.responses.push(responsePayload);
+    request.status = "submitted";
+    request.respondedAt = new Date();
+
+    if (uploadedDocs.length) {
+      campaign.documents = Array.isArray(campaign.documents) ? campaign.documents : [];
+      campaign.medicalDocuments = Array.isArray(campaign.medicalDocuments)
+        ? campaign.medicalDocuments
+        : [];
+      campaign.documents.push(...uploadedDocs);
+      campaign.medicalDocuments.push(...uploadedDocs);
+    }
+
+    await campaign.save();
+
+    const plainCampaign = campaign.toObject();
+    const plainRequest = request.toObject ? request.toObject() : request;
+
+    return res.json({
+      success: true,
+      message: "Documents sent to admin for review",
+      request: plainRequest,
+      campaign: plainCampaign,
+    });
+  } catch (error) {
+    console.error("Error responding to info request:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to submit documents",
+    });
+  }
+};
+
+/* =====================================================
    MARK ADMIN ACTION AS VIEWED
 ===================================================== */
 export const markAdminActionAsViewed = async (req, res) => {

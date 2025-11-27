@@ -12,7 +12,8 @@ import {
   getApprovedCampaigns,
   getMyCampaigns,
   adminGetAllCampaigns,
-  markAdminActionAsViewed
+  markAdminActionAsViewed,
+  respondToInfoRequest
 } from "../controllers/campaignController.js";
 
 // NEW CONTROLLERS (Ketto-style details)
@@ -75,6 +76,17 @@ router.get("/my", requireAuth(), syncClerkUser, getMyCampaigns);
    MARK ADMIN ACTION AS VIEWED
 =========================== */
 router.put("/:campaignId/admin-actions/:actionId/view", requireAuth(), syncClerkUser, markAdminActionAsViewed);
+
+/* ===========================
+   RESPOND TO INFO REQUEST
+=========================== */
+router.post(
+  "/:id/info-requests/:requestId/respond",
+  requireAuth(),
+  syncClerkUser,
+  upload.array("documents", 10),
+  respondToInfoRequest
+);
 
 /* ===========================
    PUBLIC — All campaigns

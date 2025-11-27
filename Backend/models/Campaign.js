@@ -64,10 +64,22 @@ const campaignSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now },
         status: {
           type: String,
-          enum: ["pending", "resolved"],
+          enum: ["pending", "submitted", "resolved"],
           default: "pending",
         },
         requestedBy: { type: String, default: "admin" },
+        respondedAt: { type: Date, default: null },
+        resolvedAt: { type: Date, default: null },
+        resolvedBy: { type: String, default: null },
+        responses: [
+          {
+            note: { type: String, default: "" },
+            documents: [{ type: String }],
+            uploadedAt: { type: Date, default: Date.now },
+            uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+            uploadedByName: { type: String, default: "" },
+          },
+        ],
       },
     ],
     // Admin actions notifications (approve/reject/delete)

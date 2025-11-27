@@ -401,3 +401,55 @@ export const requestAdditionalInfo = async (req, res) => {
     });
   }
 };
+
+// ✅ MARK INFO REQUEST AS RESOLVED
+export const resolveInfoRequest = async (req, res) => {
+  try {
+    const { id, requestId } = req.params;
+
+    const campaign = await Campaign.findById(id);
+
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        message: "Campaign not found",
+      });
+    }
+
+    const infoRequest = campaign.infoRequests?.id(requestId);
+
+    if (!infoRequest) {
+      return res.status(404).json({
+        success: false,
+        message: "Info request not found",
+      });
+    }
+
+    infoRequest.status = "resolved";
+    infoRequest.resolvedAt = new Date();
+    infoRequest.resolvedBy = req.admin?.id || "admin";
+
+    const hasPending = campaign.infoRequests.some(
+      (reqItem) => reqItem.status !== "resolved"
+    );
+    campaign.requiresMoreInfo = hasPending;
+    if (!hasPending) {
+      campaign.lastInfoRequestAt = null;
+    }
+
+    await campaign.save();
+
+    return res.json({
+      success: true,
+      message: "Info request marked as resolved",
+      request: infoRequest.toObject ? infoRequest.toObject() : infoRequest,
+      campaign: campaign.toObject(),
+    });
+  } catch (error) {
+    console.error("Resolve info request error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to resolve info request",
+    });
+  }
+};
