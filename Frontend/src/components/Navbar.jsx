@@ -1,12 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, UserButton, useAuth } from "@clerk/clerk-react";
+import axios from "axios";
+import { FaBell } from "react-icons/fa";
+
+const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function Navbar() {
+  const { isSignedIn, getToken } = useAuth();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   const menuRef = useRef(null);
+  const notificationRef = useRef(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -14,10 +24,54 @@ export default function Navbar() {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setMenuOpen(false);
       }
+      if (notificationRef.current && !notificationRef.current.contains(e.target)) {
+        setNotificationsOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Fetch notifications
+  useEffect(() => {
+    if (!isSignedIn) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+
+    const fetchNotifications = async () => {
+      try {
+        setLoadingNotifications(true);
+        let token = null;
+        try {
+          token = await getToken();
+        } catch (e) {
+          token = localStorage.getItem("token");
+        }
+
+        if (!token) return;
+
+        const res = await axios.get(`${API_URL}/api/campaigns/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.data.success) {
+          setNotifications(res.data.notifications || []);
+          setUnreadCount(res.data.unreadCount || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      } finally {
+        setLoadingNotifications(false);
+      }
+    };
+
+    fetchNotifications();
+    // Refresh notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [isSignedIn, getToken]);
 
   return (
     <nav className="w-full bg-white border-b border-gray-200 shadow-sm fixed top-0 left-0 z-50">
@@ -95,14 +149,137 @@ export default function Navbar() {
           </SignedOut>
 
           <SignedIn>
+            {/* Notifications Bell */}
+            <div className="relative" ref={notificationRef}>
+              <button
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="relative p-2 text-gray-700 hover:text-[#00B5B8] transition-colors"
+                aria-label="Notifications"
+              >
+                <FaBell className="text-xl" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notifications Dropdown */}
+              {notificationsOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                  <div className="p-4 border-b border-gray-200">
+                    <h3 className="font-semibold text-[#003d3b]">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">{unreadCount} unread</p>
+                    )}
+                  </div>
+                  {loadingNotifications ? (
+                    <div className="p-4 text-center text-gray-500">Loading...</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">No notifications</div>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {notifications.map((notif) => (
+                        <Link
+                          key={notif.id}
+                          to={`/campaign/${notif.campaignId}`}
+                          onClick={() => setNotificationsOpen(false)}
+                          className={`block p-4 hover:bg-gray-50 transition-colors ${
+                            !notif.viewed ? "bg-blue-50" : ""
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
+                              !notif.viewed ? "bg-[#00B5B8]" : "bg-gray-300"
+                            }`}></div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-[#003d3b] line-clamp-1">
+                                {notif.campaignTitle}
+                              </p>
+                              <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                {notif.message}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-2">
+                                {new Date(notif.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <UserButton afterSignOutUrl="/" />
           </SignedIn>
         </div>
 
         {/* Mobile Right Area */}
         <div className="md:hidden flex items-center gap-3">
-
           <SignedIn>
+            {/* Mobile Notifications Bell */}
+            <div className="relative" ref={notificationRef}>
+              <button
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="relative p-2 text-gray-700 hover:text-[#00B5B8] transition-colors"
+                aria-label="Notifications"
+              >
+                <FaBell className="text-xl" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Mobile Notifications Dropdown */}
+              {notificationsOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                  <div className="p-4 border-b border-gray-200">
+                    <h3 className="font-semibold text-[#003d3b]">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">{unreadCount} unread</p>
+                    )}
+                  </div>
+                  {loadingNotifications ? (
+                    <div className="p-4 text-center text-gray-500">Loading...</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">No notifications</div>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {notifications.map((notif) => (
+                        <Link
+                          key={notif.id}
+                          to={`/campaign/${notif.campaignId}`}
+                          onClick={() => setNotificationsOpen(false)}
+                          className={`block p-4 hover:bg-gray-50 transition-colors ${
+                            !notif.viewed ? "bg-blue-50" : ""
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
+                              !notif.viewed ? "bg-[#00B5B8]" : "bg-gray-300"
+                            }`}></div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-[#003d3b] line-clamp-1">
+                                {notif.campaignTitle}
+                              </p>
+                              <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                {notif.message}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-2">
+                                {new Date(notif.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <UserButton afterSignOutUrl="/" />
           </SignedIn>
 

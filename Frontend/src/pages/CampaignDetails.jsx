@@ -118,8 +118,12 @@ export default function CampaignDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-[#003d3b] font-semibold">
-        Loading campaign...
+      <div className="w-full h-screen flex justify-center items-center bg-white">
+        <img
+          src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
+          alt="Loading..."
+          className="w-28 h-28 object-contain opacity-90 animate-pulse"
+        />
       </div>
     );
   }
@@ -250,12 +254,12 @@ export default function CampaignDetails() {
     <div className="bg-[#F1FAFA] min-h-screen pb-8">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         <div className="grid lg:grid-cols-[3fr,2fr] gap-8">
-          <div className="bg-white rounded-3xl shadow-lg p-4">
-            <div className="relative rounded-3xl overflow-hidden bg-gray-100">
+          <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
+            <div className="relative overflow-hidden bg-gray-100">
               <img
                 src={heroMedia}
                 alt={campaign.title}
-                className="w-full h-[300px] object-cover"
+                className="w-full h-[300px] lg:h-[400px] object-cover"
                 onError={(e) => (e.currentTarget.src = FALLBACK)}
               />
               <button
@@ -266,7 +270,7 @@ export default function CampaignDetails() {
               </button>
             </div>
             {galleryItems.length > 1 && (
-              <div className="mt-4">
+              <div className="p-4">
                 <p className="text-sm text-gray-600 mb-2">Medical journey</p>
                 <div className="relative">
                   <button
