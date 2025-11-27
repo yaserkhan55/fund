@@ -55,14 +55,18 @@ export default function TrendingFundraisers() {
     return () => window.removeEventListener('resize', updateItemsPerView);
   }, []);
 
-  const slideCount = Math.max(1, Math.ceil(campaigns.length / itemsPerView));
+  const slides = [];
+  for (let i = 0; i < campaigns.length; i += itemsPerView) {
+    slides.push(campaigns.slice(i, i + itemsPerView));
+  }
+  const slideCount = slides.length;
 
   // Auto-rotate carousel - move one by one through all campaigns
   useEffect(() => {
-    if (!campaigns.length) return;
-    
+    if (!slideCount) return;
+
     const maxIndex = Math.max(0, slideCount - 1);
-    
+
     setActiveIndex((prev) => {
       if (prev > maxIndex) {
         return 0;
@@ -80,7 +84,7 @@ export default function TrendingFundraisers() {
     }, 4000);
 
     return () => clearInterval(timer);
-  }, [campaigns.length, itemsPerView, slideCount]);
+  }, [slideCount]);
 
   if (!campaigns.length && !loading) {
     return (
@@ -118,20 +122,6 @@ export default function TrendingFundraisers() {
             <span className="text-gray-500 font-normal text-2xl"> (مقبول فنڈریزرس)</span>
           </h2>
         </div>
-        {!loading && campaigns.length > 0 && (
-          <div className="flex gap-2">
-            {Array.from({ length: slideCount }).map((_, idx) => (
-              <button
-                key={idx}
-                aria-label={`Go to campaign ${idx + 1}`}
-                className={`h-2.5 w-8 rounded-full transition-all ${
-                  idx === activeIndex ? "bg-[#00B5B8]" : "bg-[#CFE7E7]"
-                }`}
-                onClick={() => setActiveIndex(idx)}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
       {loading && (
@@ -147,15 +137,13 @@ export default function TrendingFundraisers() {
             }}
           >
             {/* Group campaigns into slides */}
-            {Array.from({ length: slideCount }).map((_, slideIdx) => (
+            {slides.map((slideItems, slideIdx) => (
               <div
                 key={slideIdx}
                 className="flex-shrink-0 w-full"
               >
                 <div className="flex gap-3 sm:gap-4 w-full">
-                  {campaigns
-                    .slice(slideIdx * itemsPerView, slideIdx * itemsPerView + itemsPerView)
-                    .map((c) => {
+                  {slideItems.map((c) => {
                       const progress =
                         c.goalAmount > 0
                           ? Math.min((c.raisedAmount / c.goalAmount) * 100, 100)
@@ -171,8 +159,8 @@ export default function TrendingFundraisers() {
                           key={c._id}
                           className="flex-shrink-0 flex-grow-0"
                           style={{ 
-                            width: `${100 / itemsPerView}%`,
-                            flexBasis: `${100 / itemsPerView}%`
+                            width: `${100 / slideItems.length}%`,
+                            flexBasis: `${100 / slideItems.length}%`
                           }}
                         >
                           <Link
