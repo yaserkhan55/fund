@@ -14,6 +14,7 @@ export default function AdminDashboard() {
     "Please provide the missing information so we can complete verification."
   );
   const [requestingInfo, setRequestingInfo] = useState(false);
+  const [resolvingRequest, setResolvingRequest] = useState(null);
 
   const [showEdit, setShowEdit] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -34,6 +35,12 @@ export default function AdminDashboard() {
     if (!img) return FALLBACK;
     if (img.startsWith("http")) return img;
     return `${API_URL}/${img.replace(/^\/+/, "")}`;
+  };
+
+  const infoStatusMeta = {
+    pending: { label: "Awaiting documents", badge: "bg-amber-100 text-amber-900" },
+    submitted: { label: "Needs review", badge: "bg-blue-100 text-blue-900" },
+    resolved: { label: "Resolved", badge: "bg-emerald-100 text-emerald-800" },
   };
 
   const load = async (tab = activeTab) => {
@@ -273,6 +280,30 @@ export default function AdminDashboard() {
     }
   };
 
+  const markRequestResolved = async (campaignId, requestId) => {
+    if (!campaignId || !requestId) return;
+    setResolvingRequest(requestId);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/admin/campaigns/${campaignId}/info-requests/${requestId}/resolve`,
+        {
+          method: "PUT",
+          headers: authHeaders(true),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Unable to resolve request");
+      }
+
+      await load(activeTab);
+    } catch (err) {
+      setError(err.message || "Unable to resolve request");
+    } finally {
+      setResolvingRequest(null);
+    }
+  };
+
   const latestInfoRequest = (campaign) => {
     const list = Array.isArray(campaign?.infoRequests) ? campaign.infoRequests : [];
     if (!list.length) return null;
@@ -354,13 +385,81 @@ export default function AdminDashboard() {
             </div>
             <p className="text-sm text-gray-600 mt-1">{c.shortDescription || "No description"}</p>
 
-          {c.requiresMoreInfo && (
-            <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-              <p className="font-semibold">Info requested</p>
-              <p>
-                {latestInfoRequest(c)?.message ||
-                  "Awaiting additional documents from the campaigner."}
-              </p>
+          {Array.isArray(c.infoRequests) && c.infoRequests.length > 0 && (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-sm text-[#003d3b]">
+              <p className="font-semibold text-[#8B5E00] mb-2">Verification inbox</p>
+              <div className="space-y-3">
+                {c.infoRequests.map((req, idx) => {
+                  const meta = infoStatusMeta[req.status] || infoStatusMeta.pending;
+                  return (
+                    <div
+                      key={req._id || `${c._id}-req-${idx}`}
+                      className="rounded-2xl border border-white bg-white/90 p-3 text-sm"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-semibold text-[#003d3b]">{req.message}</span>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${meta.badge}`}>
+                          {meta.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Requested {req.createdAt ? new Date(req.createdAt).toLocaleString() : "recently"}
+                      </p>
+
+                      {Array.isArray(req.responses) && req.responses.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          {req.responses.map((resp, respIdx) => (
+                            <div
+                              key={`${req._id || idx}-resp-${respIdx}`}
+                              className="rounded-xl border border-gray-100 bg-gray-50 p-2"
+                            >
+                              <p className="text-xs text-gray-600">
+                                {resp.uploadedByName || "Campaigner"} uploaded{" "}
+                                {resp.documents?.length || 0} file(s)
+                                {resp.uploadedAt ? ` · ${new Date(resp.uploadedAt).toLocaleString()}` : ""}
+                              </p>
+                              {resp.note && <p className="mt-1 text-xs text-gray-700">{resp.note}</p>}
+                              {Array.isArray(resp.documents) && resp.documents.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {resp.documents.map((doc, docIdx) => (
+                                    <a
+                                      key={`${req._id || idx}-resp-${respIdx}-doc-${docIdx}`}
+                                      href={resolveImg(doc)}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="rounded-lg border border-sky-200 bg-white px-2 py-1 text-xs font-semibold text-sky-700 hover:border-sky-400"
+                                    >
+                                      View file {docIdx + 1}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {req.status !== "resolved" && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            onClick={() => markRequestResolved(c._id, req._id)}
+                            disabled={resolvingRequest === req._id}
+                            className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            {resolvingRequest === req._id ? "Marking..." : "Mark resolved"}
+                          </button>
+                          <button
+                            onClick={() => openInfoModal(c)}
+                            className="rounded-md border border-amber-400 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100"
+                          >
+                            Request update
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

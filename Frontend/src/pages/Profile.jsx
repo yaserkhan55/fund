@@ -10,6 +10,11 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [showRequestPopup, setShowRequestPopup] = useState(false);
   const [activeRequest, setActiveRequest] = useState(null);
+  const [responseModal, setResponseModal] = useState(null);
+  const [responseFiles, setResponseFiles] = useState([]);
+  const [responseNote, setResponseNote] = useState("");
+  const [submittingResponse, setSubmittingResponse] = useState(false);
+  const [responseError, setResponseError] = useState("");
   const popupShownRef = useRef(false);
 
   // Fetch my campaigns
@@ -61,6 +66,41 @@ export default function Profile() {
     });
   }, [myCampaigns]);
 
+  const verificationQueue = useMemo(() => {
+    if (!Array.isArray(myCampaigns)) return [];
+
+    return myCampaigns.flatMap((campaign) => {
+      if (!Array.isArray(campaign.infoRequests)) return [];
+
+      return campaign.infoRequests
+        .filter((req) => req.status !== "resolved")
+        .map((req) => ({
+          ...req,
+          campaignId: campaign._id,
+          campaignTitle: campaign.title,
+          campaign,
+        }));
+    });
+  }, [myCampaigns]);
+
+  const requestStatusStyles = {
+    pending: {
+      label: "Action required",
+      badge: "bg-amber-100 text-amber-900",
+      pill: "bg-amber-500/10 text-amber-700 border-amber-200",
+    },
+    submitted: {
+      label: "Under review",
+      badge: "bg-blue-100 text-blue-900",
+      pill: "bg-blue-500/10 text-blue-700 border-blue-200",
+    },
+    resolved: {
+      label: "Resolved",
+      badge: "bg-emerald-100 text-emerald-800",
+      pill: "bg-emerald-500/10 text-emerald-700 border-emerald-200",
+    },
+  };
+
   const formatRequestTime = (date) => {
     if (!date) return "Just now";
     const created = new Date(date);
@@ -71,6 +111,95 @@ export default function Profile() {
     if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
     return `${days}d ago`;
+  };
+
+  const formatFullDate = (date) => {
+    if (!date) return "Just now";
+    return new Date(date).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  };
+
+  const openRespondModal = (campaign, request) => {
+    setResponseModal({ campaign, request });
+    setResponseFiles([]);
+    setResponseNote("");
+    setResponseError("");
+  };
+
+  const closeRespondModal = () => {
+    setResponseModal(null);
+    setResponseFiles([]);
+    setResponseNote("");
+    setResponseError("");
+  };
+
+  const handleFileInput = (event) => {
+    const files = Array.from(event.target.files || []);
+    setResponseFiles(files);
+  };
+
+  const removeResponseFile = (index) => {
+    setResponseFiles((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const fileLabel = (path) => {
+    if (!path) return "document";
+    return path.split("/").pop();
+  };
+
+  const handleResponseSubmit = async () => {
+    if (!responseModal) return;
+
+    if (!token) {
+      setResponseError("Please sign in again to upload documents.");
+      return;
+    }
+
+    if (!responseFiles.length && !responseNote.trim()) {
+      setResponseError("Upload at least one document or add a note for the admin.");
+      return;
+    }
+
+    setSubmittingResponse(true);
+    setResponseError("");
+
+    try {
+      const formData = new FormData();
+      responseFiles.forEach((file) => formData.append("documents", file));
+      if (responseNote.trim()) {
+        formData.append("note", responseNote.trim());
+      }
+
+      const res = await axios.post(
+        `${API_URL}/api/campaigns/${responseModal.campaign._id}/info-requests/${responseModal.request._id}/respond`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const updatedCampaign = res.data?.campaign;
+
+      if (updatedCampaign?._id) {
+        setMyCampaigns((prev) => {
+          if (!Array.isArray(prev)) return prev;
+          return prev.map((campaign) =>
+            campaign._id === updatedCampaign._id ? updatedCampaign : campaign
+          );
+        });
+      }
+
+      closeRespondModal();
+    } catch (err) {
+      console.error("Respond request error:", err);
+      setResponseError(err.response?.data?.message || "Failed to upload documents. Please try again.");
+    } finally {
+      setSubmittingResponse(false);
+    }
   };
 
   const openRequestPopup = (request) => {
@@ -145,6 +274,127 @@ export default function Profile() {
           </div>
         )}
 
+        {/* Verification center */}
+        {verificationQueue.length > 0 && (
+          <section className="mb-10 rounded-3xl border border-[#CFE7E7] bg-white/80 p-6 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="uppercase text-xs tracking-[0.4em] text-[#00B5B8] font-semibold">
+                  Verification Center
+                </p>
+                <h2 className="text-2xl font-semibold text-[#003d3b]">
+                  Pending actions ({verificationQueue.length})
+                </h2>
+              </div>
+              <p className="text-sm text-gray-500 max-w-xl">
+                Upload the supporting documents the admin requested so your campaign can go live faster.
+              </p>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {verificationQueue.map((req) => {
+                const meta = requestStatusStyles[req.status] || requestStatusStyles.pending;
+                return (
+                  <div
+                    key={`${req.campaignId}-${req._id}`}
+                    className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
+                  >
+                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <p className="text-xs uppercase text-gray-500">Campaign</p>
+                        <p className="text-lg font-semibold text-[#003d3b]">{req.campaignTitle}</p>
+                      </div>
+                      <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${meta.pill}`}>
+                        {meta.label}
+                      </span>
+                    </div>
+
+                    <p className="mt-3 text-sm text-gray-700">{req.message}</p>
+
+                    <div className="mt-4">
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Timeline</p>
+                      <ul className="mt-2 space-y-3">
+                        <li className="rounded-2xl border border-dashed border-amber-200 bg-amber-50/70 p-3 text-sm text-[#8B5E00]">
+                          <p className="font-semibold">Admin requested clarification</p>
+                          <p className="text-xs text-amber-700 mt-1">{formatFullDate(req.createdAt)}</p>
+                        </li>
+                        {Array.isArray(req.responses) &&
+                          req.responses.map((resp, idx) => (
+                            <li
+                              key={`${req._id}-resp-${idx}`}
+                              className="rounded-2xl border border-gray-100 bg-gray-50 p-3 text-sm text-[#003d3b]"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="font-semibold">
+                                  {resp.uploadedByName || "You"} submitted documents
+                                </p>
+                                <span className="text-xs text-gray-500">
+                                  {formatFullDate(resp.uploadedAt)}
+                                </span>
+                              </div>
+                              {resp.note && (
+                                <p className="mt-2 text-gray-600 whitespace-pre-line">{resp.note}</p>
+                              )}
+                              {Array.isArray(resp.documents) && resp.documents.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {resp.documents.map((doc, fileIdx) => (
+                                    <a
+                                      key={`${req._id}-resp-${idx}-doc-${fileIdx}`}
+                                      href={resolveImg(doc)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="group inline-flex items-center gap-2 rounded-xl border border-[#CFE7E7] bg-white px-3 py-1 text-xs font-semibold text-[#005A58] hover:border-[#00B5B8]"
+                                    >
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-4 w-4 text-[#00B5B8]"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={1.5}
+                                          d="M7 7h10M7 12h6m-2 7l-4-4H5a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v6a2 2 0 01-2 2h-4l-4 4z"
+                                        />
+                                      </svg>
+                                      <span className="truncate max-w-[120px]">{fileLabel(doc)}</span>
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+
+                    <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <p className="text-xs text-gray-500">
+                        Last updated {formatRequestTime(req.respondedAt || req.createdAt)}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          to={`/edit-campaign/${req.campaignId}`}
+                          className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                          Edit campaign form
+                        </Link>
+                        <button
+                          onClick={() => openRespondModal(req.campaign, req)}
+                          className="rounded-xl bg-[#00B5B8] px-4 py-2 text-sm font-semibold text-white shadow hover:bg-[#009ea1] transition"
+                        >
+                          {req.status === "pending" ? "Upload documents" : "Add more proofs"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {/* Stats */}
         {Array.isArray(myCampaigns) && myCampaigns.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -211,7 +461,10 @@ export default function Profile() {
               const statusColor =
                 c.status === "approved" ? "bg-[#00897B] text-white" : "bg-[#F9A826] text-white";
               const pendingRequest = Array.isArray(c.infoRequests)
-                ? c.infoRequests.find((req) => req.status === "pending")
+                ? c.infoRequests.find((req) => req.status !== "resolved")
+                : null;
+              const requestMeta = pendingRequest
+                ? requestStatusStyles[pendingRequest.status] || requestStatusStyles.pending
                 : null;
 
               return (
@@ -285,21 +538,38 @@ export default function Profile() {
                     <p className="text-sm text-gray-600 mb-4 line-clamp-3 flex-grow">{c.shortDescription || "No description provided."}</p>
 
                     {pendingRequest && (
-                      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                        <p className="font-semibold">Admin request pending</p>
-                        <p>{pendingRequest.message}</p>
-                        <button
-                          onClick={() =>
-                            openRequestPopup({
-                              ...pendingRequest,
-                              campaignId: c._id,
-                              campaignTitle: c.title,
-                            })
-                          }
-                          className="mt-2 text-xs font-semibold uppercase tracking-wide text-[#C05621]"
-                        >
-                          View details
-                        </button>
+                      <div className="mb-4 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 text-sm text-amber-900">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-semibold text-[#8B5E00]">Verification update</p>
+                          {requestMeta && (
+                            <span
+                              className={`text-xs font-semibold px-3 py-1 rounded-full ${requestMeta.badge}`}
+                            >
+                              {requestMeta.label}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-2 text-gray-800">{pendingRequest.message}</p>
+                        <div className="mt-3 flex flex-wrap gap-3">
+                          <button
+                            onClick={() => openRespondModal(c, pendingRequest)}
+                            className="inline-flex items-center justify-center rounded-lg bg-[#00B5B8] px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-[#009ea1] transition"
+                          >
+                            Upload documents
+                          </button>
+                          <button
+                            onClick={() =>
+                              openRequestPopup({
+                                ...pendingRequest,
+                                campaignId: c._id,
+                                campaignTitle: c.title,
+                              })
+                            }
+                            className="text-xs font-semibold uppercase tracking-wide text-[#C05621]"
+                          >
+                            View details
+                          </button>
+                        </div>
                       </div>
                     )}
 
@@ -353,9 +623,163 @@ export default function Profile() {
             </Link>
           </div>
         )}
-      </div>
+    </div>
 
-      {showRequestPopup && activeRequest && (
+    {responseModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#00B5B8]">
+                Respond to admin
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-[#003d3b]">Send supporting documents</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {responseModal.campaign?.title}
+              </p>
+            </div>
+            <button
+              onClick={closeRespondModal}
+              className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="mt-6 space-y-5">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700">
+              <p className="text-xs uppercase tracking-wide text-gray-500">Admin message</p>
+              <p className="mt-2">{responseModal.request?.message}</p>
+              <p className="mt-2 text-xs text-gray-500">
+                Requested {formatFullDate(responseModal.request?.createdAt)}
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-[#003d3b]">Add a note (optional)</label>
+              <textarea
+                value={responseNote}
+                onChange={(e) => setResponseNote(e.target.value)}
+                rows={3}
+                className="mt-2 w-full rounded-2xl border border-gray-200 bg-white/70 p-3 text-sm text-gray-700 focus:border-[#00B5B8] focus:outline-none focus:ring-2 focus:ring-[#00B5B8]/20"
+                placeholder="Explain what documents you're attaching so the admin can verify quickly."
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-[#003d3b]">
+                Upload documents (JPG, PNG, PDF)
+              </label>
+              <div className="mt-2 rounded-2xl border-2 border-dashed border-[#CFE7E7] p-6 text-center text-sm text-gray-500">
+                <input
+                  type="file"
+                  id="verification-documents"
+                  multiple
+                  accept=".jpg,.jpeg,.png,.pdf,.webp"
+                  onChange={handleFileInput}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="verification-documents"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#00B5B8]/10 px-4 py-2 text-[#00B5B8] font-semibold hover:bg-[#00B5B8]/20"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M8 12l4-4m0 0l4 4m-4-4v12"
+                    />
+                  </svg>
+                  Select files
+                </label>
+                <p className="mt-2 text-xs text-gray-400">Maximum 10 files, 10MB each</p>
+              </div>
+
+              {responseFiles.length > 0 && (
+                <ul className="mt-3 space-y-2 text-sm">
+                  {responseFiles.map((file, idx) => (
+                    <li
+                      key={`${file.name}-${idx}`}
+                      className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-3 py-2 text-gray-700"
+                    >
+                      <span className="truncate pr-3">{file.name}</span>
+                      <button
+                        onClick={() => removeResponseFile(idx)}
+                        className="text-xs font-semibold text-red-500 hover:text-red-600"
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {Array.isArray(responseModal.request?.responses) &&
+              responseModal.request.responses.length > 0 && (
+                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Previous submissions
+                  </p>
+                  <ul className="mt-3 space-y-2 text-sm text-[#003d3b]">
+                    {responseModal.request.responses.map((resp, idx) => (
+                      <li key={`${resp._id || idx}`} className="rounded-2xl border border-white bg-white p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-semibold">{resp.uploadedByName || "You"}</span>
+                          <span className="text-xs text-gray-500">{formatFullDate(resp.uploadedAt)}</span>
+                        </div>
+                        {resp.note && <p className="mt-2 text-gray-600">{resp.note}</p>}
+                        {Array.isArray(resp.documents) && resp.documents.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {resp.documents.map((doc, fileIdx) => (
+                              <a
+                                key={`${resp._id || idx}-doc-${fileIdx}`}
+                                href={resolveImg(doc)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="rounded-xl border border-[#CFE7E7] bg-white px-3 py-1 text-xs font-semibold text-[#005A58]"
+                              >
+                                {fileLabel(doc)}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            {responseError && <p className="text-sm text-red-600">{responseError}</p>}
+
+            <div className="flex flex-wrap justify-end gap-3">
+              <button
+                onClick={closeRespondModal}
+                className="rounded-xl border border-gray-200 px-5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResponseSubmit}
+                disabled={submittingResponse}
+                className="rounded-xl bg-[#00B5B8] px-5 py-2 text-sm font-semibold text-white shadow hover:bg-[#009ea1] disabled:opacity-50"
+              >
+                {submittingResponse ? "Uploading..." : "Send to admin"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {showRequestPopup && activeRequest && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 px-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#00B5B8]">
