@@ -33,14 +33,53 @@ const testimonials = [
 
 export default function SuccessStories() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [itemsPerView, setItemsPerView] = useState(1);
 
+  // Calculate items per view based on screen size
   useEffect(() => {
+    const updateItemsPerView = () => {
+      const width = window.innerWidth;
+      if (width >= 1024) {
+        setItemsPerView(3); // Desktop: 3 items
+      } else if (width >= 768) {
+        setItemsPerView(2); // Tablet: 2 items
+      } else {
+        setItemsPerView(1); // Mobile: 1 item
+      }
+    };
+
+    updateItemsPerView();
+    window.addEventListener('resize', updateItemsPerView);
+    return () => window.removeEventListener('resize', updateItemsPerView);
+  }, []);
+
+  // Auto-rotate carousel - move one by one through all testimonials
+  useEffect(() => {
+    if (!testimonials.length) return;
+    
+    // Calculate max index - only show complete slides (no partial slides)
+    const totalSlides = Math.floor(testimonials.length / itemsPerView);
+    const maxIndex = Math.max(0, totalSlides - 1);
+    
+    // Reset activeIndex if it's beyond maxIndex
+    setActiveIndex((prev) => {
+      if (prev > maxIndex) {
+        return 0;
+      }
+      return prev;
+    });
+    
     const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % testimonials.length);
+      setActiveIndex((prev) => {
+        if (prev >= maxIndex) {
+          return 0; // Loop back to start
+        }
+        return prev + 1;
+      });
     }, 4000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [testimonials.length, itemsPerView]);
 
   return (
     <section className="w-[90%] mx-auto mt-32 mb-20 relative">
@@ -59,67 +98,69 @@ export default function SuccessStories() {
             What our users say about SEUMP
           </h2>
         </div>
-        <div className="flex gap-2">
-          {testimonials.map((_, idx) => (
-            <button
-              key={idx}
-              aria-label={`Go to testimonial ${idx + 1}`}
-              className={`h-2.5 w-8 rounded-full transition-all ${
-                idx === activeIndex ? "bg-[#00B5B8]" : "bg-[#CFE7E7]"
-              }`}
-              onClick={() => setActiveIndex(idx)}
-            />
-          ))}
-        </div>
       </div>
 
-      <div className="overflow-hidden relative">
-        {/* Subtle gradient overlay on edges */}
-        <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
-        <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
-        
+      <div className="overflow-hidden relative w-full">
         <div
           className="flex transition-transform duration-700 ease-out"
-          style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+          style={{ 
+            transform: `translateX(-${activeIndex * 100}%)`
+          }}
         >
-          {testimonials.map((story, idx) => (
-            <article
-              key={story.name}
-              className="min-w-full md:min-w-[50%] lg:min-w-[33.3333%] px-4"
+          {/* Group testimonials into slides - only show complete slides */}
+          {Array.from({ length: Math.floor(testimonials.length / itemsPerView) }).map((_, slideIdx) => (
+            <div
+              key={slideIdx}
+              className="flex-shrink-0 w-full"
             >
-              <div className="bg-white border border-[#CFE7E7] rounded-2xl p-6 shadow-md h-full hover:shadow-lg hover:border-[#00B5B8]/30 transition-all duration-300 relative group">
-                {/* Subtle light effect on hover */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="h-16 w-16 rounded-full bg-[#E6F7F7] flex items-center justify-center text-[#00B5B8] font-semibold text-xl">
-                    {story.avatar ? (
-                      <img
-                        src={story.avatar}
-                        alt={story.name}
-                        className="h-full w-full rounded-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = "https://ui-avatars.com/api/?background=00B5B8&color=fff&name=" + encodeURIComponent(story.name);
-                        }}
-                      />
-                    ) : (
-                      story.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .slice(0, 2)
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-lg font-semibold text-[#003D3B]">{story.name}</p>
-                    <p className="text-sm text-[#005A58]">{story.city}</p>
-                  </div>
-                </div>
-                <p className="text-[#003D3B]/90 leading-relaxed text-base">
-                  “{story.quote}”
-                </p>
+              <div className="flex gap-3 sm:gap-4 w-full">
+                {testimonials
+                  .slice(slideIdx * itemsPerView, slideIdx * itemsPerView + itemsPerView)
+                  .map((story) => (
+                    <article
+                      key={story.name}
+                      className="flex-shrink-0 flex-grow-0"
+                      style={{ 
+                        width: `${100 / itemsPerView}%`,
+                        flexBasis: `${100 / itemsPerView}%`
+                      }}
+                    >
+                      <div className="bg-white border border-[#CFE7E7] rounded-2xl p-6 shadow-md h-full hover:shadow-lg hover:border-[#00B5B8]/30 transition-all duration-300 relative group">
+                        {/* Subtle light effect on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="h-16 w-16 rounded-full bg-[#E6F7F7] flex items-center justify-center text-[#00B5B8] font-semibold text-xl flex-shrink-0">
+                            {story.avatar ? (
+                              <img
+                                src={story.avatar}
+                                alt={story.name}
+                                className="h-full w-full rounded-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = "https://ui-avatars.com/api/?background=00B5B8&color=fff&name=" + encodeURIComponent(story.name);
+                                }}
+                              />
+                            ) : (
+                              story.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .slice(0, 2)
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-lg font-semibold text-[#003D3B]">{story.name}</p>
+                            <p className="text-sm text-[#005A58]">{story.city}</p>
+                          </div>
+                        </div>
+                        <p className="text-[#003D3B]/90 leading-relaxed text-base">
+                          "{story.quote}"
+                        </p>
+                      </div>
+                    </article>
+                  ))}
               </div>
-            </article>
+            </div>
           ))}
         </div>
       </div>
