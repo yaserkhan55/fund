@@ -55,15 +55,14 @@ export default function TrendingFundraisers() {
     return () => window.removeEventListener('resize', updateItemsPerView);
   }, []);
 
+  const slideCount = Math.max(1, Math.ceil(campaigns.length / itemsPerView));
+
   // Auto-rotate carousel - move one by one through all campaigns
   useEffect(() => {
     if (!campaigns.length) return;
     
-    // Calculate max index - only show complete slides (no partial slides)
-    const totalSlides = Math.floor(campaigns.length / itemsPerView);
-    const maxIndex = Math.max(0, totalSlides - 1);
+    const maxIndex = Math.max(0, slideCount - 1);
     
-    // Reset activeIndex if it's beyond maxIndex
     setActiveIndex((prev) => {
       if (prev > maxIndex) {
         return 0;
@@ -81,7 +80,7 @@ export default function TrendingFundraisers() {
     }, 4000);
 
     return () => clearInterval(timer);
-  }, [campaigns.length, itemsPerView]);
+  }, [campaigns.length, itemsPerView, slideCount]);
 
   if (!campaigns.length && !loading) {
     return (
@@ -109,9 +108,6 @@ export default function TrendingFundraisers() {
 
   return (
     <section className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-20 mb-32 relative">
-      {/* Decorative light effect */}
-      <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-[#00B5B8] to-transparent opacity-30 blur-sm"></div>
-      
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
         <div>
           <p className="uppercase text-xs tracking-[0.4em] text-[#00B5B8] font-semibold">
@@ -124,7 +120,7 @@ export default function TrendingFundraisers() {
         </div>
         {!loading && campaigns.length > 0 && (
           <div className="flex gap-2">
-            {Array.from({ length: Math.max(1, Math.floor(campaigns.length / itemsPerView)) }).map((_, idx) => (
+            {Array.from({ length: slideCount }).map((_, idx) => (
               <button
                 key={idx}
                 aria-label={`Go to campaign ${idx + 1}`}
@@ -150,8 +146,8 @@ export default function TrendingFundraisers() {
               transform: `translateX(-${activeIndex * 100}%)`
             }}
           >
-            {/* Group campaigns into slides - only show complete slides */}
-            {Array.from({ length: Math.floor(campaigns.length / itemsPerView) }).map((_, slideIdx) => (
+            {/* Group campaigns into slides */}
+            {Array.from({ length: slideCount }).map((_, slideIdx) => (
               <div
                 key={slideIdx}
                 className="flex-shrink-0 w-full"
