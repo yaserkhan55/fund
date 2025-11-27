@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function Profile() {
-  const token = localStorage.getItem("token");
+  const { isSignedIn, getToken } = useAuth();
   const [myCampaigns, setMyCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRequestPopup, setShowRequestPopup] = useState(false);
@@ -16,13 +17,35 @@ export default function Profile() {
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [responseError, setResponseError] = useState("");
   const popupShownRef = useRef(false);
+  const resolveAuthToken = useCallback(async () => {
+    let authToken = null;
+    try {
+      authToken = await getToken();
+    } catch (error) {
+      authToken = localStorage.getItem("token");
+    }
+    return authToken;
+  }, [getToken]);
 
   // Fetch my campaigns
   useEffect(() => {
+    if (!isSignedIn) {
+      setMyCampaigns([]);
+      setLoading(false);
+      return;
+    }
+
     const fetchCampaigns = async () => {
       try {
+        setLoading(true);
+        const authToken = await resolveAuthToken();
+        if (!authToken) {
+          setMyCampaigns([]);
+          return;
+        }
+
         const res = await axios.get(`${API_URL}/api/campaigns/my`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${authToken}` },
         });
         const list = Array.isArray(res.data?.campaigns) ? res.data.campaigns : [];
         setMyCampaigns(list);
@@ -34,7 +57,7 @@ export default function Profile() {
       }
     };
     fetchCampaigns();
-  }, [token]);
+  }, [isSignedIn, resolveAuthToken]);
 
   // Use imageUrl from backend (virtual field) or fallback
   const getImageUrl = (campaign) => {
@@ -152,11 +175,6 @@ export default function Profile() {
   const handleResponseSubmit = async () => {
     if (!responseModal) return;
 
-    if (!token) {
-      setResponseError("Please sign in again to upload documents.");
-      return;
-    }
-
     if (!responseFiles.length && !responseNote.trim()) {
       setResponseError("Upload at least one document or add a note for the admin.");
       return;
@@ -166,6 +184,12 @@ export default function Profile() {
     setResponseError("");
 
     try {
+      const authToken = await resolveAuthToken();
+      if (!authToken) {
+        setResponseError("Please sign in again to upload documents.");
+        return;
+      }
+
       const formData = new FormData();
       responseFiles.forEach((file) => formData.append("documents", file));
       if (responseNote.trim()) {
@@ -177,7 +201,7 @@ export default function Profile() {
         formData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${authToken}`,
           },
         }
       );
