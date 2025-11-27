@@ -6,8 +6,9 @@ import DonationModal from "../components/DonationModal";
 
 const FALLBACK = "/no-image.png";
 const TABS = [
-  { id: "about", label: "About" },
   { id: "documents", label: "Documents" },
+  { id: "updates", label: "Updates" },
+  { id: "comments", label: "Comments" },
 ];
 
 export default function CampaignDetails() {
@@ -18,13 +19,13 @@ export default function CampaignDetails() {
   const [patientImages, setPatientImages] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [stats, setStats] = useState({ supporters: 0, daysLeft: 0 });
-  const [recentDonors, setRecentDonors] = useState([]);
   const [suggested, setSuggested] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDonation, setShowDonation] = useState(false);
-  const [activeTab, setActiveTab] = useState("about");
+  const [activeTab, setActiveTab] = useState("documents");
   const [heroMedia, setHeroMedia] = useState(FALLBACK);
   const [copied, setCopied] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const galleryStripRef = useRef(null);
   const documentStripRef = useRef(null);
@@ -39,16 +40,6 @@ export default function CampaignDetails() {
   const formatCurrency = (value) =>
     `₹${Number(value || 0).toLocaleString("en-IN")}`;
 
-  const formatRelativeTime = (dateString) => {
-    if (!dateString) return "";
-    const diff = Date.now() - new Date(dateString).getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-  };
 
   const scrollStrip = (ref, direction) => {
     if (!ref.current) return;
@@ -89,10 +80,9 @@ export default function CampaignDetails() {
     async function fetchCampaignDetails() {
       setLoading(true);
       try {
-        const [detailsRes, suggestedRes, donorsRes] = await Promise.all([
+        const [detailsRes, suggestedRes] = await Promise.all([
           axios.get(`${API_URL}/api/campaigns/details/${id}`),
           axios.get(`${API_URL}/api/campaigns/details/${id}/suggested`),
-          axios.get(`${API_URL}/api/campaigns/details/${id}/donors`),
         ]);
 
         if (!isMounted) return;
@@ -111,7 +101,6 @@ export default function CampaignDetails() {
         setHeroMedia(resolveAsset(cover || FALLBACK));
 
         setSuggested(suggestedRes.data?.campaigns || []);
-        setRecentDonors(donorsRes.data?.donors || []);
       } catch (error) {
         console.error("Details fetch error:", error);
         if (isMounted) {
@@ -157,39 +146,16 @@ export default function CampaignDetails() {
       ? campaign.about
       : campaign.fullStory || "No story available.";
 
+  // Split content for Read More functionality
+  const words = aboutContent.split(" ");
+  const previewLength = 50; // Show first 50 words
+  const shouldShowReadMore = words.length > previewLength;
+  const previewText = shouldShowReadMore
+    ? words.slice(0, previewLength).join(" ") + "..."
+    : aboutContent;
+  const fullText = aboutContent;
+
   const tabsContent = {
-    about: (
-      <div className="space-y-6">
-        <div className="prose max-w-none text-[#003d3b]">
-          <p className="font-semibold text-lg text-[#003d3b] mb-2">
-            About the Fundraiser
-          </p>
-          <p className="leading-relaxed whitespace-pre-line text-gray-700">
-            {aboutContent}
-          </p>
-        </div>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="p-4 rounded-2xl border border-[#E0F2F2] bg-[#F8FEFE]">
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-              Beneficiary
-            </p>
-            <p className="text-lg font-semibold text-[#003d3b]">
-              {campaign.beneficiaryName}
-            </p>
-            <p className="text-sm text-gray-500">{campaign.relation}</p>
-          </div>
-          <div className="p-4 rounded-2xl border border-[#E0F2F2] bg-[#F8FEFE]">
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
-              Location
-            </p>
-            <p className="text-lg font-semibold text-[#003d3b]">
-              {campaign.city}
-            </p>
-            <p className="text-sm text-gray-500">{campaign.category}</p>
-          </div>
-        </div>
-      </div>
-    ),
     documents: documents.length ? (
       <div className="space-y-4">
         <p className="text-gray-600">
@@ -237,6 +203,16 @@ export default function CampaignDetails() {
     ) : (
       <p className="text-gray-500">Medical documents will appear here once uploaded.</p>
     ),
+    updates: (
+      <div className="space-y-4">
+        <p className="text-gray-500">No updates available yet.</p>
+      </div>
+    ),
+    comments: (
+      <div className="space-y-4">
+        <p className="text-gray-500">No comments yet. Be the first to comment!</p>
+      </div>
+    ),
   };
 
   const galleryItems = patientImages.length
@@ -244,8 +220,8 @@ export default function CampaignDetails() {
     : [campaign.imageUrl || campaign.image].filter(Boolean);
 
   return (
-    <div className="bg-[#F1FAFA] min-h-screen pb-16">
-      <div className="max-w-6xl mx-auto px-4 py-10 space-y-10">
+    <div className="bg-[#F1FAFA] min-h-screen">
+      <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
         <div className="grid lg:grid-cols-[3fr,2fr] gap-8">
           <div className="bg-white rounded-3xl shadow-lg p-4">
             <div className="relative rounded-3xl overflow-hidden bg-gray-100">
@@ -316,7 +292,6 @@ export default function CampaignDetails() {
               <span>SEUMP VERIFIED</span>
             </div>
             <h1 className="text-3xl font-bold text-[#003d3b]">{campaign.title}</h1>
-            <p className="text-gray-600 mt-2">{campaign.shortDescription}</p>
 
             <div className="mt-6">
               <div className="text-4xl font-bold text-[#003d3b]">
@@ -396,57 +371,74 @@ export default function CampaignDetails() {
           </aside>
         </div>
 
+        {/* About Section */}
+        <div className="bg-white rounded-3xl shadow-lg p-6">
+          <div className="space-y-6">
+            <div className="prose max-w-none text-[#003d3b]">
+              <p className="leading-relaxed whitespace-pre-line text-gray-700">
+                {isExpanded ? fullText : previewText}
+              </p>
+              {shouldShowReadMore && (
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="mt-4 px-6 py-2 rounded-full bg-white border-2 border-[#00B5B8] text-[#00B5B8] font-semibold hover:bg-[#E0F7F8] transition-colors"
+                >
+                  {isExpanded ? "Read Less" : "Read More"}
+                </button>
+              )}
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl border border-[#E0F2F2] bg-[#F8FEFE]">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                  Beneficiary
+                </p>
+                <p className="text-lg font-semibold text-[#003d3b]">
+                  {campaign.beneficiaryName}
+                </p>
+                <p className="text-sm text-gray-500">{campaign.relation}</p>
+              </div>
+              <div className="p-4 rounded-2xl border border-[#E0F2F2] bg-[#F8FEFE]">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                  Location
+                </p>
+                <p className="text-lg font-semibold text-[#003d3b]">
+                  {campaign.city}
+                </p>
+                <p className="text-sm text-gray-500">{campaign.category}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white rounded-3xl shadow-lg">
-          <div className="flex border-b border-[#E0F2F2] overflow-x-auto">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-4 text-sm font-semibold uppercase tracking-[0.2em] ${
-                  activeTab === tab.id
-                    ? "text-[#00B5B8] border-b-4 border-[#00B5B8]"
-                    : "text-gray-400"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex items-center justify-between border-b border-[#E0F2F2] overflow-x-auto">
+            <div className="flex">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-6 py-4 text-sm font-semibold uppercase tracking-[0.2em] ${
+                    activeTab === tab.id
+                      ? "text-[#00B5B8] border-b-4 border-[#00B5B8]"
+                      : "text-gray-400"
+                  }`}
+                >
+                  {tab.label}
+                  {tab.id === "updates" && " 4"}
+                  {tab.id === "comments" && " 5"}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => handleShare("whatsapp")}
+              className="mr-6 px-6 py-2 rounded-full bg-[#00B5B8] text-white font-semibold hover:bg-[#009EA1] transition flex items-center gap-2"
+            >
+              <FaWhatsapp className="text-lg" />
+              Share
+            </button>
           </div>
           <div className="p-6">{tabsContent[activeTab]}</div>
         </div>
-
-        <section className="bg-white rounded-3xl shadow-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-2xl font-semibold text-[#003d3b]">
-              Recent Contributions
-            </h3>
-            <p className="text-sm text-gray-500">
-              Every social media share can bring ₹5000
-            </p>
-          </div>
-          {recentDonors.length ? (
-            <div className="grid md:grid-cols-2 gap-4">
-              {recentDonors.map((donor) => (
-                <div
-                  key={donor._id}
-                  className="border border-[#E0F2F2] rounded-2xl p-4 flex items-center justify-between"
-                >
-                  <div>
-                    <p className="font-semibold text-[#003d3b]">{donor.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {formatRelativeTime(donor.createdAt)}
-                    </p>
-                  </div>
-                  <div className="text-[#00B5B8] font-bold">
-                    {formatCurrency(donor.amount)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500">Be the first to contribute.</p>
-          )}
-        </section>
 
         {suggested.length > 0 && (
           <section className="bg-white rounded-3xl shadow-lg p-6">
