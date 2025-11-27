@@ -381,6 +381,92 @@ export const markAdminActionAsViewed = async (req, res) => {
 };
 
 /* =====================================================
+   GET USER NOTIFICATIONS
+===================================================== */
+export const getUserNotifications = async (req, res) => {
+  try {
+    const clerkUserId = req.auth?.userId;
+
+    if (!clerkUserId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    let mongoUser = req.mongoUser;
+    if (!mongoUser) {
+      mongoUser = await User.findOne({ clerkId: clerkUserId });
+    }
+
+    if (!mongoUser) {
+      return res.json({ success: true, notifications: [], unreadCount: 0 });
+    }
+
+    const mongoUserId = mongoUser._id.toString();
+
+    // Get all campaigns owned by user
+    const campaigns = await Campaign.find({
+      $or: [
+        { owner: mongoUserId },
+        { owner: mongoUser._id },
+        { createdBy: mongoUserId }
+      ]
+    }).lean();
+
+    // Collect all notifications
+    const notifications = [];
+
+    campaigns.forEach((campaign) => {
+      // Admin actions (approve/reject/delete)
+      if (Array.isArray(campaign.adminActions)) {
+        campaign.adminActions.forEach((action) => {
+          notifications.push({
+            id: action._id.toString(),
+            type: "admin_action",
+            campaignId: campaign._id.toString(),
+            campaignTitle: campaign.title,
+            action: action.action,
+            message: action.message || `${action.action} by admin`,
+            createdAt: action.createdAt,
+            viewed: action.viewed || false,
+          });
+        });
+      }
+
+      // Admin info requests
+      if (Array.isArray(campaign.infoRequests)) {
+        campaign.infoRequests.forEach((request) => {
+          if (request.status === "pending") {
+            notifications.push({
+              id: request._id.toString(),
+              type: "info_request",
+              campaignId: campaign._id.toString(),
+              campaignTitle: campaign.title,
+              message: request.message || "Admin requested additional information",
+              createdAt: request.createdAt,
+              viewed: false,
+            });
+          }
+        });
+      }
+    });
+
+    // Sort by date (newest first)
+    notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Count unread
+    const unreadCount = notifications.filter((n) => !n.viewed).length;
+
+    return res.json({
+      success: true,
+      notifications,
+      unreadCount,
+    });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* =====================================================
    CREATE CAMPAIGN
 ===================================================== */
 export const createCampaign = async (req, res) => {
