@@ -1,11 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import React, { useEffect, useState, useCallback } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "../lib/api";
+import ErrorDisplay from "../components/ErrorDisplay";
+import { CampaignListSkeleton } from "../components/SkeletonLoader";
 
 export default function CategoryPage() {
   const { category } = useParams();
+  const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const resolveImg = (img) => {
     if (!img) return "/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg";
@@ -13,63 +18,146 @@ export default function CategoryPage() {
     return `${import.meta.env.VITE_API_URL}/${img.replace(/^\/+/, "")}`;
   };
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-
-      const minDelay = new Promise((res) => setTimeout(res, 1000)); // 1 sec
-
-      try {
-        const res = await api.get("api/campaigns/approved");
-
-        const all = res.data.campaigns || [];
-
-        const filtered = all.filter(
-          (c) => c.category?.toLowerCase() === category.toLowerCase()
-        );
-
-        await minDelay;
-
-        setCampaigns(filtered);
-      } catch (err) {
-        console.error("Category fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
+  const fetchCampaigns = useCallback(async () => {
+    if (!category) {
+      setError({ message: "Invalid category" });
+      setLoading(false);
+      return;
     }
-    load();
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await api.get("api/campaigns/approved");
+
+      const all = Array.isArray(res.data?.campaigns) ? res.data.campaigns : [];
+
+      // Case-insensitive category filtering
+      const filtered = all.filter((c) => {
+        const campaignCategory = c.category?.toLowerCase()?.trim();
+        const targetCategory = category.toLowerCase()?.trim();
+        return campaignCategory === targetCategory;
+      });
+
+      setCampaigns(filtered);
+      setRetryCount(0); // Reset retry count on success
+    } catch (err) {
+      console.error("Category fetch error:", err);
+      
+      // Only show error if it's not a cached response
+      if (!err.__isCached) {
+        setError({
+          userMessage: err.userMessage || "Failed to load campaigns. Please try again.",
+          message: err.message,
+          status: err.status,
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   }, [category]);
 
-  // ---------------------------
-  // CUSTOM LOADER WITH CORRECT IMAGE
-  // ---------------------------
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
+
+  const handleRetry = () => {
+    setRetryCount((prev) => prev + 1);
+    fetchCampaigns();
+  };
+
+  // Format category name for display
+  const formatCategoryName = (cat) => {
+    if (!cat) return "";
+    return cat
+      .split(/[-_\s]/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+
+  // Show error state
+  if (error && !loading) {
+    return (
+      <div className="w-[90%] mx-auto mt-20 mb-20">
+        <h1 className="text-3xl font-bold text-[#003d3b] mb-6">
+          {formatCategoryName(category)} Fundraisers
+        </h1>
+        <ErrorDisplay
+          error={error}
+          onRetry={handleRetry}
+          title="Unable to load campaigns"
+          message={error.userMessage || "We couldn't load the campaigns for this category."}
+        />
+      </div>
+    );
+  }
+
+  // Loading state with skeleton
   if (loading) {
     return (
-      <div className="w-full h-screen flex justify-center items-center bg-white">
-        <img
-          src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
-          alt="Loading..."
-          className="w-28 h-28 object-contain opacity-90 animate-pulse"
-        />
+      <div className="w-[90%] mx-auto mt-20 mb-20">
+        <h1 className="text-3xl font-bold text-[#003d3b] mb-6">
+          {formatCategoryName(category)} Fundraisers
+        </h1>
+        <CampaignListSkeleton count={6} />
       </div>
     );
   }
 
   return (
     <div className="w-[90%] mx-auto mt-20 mb-20">
-      <h1 className="text-3xl font-bold text-[#003d3b] mb-6">
-        {category} Fundraisers
-      </h1>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-[#003d3b] mb-2">
+            {formatCategoryName(category)} Fundraisers
+          </h1>
+          <p className="text-gray-600">
+            {campaigns.length} {campaigns.length === 1 ? "campaign" : "campaigns"} found
+          </p>
+        </div>
+        <button
+          onClick={() => navigate("/")}
+          className="px-4 py-2 text-sm font-semibold text-[#00B5B8] hover:text-[#009EA1] transition"
+        >
+          ← Back to Home
+        </button>
+      </div>
 
-      {!loading && campaigns.length === 0 && (
+      {campaigns.length === 0 && (
         <div className="p-10 text-center bg-[#FFFBF0] border border-[#F9A826] rounded-xl">
-          <p className="text-[#003d3b] text-lg font-semibold">
+          <div className="w-16 h-16 mx-auto mb-4 bg-[#F9A826]/20 rounded-full flex items-center justify-center">
+            <svg
+              className="w-8 h-8 text-[#F9A826]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <p className="text-[#003d3b] text-lg font-semibold mb-2">
             No campaigns found in this category
           </p>
+          <p className="text-gray-600 text-sm mb-4">
+            Check back later or explore other categories
+          </p>
+          <button
+            onClick={() => navigate("/")}
+            className="px-6 py-2 bg-[#00B5B8] text-white font-semibold rounded-xl hover:bg-[#009EA1] transition"
+          >
+            Browse All Campaigns
+          </button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      {campaigns.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {campaigns.map((c) => {
           const progress =
             c.goalAmount > 0
@@ -140,7 +228,8 @@ export default function CategoryPage() {
             </Link>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

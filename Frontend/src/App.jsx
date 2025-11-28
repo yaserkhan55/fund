@@ -6,6 +6,7 @@ import { SignedIn, SignedOut, RedirectToSignIn, SignIn, SignUp } from "@clerk/cl
 // Layout
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Pages
 import Home from "./pages/Home";
@@ -42,7 +43,8 @@ function ClerkProtectedRoute({ children }) {
 
 export default function App() {
   return (
-    <Routes>
+    <ErrorBoundary>
+      <Routes>
       {/* ADMIN */}
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -143,6 +145,7 @@ export default function App() {
 
       {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+      </Routes>
+    </ErrorBoundary>
   );
 }
