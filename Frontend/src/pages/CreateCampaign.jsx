@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import api from "../lib/api";
 
@@ -20,43 +20,174 @@ export default function CreateCampaign() {
   });
 
   const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formProgress, setFormProgress] = useState(0);
 
   const [popup, setPopup] = useState({ show: false, type: "", message: "" });
+  const imageInputRef = useRef(null);
+  const docsInputRef = useRef(null);
 
   const showPopup = (type, message) => {
     setPopup({ show: true, type, message });
     setTimeout(() => setPopup({ show: false, type: "", message: "" }), 3000);
   };
 
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === "checkbox" ? checked : value,
+    });
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: "" });
+    }
+    // Calculate progress
+    calculateProgress();
+  };
+
+  const calculateProgress = () => {
+    const fields = [
+      "title",
+      "shortDescription",
+      "fullStory",
+      "goalAmount",
+      "category",
+      "beneficiaryName",
+      "city",
+      "relation",
+      "educationQualification",
+      "employmentStatus",
+      "duration",
+    ];
+    const filled = fields.filter((f) => formData[f]).length;
+    const hasImage = image ? 1 : 0;
+    const hasDocs = documents.length > 0 ? 1 : 0;
+    const total = fields.length + 2;
+    const progress = ((filled + hasImage + hasDocs) / total) * 100;
+    setFormProgress(Math.round(progress));
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Title validation
+    if (!formData.title || formData.title.trim().length < 10) {
+      newErrors.title = "Title must be at least 10 characters";
+    }
+
+    // Description validation
+    if (!formData.shortDescription || formData.shortDescription.trim().length < 20) {
+      newErrors.shortDescription = "Short description must be at least 20 characters";
+    }
+
+    // Full story validation
+    if (!formData.fullStory || formData.fullStory.trim().length < 50) {
+      newErrors.fullStory = "Full story must be at least 50 characters";
+    }
+
+    // Goal amount validation
+    const goal = parseFloat(formData.goalAmount);
+    if (!goal || goal < 2000) {
+      newErrors.goalAmount = "Minimum goal amount is ₹2,000";
+    }
+    if (goal > 10000000) {
+      newErrors.goalAmount = "Maximum goal amount is ₹1,00,00,000";
+    }
+
+    // Duration validation
+    const duration = parseInt(formData.duration);
+    if (!duration || duration < 7) {
+      newErrors.duration = "Minimum duration is 7 days";
+    }
+    if (duration > 365) {
+      newErrors.duration = "Maximum duration is 365 days";
+    }
+
+    // Image validation
+    if (!image) {
+      newErrors.image = "Please upload a banner image";
+    } else {
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (image.size > maxSize) {
+        newErrors.image = "Image size must be less than 5MB";
+      }
+    }
+
+    // Documents validation
+    if (documents.length === 0) {
+      newErrors.documents = "Please upload at least one supporting document";
+    } else {
+      documents.forEach((doc, idx) => {
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (doc.size > maxSize) {
+          newErrors.documents = `Document ${idx + 1} size must be less than 10MB`;
+        }
+      });
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleImageChange = (e) => {
-    if (e.target.files.length > 0) setImage(e.target.files[0]);
+    if (e.target.files.length > 0) {
+      const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors({ ...errors, image: "Image size must be less than 5MB" });
+        return;
+      }
+      setImage(file);
+      setImagePreview(URL.createObjectURL(file));
+      if (errors.image) {
+        setErrors({ ...errors, image: "" });
+      }
+      calculateProgress();
+    }
   };
 
   const handleDocsChange = (e) => {
-    setDocuments(Array.from(e.target.files));
+    const files = Array.from(e.target.files);
+    const invalidFiles = files.filter((f) => f.size > 10 * 1024 * 1024);
+    if (invalidFiles.length > 0) {
+      setErrors({ ...errors, documents: "Some files exceed 10MB limit" });
+      return;
+    }
+    setDocuments(files);
+    if (errors.documents) {
+      setErrors({ ...errors, documents: "" });
+    }
+    calculateProgress();
+  };
+
+  const removeImage = () => {
+    setImage(null);
+    setImagePreview(null);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+    calculateProgress();
+  };
+
+  const removeDocument = (index) => {
+    setDocuments(documents.filter((_, i) => i !== index));
+    calculateProgress();
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      showPopup("error", "Please fix the errors in the form");
+      return;
+    }
+
     setLoading(true);
     try {
-      if (documents.length === 0) {
-        showPopup("error", "Please upload at least one supporting document.");
-        setLoading(false);
-        return;
-      }
-
-      const fd = new FormData();
-      Object.keys(formData).forEach((key) => fd.append(key, formData[key]));
-
-      if (image) fd.append("image", image);
-      documents.forEach((doc) => fd.append("documents", doc));
-
       if (!isSignedIn) {
         showPopup("error", "Please sign in to create a fundraiser.");
         setLoading(false);
@@ -76,6 +207,12 @@ export default function CreateCampaign() {
         return;
       }
 
+      const fd = new FormData();
+      Object.keys(formData).forEach((key) => fd.append(key, formData[key]));
+
+      if (image) fd.append("image", image);
+      documents.forEach((doc) => fd.append("documents", doc));
+
       await api.post(`/api/campaigns/create`, fd, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -83,8 +220,8 @@ export default function CreateCampaign() {
         },
       });
 
-      showPopup("success", "🎉 Fundraiser Created Successfully!");
-      setTimeout(() => (window.location.href = "/"), 1200);
+      showPopup("success", "🎉 Fundraiser Created Successfully! Under review...");
+      setTimeout(() => (window.location.href = "/dashboard"), 2000);
     } catch (error) {
       const msg =
         error?.response?.data?.message ||
@@ -98,41 +235,23 @@ export default function CreateCampaign() {
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-[#F1FAFA] via-white to-[#E6F7F7] py-10 relative overflow-hidden">
-
-      {/* ---------- Popup ---------- */}
+      {/* Popup */}
       {popup.show && (
         <div
           className={`
             fixed top-6 left-1/2 transform -translate-x-1/2 
             px-6 py-3 rounded-xl shadow-xl text-white text-lg font-semibold
             transition-all z-50
-            ${popup.type === "success" ? "bg-[#00AEEF]" : "bg-red-500"}
+            ${popup.type === "success" ? "bg-[#00B5B8]" : "bg-red-500"}
           `}
         >
           {popup.message}
         </div>
       )}
 
-      {/* Background Logo - Multiple positions for better coverage */}
+      {/* Background Logo */}
       <div className="fixed inset-0 opacity-[0.08] pointer-events-none overflow-hidden z-0">
-        {/* Center large logo */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] md:w-[800px] md:h-[800px]">
-          <img
-            src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
-            alt="SEUMP Logo"
-            className="w-full h-full object-contain"
-          />
-        </div>
-        {/* Top right corner */}
-        <div className="absolute top-10 right-10 w-48 h-48 md:w-64 md:h-64 opacity-60">
-          <img
-            src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
-            alt="SEUMP Logo"
-            className="w-full h-full object-contain"
-          />
-        </div>
-        {/* Bottom left corner */}
-        <div className="absolute bottom-10 left-10 w-48 h-48 md:w-64 md:h-64 opacity-60">
           <img
             src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
             alt="SEUMP Logo"
@@ -141,242 +260,553 @@ export default function CreateCampaign() {
         </div>
       </div>
 
-      <div className="w-[95%] md:w-[80%] lg:w-[60%] bg-white/90 backdrop-blur-md shadow-2xl p-6 md:p-8 rounded-2xl border border-[#00AEEF]/30 relative z-10">
+      {/* Main Container - Centered */}
+      <div className="max-w-7xl mx-auto px-4 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Form */}
+          <div className="lg:col-span-2">
+            <div className="bg-white/90 backdrop-blur-md shadow-2xl p-6 md:p-8 rounded-2xl border border-[#00B5B8]/30">
+              {/* Header */}
+              <div className="mb-6">
+                <h2 className="text-3xl font-bold text-[#003D3B] mb-2">
+                  Start Your Fundraiser
+                </h2>
+                <p className="text-gray-600">
+                  Fill in the details below. All information will be verified by our admin team.
+                </p>
+                
+                {/* Progress Bar */}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-[#003D3B]">
+                      Form Progress
+                    </span>
+                    <span className="text-sm font-semibold text-[#00B5B8]">
+                      {formProgress}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-[#00B5B8] h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${formProgress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
 
-        <h2 className="text-3xl font-bold text-[#003D3B] mb-8 text-center">
-          Tell us more about your Fundraiser
-        </h2>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* GOAL AMOUNT */}
+                <div>
+                  <label className="block font-semibold text-[#003D3B] mb-2">
+                    How much do you want to raise? *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold">
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      name="goalAmount"
+                      value={formData.goalAmount}
+                      onChange={handleChange}
+                      placeholder="Minimum ₹ 2,000"
+                      min="2000"
+                      max="10000000"
+                      className={`w-full pl-8 pr-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition ${
+                        errors.goalAmount ? "border-red-300" : "border-gray-200"
+                      }`}
+                      required
+                    />
+                  </div>
+                  {errors.goalAmount && (
+                    <p className="text-red-500 text-sm mt-1">{errors.goalAmount}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Set a realistic goal. You can raise more if needed.
+                  </p>
+                </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+                {/* CATEGORY */}
+                <div>
+                  <label className="block font-semibold text-[#003D3B] mb-2">
+                    Category *
+                  </label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                    required
+                  >
+                    <option value="">Select category</option>
+                    <option value="medical">Medical</option>
+                    <option value="education">Education</option>
+                    <option value="emergency">Emergency</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
 
-          {/* GOAL AMOUNT */}
-          <div>
-            <label className="block font-semibold text-[#003D3B] mb-1">
-              How much do you want to raise? *
-            </label>
-            <input
-              type="number"
-              name="goalAmount"
-              value={formData.goalAmount}
-              onChange={handleChange}
-              placeholder="Minimum ₹ 2000"
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#00AEEF]"
-              required
-            />
-          </div>
+                {/* TITLE */}
+                <div>
+                  <label className="block font-semibold text-[#003D3B] mb-2">
+                    Fundraiser Title *
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
+                    placeholder="e.g., Help John recover from cancer treatment"
+                    maxLength={100}
+                    className={`w-full p-3 border-2 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition ${
+                      errors.title ? "border-red-300" : "border-gray-200"
+                    }`}
+                    required
+                  />
+                  {errors.title && (
+                    <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formData.title.length}/100 characters
+                  </p>
+                </div>
 
-          {/* CATEGORY */}
-          <div>
-            <label className="block font-semibold text-[#003D3B] mb-1">
-              Category *
-            </label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#00AEEF]"
-              required
-            >
-              <option value="">Select category</option>
-              <option value="medical">Medical</option>
-              <option value="education">Education</option>
-              <option value="emergency">Emergency</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
+                {/* SHORT DESC */}
+                <div>
+                  <label className="block font-semibold text-[#003D3B] mb-2">
+                    Short Description *
+                  </label>
+                  <textarea
+                    name="shortDescription"
+                    value={formData.shortDescription}
+                    onChange={handleChange}
+                    placeholder="Brief summary (will appear on campaign card)"
+                    rows="3"
+                    maxLength={200}
+                    className={`w-full p-3 border-2 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition ${
+                      errors.shortDescription ? "border-red-300" : "border-gray-200"
+                    }`}
+                    required
+                  />
+                  {errors.shortDescription && (
+                    <p className="text-red-500 text-sm mt-1">{errors.shortDescription}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formData.shortDescription.length}/200 characters
+                  </p>
+                </div>
 
-          {/* RELATION */}
-          <div>
-            <label className="block font-semibold text-[#003D3B] mb-1">
-              The Patient is my… *
-            </label>
-            <select
-              name="relation"
-              value={formData.relation}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#00AEEF]"
-              required
-            >
-              <option value="">Select relation</option>
-              <option value="self">Self</option>
-              <option value="father">Father</option>
-              <option value="mother">Mother</option>
-              <option value="relative">Relative</option>
-              <option value="friend">Friend</option>
-            </select>
-          </div>
+                {/* FULL STORY */}
+                <div>
+                  <label className="block font-semibold text-[#003D3B] mb-2">
+                    Full Story *
+                  </label>
+                  <textarea
+                    name="fullStory"
+                    value={formData.fullStory}
+                    onChange={handleChange}
+                    placeholder="Tell your complete story. Include details about the person, their condition, medical history, treatment plan, and why you need help."
+                    rows="6"
+                    minLength={50}
+                    className={`w-full p-3 border-2 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition ${
+                      errors.fullStory ? "border-red-300" : "border-gray-200"
+                    }`}
+                    required
+                  />
+                  {errors.fullStory && (
+                    <p className="text-red-500 text-sm mt-1">{errors.fullStory}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Minimum 50 characters. Be detailed and genuine.
+                  </p>
+                </div>
 
-          {/* EDUCATION */}
-          <div>
-            <label className="block font-semibold text-[#003D3B] mb-1">
-              Your Education Qualification *
-            </label>
-            <select
-              name="educationQualification"
-              value={formData.educationQualification}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#00AEEF]"
-              required
-            >
-              <option value="">Select education level</option>
-              <option value="10th">10th Pass</option>
-              <option value="12th">12th Pass</option>
-              <option value="graduate">Graduate</option>
-              <option value="postgraduate">Post Graduate</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
+                {/* BENEFICIARY INFO */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block font-semibold text-[#003D3B] mb-2">
+                      Beneficiary Name *
+                    </label>
+                    <input
+                      name="beneficiaryName"
+                      value={formData.beneficiaryName}
+                      onChange={handleChange}
+                      placeholder="Full name"
+                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                      required
+                    />
+                  </div>
 
-          {/* EMPLOYMENT */}
-          <div>
-            <label className="block font-semibold text-[#003D3B] mb-1">
-              Your Employment Status *
-            </label>
-            <select
-              name="employmentStatus"
-              value={formData.employmentStatus}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#00AEEF]"
-              required
-            >
-              <option value="">Select status</option>
-              <option value="employed">Employed</option>
-              <option value="self-employed">Self Employed</option>
-              <option value="student">Student</option>
-              <option value="unemployed">Unemployed</option>
-            </select>
-          </div>
+                  <div>
+                    <label className="block font-semibold text-[#003D3B] mb-2">
+                      City *
+                    </label>
+                    <input
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      placeholder="City name"
+                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                      required
+                    />
+                  </div>
+                </div>
 
-          {/* DURATION */}
-          <div>
-            <label className="block font-semibold text-[#003D3B] mb-1">
-              Fundraiser Duration (in days) *
-            </label>
-            <input
-              type="number"
-              name="duration"
-              value={formData.duration}
-              onChange={handleChange}
-              placeholder="Example: 30"
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#00AEEF]"
-              required
-            />
-          </div>
+                {/* RELATION */}
+                <div>
+                  <label className="block font-semibold text-[#003D3B] mb-2">
+                    Your Relation to Beneficiary *
+                  </label>
+                  <select
+                    name="relation"
+                    value={formData.relation}
+                    onChange={handleChange}
+                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                    required
+                  >
+                    <option value="">Select relation</option>
+                    <option value="self">Self</option>
+                    <option value="father">Father</option>
+                    <option value="mother">Mother</option>
+                    <option value="relative">Relative</option>
+                    <option value="friend">Friend</option>
+                  </select>
+                </div>
 
-          {/* TITLE */}
-          <div>
-            <label className="block font-semibold text-[#003D3B] mb-1">
-              Fundraiser Title *
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#00AEEF]"
-              required
-            />
-          </div>
+                {/* PERSONAL INFO */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block font-semibold text-[#003D3B] mb-2">
+                      Your Education Qualification *
+                    </label>
+                    <select
+                      name="educationQualification"
+                      value={formData.educationQualification}
+                      onChange={handleChange}
+                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                      required
+                    >
+                      <option value="">Select education level</option>
+                      <option value="10th">10th Pass</option>
+                      <option value="12th">12th Pass</option>
+                      <option value="graduate">Graduate</option>
+                      <option value="postgraduate">Post Graduate</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
 
-          {/* SHORT DESC */}
-          <div>
-            <label className="block font-semibold text-[#003D3B] mb-1">
-              Short Description *
-            </label>
-            <textarea
-              name="shortDescription"
-              value={formData.shortDescription}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#00AEEF]"
-              required
-            />
-          </div>
+                  <div>
+                    <label className="block font-semibold text-[#003D3B] mb-2">
+                      Your Employment Status *
+                    </label>
+                    <select
+                      name="employmentStatus"
+                      value={formData.employmentStatus}
+                      onChange={handleChange}
+                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                      required
+                    >
+                      <option value="">Select status</option>
+                      <option value="employed">Employed</option>
+                      <option value="self-employed">Self Employed</option>
+                      <option value="student">Student</option>
+                      <option value="unemployed">Unemployed</option>
+                    </select>
+                  </div>
+                </div>
 
-          {/* FULL STORY */}
-          <div>
-            <label className="block font-semibold text-[#003D3B] mb-1">
-              Full Story *
-            </label>
-            <textarea
-              name="fullStory"
-              value={formData.fullStory}
-              onChange={handleChange}
-              rows="5"
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#00AEEF]"
-              required
-            />
-          </div>
+                {/* DURATION */}
+                <div>
+                  <label className="block font-semibold text-[#003D3B] mb-2">
+                    Fundraiser Duration (in days) *
+                  </label>
+                  <input
+                    type="number"
+                    name="duration"
+                    value={formData.duration}
+                    onChange={handleChange}
+                    placeholder="Example: 30"
+                    min="7"
+                    max="365"
+                    className={`w-full p-3 border-2 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition ${
+                      errors.duration ? "border-red-300" : "border-gray-200"
+                    }`}
+                    required
+                  />
+                  {errors.duration && (
+                    <p className="text-red-500 text-sm mt-1">{errors.duration}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Minimum 7 days, Maximum 365 days
+                  </p>
+                </div>
 
-          {/* BENEFICIARY + CITY */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block font-semibold text-[#003D3B] mb-1">
-                Beneficiary Name *
-              </label>
-              <input
-                name="beneficiaryName"
-                value={formData.beneficiaryName}
-                onChange={handleChange}
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#00AEEF]"
-                required
-              />
+                {/* ZAKAT ELIGIBLE */}
+                <div className="flex items-center gap-3 p-4 bg-[#E6F5F3] rounded-xl border border-[#00B5B8]/20">
+                  <input
+                    type="checkbox"
+                    name="zakatEligible"
+                    checked={formData.zakatEligible}
+                    onChange={handleChange}
+                    className="w-5 h-5 text-[#00B5B8] rounded focus:ring-2 focus:ring-[#00B5B8]"
+                  />
+                  <label className="text-sm font-semibold text-[#003D3B]">
+                    This campaign is Zakat eligible
+                  </label>
+                </div>
+
+                {/* IMAGE UPLOAD */}
+                <div>
+                  <label className="block font-semibold text-[#003D3B] mb-2">
+                    Upload Banner Image * (Max 5MB)
+                  </label>
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-full h-64 object-cover rounded-xl border-2 border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => imageInputRef.current?.click()}
+                      className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-[#00B5B8] transition"
+                    >
+                      <svg className="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-gray-600 font-semibold">Click to upload image</p>
+                      <p className="text-sm text-gray-500 mt-1">JPG, PNG or WEBP (Max 5MB)</p>
+                    </div>
+                  )}
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    required
+                  />
+                  {errors.image && (
+                    <p className="text-red-500 text-sm mt-1">{errors.image}</p>
+                  )}
+                </div>
+
+                {/* DOCUMENT UPLOAD */}
+                <div>
+                  <label className="block font-semibold text-[#003D3B] mb-2">
+                    Upload Supporting Documents * (Max 10MB each)
+                  </label>
+                  <div
+                    onClick={() => docsInputRef.current?.click()}
+                    className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-[#00B5B8] transition"
+                  >
+                    <svg className="w-10 h-10 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-gray-600 font-semibold">Click to upload documents</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Medical reports, prescriptions, bills, etc. (PDF, JPG, PNG)
+                    </p>
+                  </div>
+                  <input
+                    ref={docsInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleDocsChange}
+                    className="hidden"
+                    required
+                  />
+                  {documents.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {documents.map((doc, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                        >
+                          <span className="text-sm text-gray-700 truncate flex-1">
+                            {doc.name} ({(doc.size / 1024 / 1024).toFixed(2)} MB)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeDocument(idx)}
+                            className="text-red-500 hover:text-red-700 ml-2"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {errors.documents && (
+                    <p className="text-red-500 text-sm mt-1">{errors.documents}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">
+                    Upload discharge summaries, prescriptions, medical bills, or any relevant documents to help verification.
+                  </p>
+                </div>
+
+                {/* SUBMIT BUTTON */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-[#00B5B8] text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-[#009EA1] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Submitting...
+                    </span>
+                  ) : (
+                    "Submit for Review"
+                  )}
+                </button>
+
+                <p className="text-xs text-center text-gray-500">
+                  Your campaign will be reviewed by our admin team before going live. This usually takes 24-48 hours.
+                </p>
+              </form>
             </div>
+          </div>
 
-            <div>
-              <label className="block font-semibold text-[#003D3B] mb-1">
-                City *
-              </label>
-              <input
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#00AEEF]"
-                required
-              />
+          {/* Right Column - Guide Template */}
+          <div className="lg:col-span-1">
+            <div className="bg-white/90 backdrop-blur-md shadow-2xl p-6 rounded-2xl border border-[#00B5B8]/30 sticky top-24">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-[#003D3B] mb-2">
+                  How to Fill This Form
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Follow these guidelines to create a successful fundraiser
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                {/* Purpose Section */}
+                <div className="bg-gradient-to-br from-[#E6F7F7] to-[#F1FAFA] p-5 rounded-xl border border-[#00B5B8]/20">
+                  <h4 className="font-bold text-[#003D3B] mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Purpose of This Form
+                  </h4>
+                  <div className="space-y-3 text-sm text-gray-700">
+                    <div className="flex items-start gap-2">
+                      <span className="font-bold text-[#00B5B8]">1.</span>
+                      <div>
+                        <p className="font-semibold">Post Genuine Information</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Share authentic details about the person, their condition, and payment information (GPay/PhonePe/Account details).
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="font-bold text-[#00B5B8]">2.</span>
+                      <div>
+                        <p className="font-semibold">Help People in Need</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Provide complete information so donors can make informed decisions and help effectively.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tips Section */}
+                <div className="bg-amber-50 p-5 rounded-xl border border-amber-200">
+                  <h4 className="font-bold text-[#8B5E00] mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Important Tips
+                  </h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-600 mt-1">•</span>
+                      <span>Be honest and detailed in your story</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-600 mt-1">•</span>
+                      <span>Upload clear medical documents</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-600 mt-1">•</span>
+                      <span>Set a realistic fundraising goal</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-600 mt-1">•</span>
+                      <span>Include payment information if applicable</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-600 mt-1">•</span>
+                      <span>All information will be verified</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Fraud Prevention */}
+                <div className="bg-red-50 p-5 rounded-xl border border-red-200">
+                  <h4 className="font-bold text-red-800 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Fraud Prevention
+                  </h4>
+                  <p className="text-sm text-red-700 mb-2">
+                    We take fraud prevention seriously:
+                  </p>
+                  <ul className="space-y-1 text-xs text-red-700">
+                    <li>• All campaigns are manually verified</li>
+                    <li>• Documents are checked for authenticity</li>
+                    <li>• Suspicious activity is flagged</li>
+                    <li>• False information leads to permanent ban</li>
+                  </ul>
+                </div>
+
+                {/* What Happens Next */}
+                <div className="bg-blue-50 p-5 rounded-xl border border-blue-200">
+                  <h4 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    What Happens Next?
+                  </h4>
+                  <ol className="space-y-2 text-sm text-blue-700 list-decimal list-inside">
+                    <li>Submit your form for review</li>
+                    <li>Admin team verifies all information</li>
+                    <li>You may be asked for additional documents</li>
+                    <li>Once approved, your campaign goes live</li>
+                    <li>Start receiving donations!</li>
+                  </ol>
+                </div>
+
+                {/* Support */}
+                <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
+                  <h4 className="font-bold text-[#003D3B] mb-2">Need Help?</h4>
+                  <p className="text-sm text-gray-600">
+                    If you have questions or need assistance filling this form, contact our support team.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-
-          {/* IMAGE UPLOAD */}
-          <div>
-            <label className="block font-semibold text-[#003D3B] mb-1">
-              Upload Banner Image *
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="w-full p-2"
-              required
-            />
-          </div>
-
-          {/* DOCUMENT UPLOAD */}
-          <div>
-            <label className="block font-semibold text-[#003D3B] mb-1">
-              Upload Medical Documents *
-            </label>
-            <input
-              type="file"
-              multiple
-              onChange={handleDocsChange}
-              className="w-full p-2"
-              required
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Share discharge summaries, prescriptions or bills to help our admin team verify.
-            </p>
-          </div>
-
-          {/* SUBMIT BUTTON */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#00AEEF] text-white py-3 rounded-xl font-bold text-lg 
-              shadow-md hover:bg-[#0099D6] transition"
-          >
-            {loading ? "Submitting..." : "Create Fundraiser"}
-          </button>
-        </form>
+        </div>
       </div>
     </div>
   );
