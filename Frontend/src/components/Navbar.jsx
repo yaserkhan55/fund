@@ -261,7 +261,7 @@ export default function Navbar() {
               </svg>
             </Link>
             {/* Mobile Notifications Bell */}
-            <div className="relative" ref={notificationRef}>
+            <div className="relative z-50" ref={notificationRef}>
               <button
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
                 className="relative p-2 text-gray-700 hover:text-[#00B5B8] transition-colors"
@@ -277,7 +277,7 @@ export default function Navbar() {
 
               {/* Mobile Notifications Dropdown */}
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                <div className="fixed md:absolute right-4 md:right-0 left-4 md:left-auto top-20 md:top-auto mt-0 md:mt-2 w-auto md:w-80 min-w-[280px] max-w-[calc(100vw-2rem)] md:max-w-none bg-white rounded-lg shadow-xl border border-gray-200 z-[60] max-h-[calc(100vh-6rem)] md:max-h-96 overflow-y-auto">
                   <div className="p-4 border-b border-gray-200">
                     <h3 className="font-semibold text-[#003d3b]">Notifications</h3>
                     {unreadCount > 0 && (
