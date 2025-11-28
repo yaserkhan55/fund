@@ -2,6 +2,7 @@
 
 import User from "../models/User.js";
 import Campaign from "../models/Campaign.js";
+import Donation from "../models/Donation.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { notifyOwner } from "../utils/notifyOwner.js";
@@ -450,6 +451,263 @@ export const resolveInfoRequest = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to resolve info request",
+    });
+  }
+};
+
+/* ---------------------------------------------------
+   DASHBOARD STATISTICS
+---------------------------------------------------- */
+export const getDashboardStats = async (req, res) => {
+  try {
+    const [
+      totalUsers,
+      totalCampaigns,
+      pendingCampaigns,
+      approvedCampaigns,
+      rejectedCampaigns,
+      totalDonations,
+      totalRaisedResult,
+      recentUsers,
+      recentCampaigns,
+    ] = await Promise.all([
+      User.countDocuments({ role: { $ne: "admin" } }),
+      Campaign.countDocuments({ deleted: { $ne: true } }),
+      Campaign.countDocuments({
+        $or: [
+          { status: { $exists: false } },
+          { status: null },
+          { status: "" },
+          { status: { $not: { $in: ["approved", "Approved", "rejected", "Rejected"] } } },
+        ],
+        deleted: { $ne: true },
+      }),
+      Campaign.countDocuments({ status: "approved", deleted: { $ne: true } }),
+      Campaign.countDocuments({ status: "rejected", deleted: { $ne: true } }),
+      Donation.countDocuments(),
+      Campaign.aggregate([
+        { $match: { deleted: { $ne: true } } },
+        { $group: { _id: null, total: { $sum: "$raisedAmount" } } },
+      ]),
+      User.find({ role: { $ne: "admin" } })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select("name email provider createdAt")
+        .lean(),
+      Campaign.find({ deleted: { $ne: true } })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select("title status createdAt owner")
+        .populate("owner", "name email")
+        .lean(),
+    ]);
+
+    const totalRaised = totalRaisedResult[0]?.total || 0;
+
+    // Calculate growth metrics (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [
+      newUsersLast30Days,
+      newCampaignsLast30Days,
+      raisedLast30DaysResult,
+    ] = await Promise.all([
+      User.countDocuments({
+        role: { $ne: "admin" },
+        createdAt: { $gte: thirtyDaysAgo },
+      }),
+      Campaign.countDocuments({
+        deleted: { $ne: true },
+        createdAt: { $gte: thirtyDaysAgo },
+      }),
+      Campaign.aggregate([
+        {
+          $match: {
+            deleted: { $ne: true },
+            createdAt: { $gte: thirtyDaysAgo },
+          },
+        },
+        { $group: { _id: null, total: { $sum: "$raisedAmount" } } },
+      ]),
+    ]);
+
+    const raisedLast30Days = raisedLast30DaysResult[0]?.total || 0;
+
+    res.json({
+      success: true,
+      stats: {
+        users: {
+          total: totalUsers,
+          newLast30Days: newUsersLast30Days,
+        },
+        campaigns: {
+          total: totalCampaigns,
+          pending: pendingCampaigns,
+          approved: approvedCampaigns,
+          rejected: rejectedCampaigns,
+          newLast30Days: newCampaignsLast30Days,
+        },
+        donations: {
+          totalCount: totalDonations,
+          totalRaised: totalRaised,
+          raisedLast30Days: raisedLast30Days,
+        },
+        recent: {
+          users: recentUsers,
+          campaigns: recentCampaigns,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load dashboard statistics",
+    });
+  }
+};
+
+/* ---------------------------------------------------
+   GET ALL USERS
+---------------------------------------------------- */
+export const getAllUsers = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search = "", sortBy = "createdAt", sortOrder = "desc" } = req.query;
+
+    const query = { role: { $ne: "admin" } };
+    
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+
+    const [users, total] = await Promise.all([
+      User.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .select("-password")
+        .lean(),
+      User.countDocuments(query),
+    ]);
+
+    // Get campaign counts for each user
+    const usersWithStats = await Promise.all(
+      users.map(async (user) => {
+        const [campaignsCount, totalRaised] = await Promise.all([
+          Campaign.countDocuments({
+            $or: [
+              { owner: user._id },
+              { owner: user._id.toString() },
+            ],
+            deleted: { $ne: true },
+          }),
+          Campaign.aggregate([
+            {
+              $match: {
+                $or: [
+                  { owner: user._id },
+                  { owner: user._id.toString() },
+                ],
+                deleted: { $ne: true },
+              },
+            },
+            { $group: { _id: null, total: { $sum: "$raisedAmount" } } },
+          ]).then((result) => result[0]?.total || 0),
+        ]);
+
+        return {
+          ...user,
+          stats: {
+            campaignsCount,
+            totalRaised,
+          },
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      users: usersWithStats,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load users",
+    });
+  }
+};
+
+/* ---------------------------------------------------
+   GET USER DETAILS
+---------------------------------------------------- */
+export const getUserDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select("-password").lean();
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const [campaigns, donations] = await Promise.all([
+      Campaign.find({
+        $or: [{ owner: id }, { owner: id.toString() }],
+        deleted: { $ne: true },
+      })
+        .sort({ createdAt: -1 })
+        .lean(),
+      // Get donations for user's campaigns
+      Campaign.find({
+        $or: [{ owner: id }, { owner: id.toString() }],
+        deleted: { $ne: true },
+      })
+        .select("_id")
+        .lean()
+        .then((campaigns) => {
+          const campaignIds = campaigns.map((c) => c._id);
+          return Donation.find({ campaignId: { $in: campaignIds } })
+            .sort({ createdAt: -1 })
+            .lean();
+        }),
+    ]);
+
+    const totalRaised = campaigns.reduce((sum, c) => sum + (c.raisedAmount || 0), 0);
+
+    res.json({
+      success: true,
+      user: {
+        ...user,
+        stats: {
+          campaignsCount: campaigns.length,
+          totalRaised,
+          donationsCount: donations.length,
+        },
+        campaigns,
+        donations,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching user details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load user details",
     });
   }
 };

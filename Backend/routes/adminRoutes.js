@@ -11,7 +11,10 @@ import {
   editCampaign,
   deleteCampaign,
   requestAdditionalInfo,
-  resolveInfoRequest
+  resolveInfoRequest,
+  getDashboardStats,
+  getAllUsers,
+  getUserDetails
 } from "../controllers/adminController.js";
 
 import { adminAuth } from "../middlewares/adminAuth.js";
@@ -22,6 +25,17 @@ const router = express.Router();
    ADMIN LOGIN (NO AUTH REQUIRED)
 -------------------------------- */
 router.post("/login", adminLogin);
+
+/* -------------------------------
+   DASHBOARD & STATISTICS
+-------------------------------- */
+router.get("/dashboard/stats", adminAuth, getDashboardStats);
+
+/* -------------------------------
+   USER MANAGEMENT
+-------------------------------- */
+router.get("/users", adminAuth, getAllUsers);
+router.get("/users/:id", adminAuth, getUserDetails);
 
 /* -------------------------------
    CAMPAIGN LISTS
