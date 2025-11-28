@@ -988,6 +988,62 @@ export default function CreatorDashboard() {
                       </div>
                     )}
 
+                    {/* Admin Approval/Rejection Message - Show latest action */}
+                    {Array.isArray(c.adminActions) && c.adminActions.length > 0 && (
+                      (() => {
+                        // Get the latest admin action
+                        const latestAction = [...c.adminActions]
+                          .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))[0];
+                        
+                        if (latestAction && latestAction.message) {
+                          const isApproved = latestAction.action === "approved";
+                          const isRejected = latestAction.action === "rejected";
+                          
+                          if (isApproved || isRejected) {
+                            return (
+                              <div className={`mb-4 rounded-xl border p-3 text-sm ${
+                                isApproved 
+                                  ? "border-green-200 bg-green-50/70" 
+                                  : "border-red-200 bg-red-50/70"
+                              }`}>
+                                <div className="flex items-start gap-2">
+                                  <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                                    isApproved ? "bg-green-500" : "bg-red-500"
+                                  }`}>
+                                    {isApproved ? (
+                                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    ) : (
+                                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className={`font-semibold text-xs mb-1 ${
+                                      isApproved ? "text-green-800" : "text-red-800"
+                                    }`}>
+                                      {isApproved ? "Campaign Approved" : "Campaign Rejected"}
+                                    </p>
+                                    <p className={`text-xs ${
+                                      isApproved ? "text-green-700" : "text-red-700"
+                                    }`}>
+                                      {latestAction.message}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      {formatRequestTime(latestAction.createdAt)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                        }
+                        return null;
+                      })()
+                    )}
+
                     {/* Progress */}
                     <div className="mb-4">
                       <div className="w-full bg-gray-200 h-2 rounded-full mb-2">

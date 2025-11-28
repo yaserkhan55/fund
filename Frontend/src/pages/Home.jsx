@@ -216,18 +216,18 @@ function Home() {
       {/* Admin Action Popup - Shows approve/reject/delete notifications */}
       {showActionPopup && activeAction && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 px-4">
-          <div className={`w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in ${
+          <div className={`w-full max-w-sm rounded-xl p-5 shadow-2xl ${
             activeAction.action === "approved" 
-              ? "bg-green-50 border-2 border-green-500" 
-              : "bg-red-50 border-2 border-red-500"
+              ? "bg-green-50 border border-green-300" 
+              : "bg-red-50 border border-red-300"
           }`}>
-            <div className="flex items-center justify-between mb-4">
-              <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${
+            <div className="flex items-center justify-between mb-3">
+              <p className={`text-xs font-semibold uppercase tracking-wide ${
                 activeAction.action === "approved" ? "text-green-700" : "text-red-700"
               }`}>
-                {activeAction.action === "approved" ? "Campaign Approved" : 
-                 activeAction.action === "rejected" ? "Campaign Rejected" : 
-                 "Campaign Deleted"}
+                {activeAction.action === "approved" ? "Approved" : 
+                 activeAction.action === "rejected" ? "Rejected" : 
+                 "Deleted"}
               </p>
               <button
                 onClick={async () => {
@@ -253,40 +253,52 @@ function Home() {
                   setShowActionPopup(false);
                   setActiveAction(null);
                 }}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                className="text-gray-400 hover:text-gray-600 text-xl font-bold"
               >
                 ×
               </button>
             </div>
             
-            <h2 className={`mt-2 text-2xl font-bold ${
-              activeAction.action === "approved" ? "text-green-800" : "text-red-800"
-            }`}>
-              {activeAction.action === "approved" 
-                ? "✓ Your campaign has been approved!" 
-                : activeAction.action === "rejected"
-                ? "✗ Your campaign has been rejected"
-                : "✗ Your campaign has been deleted"}
-            </h2>
-            
-            <div className={`mt-4 rounded-xl border p-4 text-sm ${
-              activeAction.action === "approved" 
-                ? "border-green-200 bg-green-100 text-green-900" 
-                : "border-red-200 bg-red-100 text-red-900"
-            }`}>
-              <p className="text-xs uppercase tracking-wide mb-2">Campaign</p>
-              <p className="font-semibold mb-3">{activeAction.campaignTitle}</p>
-              <p>{activeAction.message || (activeAction.action === "approved" 
-                ? "Your campaign is now live and visible to all users!" 
-                : "Please review the requirements and contact support if needed.")}</p>
+            <div className="flex items-start gap-3 mb-3">
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                activeAction.action === "approved" ? "bg-green-500" : "bg-red-500"
+              }`}>
+                {activeAction.action === "approved" ? (
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <h2 className={`text-lg font-bold ${
+                  activeAction.action === "approved" ? "text-green-800" : "text-red-800"
+                }`}>
+                  {activeAction.action === "approved" 
+                    ? "Campaign Approved" 
+                    : activeAction.action === "rejected"
+                    ? "Campaign Rejected"
+                    : "Campaign Deleted"}
+                </h2>
+                <p className="text-xs text-gray-600 mt-1">{activeAction.campaignTitle}</p>
+              </div>
             </div>
+            
+            {/* Only show the latest message for rejected campaigns */}
+            {activeAction.message && (
+              <div className={`rounded-lg border p-3 text-sm mb-3 ${
+                activeAction.action === "approved" 
+                  ? "border-green-200 bg-white text-green-900" 
+                  : "border-red-200 bg-white text-red-900"
+              }`}>
+                <p className="text-xs">{activeAction.message}</p>
+              </div>
+            )}
 
-            <p className="mt-4 text-xs text-gray-600">
-              {activeAction.action === "approved" ? "Approved" : 
-               activeAction.action === "rejected" ? "Rejected" : "Deleted"} {formatRequestTime(activeAction.createdAt)}
-            </p>
-
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="flex justify-end">
               <button
                 onClick={async () => {
                   // Mark as viewed
@@ -311,10 +323,10 @@ function Home() {
                   setShowActionPopup(false);
                   setActiveAction(null);
                 }}
-                className={`rounded-md px-5 py-2 text-sm font-semibold text-white shadow transition ${
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                   activeAction.action === "approved" 
-                    ? "bg-green-600 hover:bg-green-700" 
-                    : "bg-red-600 hover:bg-red-700"
+                    ? "bg-green-600 text-white hover:bg-green-700" 
+                    : "bg-red-600 text-white hover:bg-red-700"
                 }`}
               >
                 Got it

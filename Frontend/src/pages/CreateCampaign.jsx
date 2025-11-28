@@ -113,7 +113,18 @@ export default function CreateCampaign() {
         </div>
       )}
 
-      <div className="w-[95%] md:w-[80%] lg:w-[60%] bg-white shadow-xl p-6 md:p-8 rounded-2xl border border-[#00AEEF]/20">
+      {/* Background Logo */}
+      <div className="absolute inset-0 opacity-5 pointer-events-none overflow-hidden">
+        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-96 h-96">
+          <img
+            src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
+            alt="SEUMP Logo"
+            className="w-full h-full object-contain"
+          />
+        </div>
+      </div>
+
+      <div className="w-[95%] md:w-[80%] lg:w-[60%] bg-white/95 backdrop-blur-sm shadow-xl p-6 md:p-8 rounded-2xl border border-[#00AEEF]/20 relative z-10">
 
         <h2 className="text-3xl font-bold text-[#003D3B] mb-8 text-center">
           Tell us more about your Fundraiser
