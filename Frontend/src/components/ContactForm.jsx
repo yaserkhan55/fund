@@ -14,9 +14,22 @@ export default function ContactForm({ compact = false }) {
 
   useEffect(() => {
     if (isSignedIn && user) {
-      setName(user.fullName || user.firstName || user.emailAddresses?.[0]?.emailAddress || "");
+      // Only auto-fill if name is empty (don't override user input)
+      if (!name) {
+        setName(user.fullName || user.firstName || user.emailAddresses?.[0]?.emailAddress || "");
+      }
     }
   }, [isSignedIn, user]);
+
+  const handleNameInputClick = () => {
+    // Auto-fill name when input is clicked if user is logged in
+    if (isSignedIn && user && !name) {
+      const userName = user.fullName || user.firstName || user.emailAddresses?.[0]?.emailAddress || "";
+      if (userName) {
+        setName(userName);
+      }
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,8 +74,9 @@ export default function ContactForm({ compact = false }) {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              className="w-full p-2.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] text-sm"
+              onClick={handleNameInputClick}
+              placeholder="Your name (click to auto-fill if logged in)"
+              className="w-full p-2.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] text-sm cursor-text"
               required
             />
           </div>
@@ -108,8 +122,9 @@ export default function ContactForm({ compact = false }) {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Enter your name"
-            className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+            onClick={handleNameInputClick}
+            placeholder="Enter your name (click to auto-fill if logged in)"
+            className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition cursor-text"
             required
           />
         </div>

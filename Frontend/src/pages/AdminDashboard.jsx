@@ -16,6 +16,10 @@ export default function AdminDashboard() {
   const [campaignPage, setCampaignPage] = useState(1);
   const [campaignSearch, setCampaignSearch] = useState("");
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
+  const [contactQueries, setContactQueries] = useState([]);
+  const [contactPage, setContactPage] = useState(1);
+  const [contactSearch, setContactSearch] = useState("");
+  const [contactPagination, setContactPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
 
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [infoTarget, setInfoTarget] = useState(null);
@@ -86,6 +90,27 @@ export default function AdminDashboard() {
       if (!res.ok) throw new Error("Failed to load users");
       const data = await res.json();
       setUsers(data.users || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load contact queries
+  const loadContactQueries = async () => {
+    setLoading(true);
+    try {
+      const url = new URL(`${API_URL}/api/contact`);
+      url.searchParams.set("page", contactPage);
+      url.searchParams.set("limit", "20");
+      if (contactSearch) url.searchParams.set("search", contactSearch);
+
+      const res = await fetch(url, { headers: authHeaders(false) });
+      if (!res.ok) throw new Error("Failed to load contact queries");
+      const data = await res.json();
+      setContactQueries(data.contacts || []);
+      setContactPagination(data.pagination || { page: 1, limit: 20, total: 0, pages: 1 });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -192,13 +217,15 @@ export default function AdminDashboard() {
         loadStats();
       } else if (activeTab === "users") {
         loadUsers();
+      } else if (activeTab === "contacts") {
+        loadContactQueries();
       } else {
         load(activeTab);
       }
-    }, campaignSearch ? 500 : 0); // 500ms delay for search, immediate for other changes
+    }, campaignSearch || contactSearch ? 500 : 0); // 500ms delay for search, immediate for other changes
 
     return () => clearTimeout(timer);
-  }, [activeTab, userPage, userSearch, campaignPage, campaignSearch]);
+  }, [activeTab, userPage, userSearch, campaignPage, campaignSearch, contactPage, contactSearch]);
 
   // Auto-refresh dashboard and pending campaigns
   useEffect(() => {
@@ -804,6 +831,7 @@ export default function AdminDashboard() {
         { key: "approved", label: "Approved", icon: "✅" },
         { key: "rejected", label: "Rejected", icon: "❌" },
         { key: "users", label: "Users", icon: "👥" },
+        { key: "contacts", label: "Contact Queries", icon: "📧" },
       ].map((t) => (
         <button
           key={t.key}
@@ -811,6 +839,8 @@ export default function AdminDashboard() {
             setActiveTab(t.key);
             setCampaignPage(1);
             setCampaignSearch("");
+            setContactPage(1);
+            setContactSearch("");
           }}
           className={`px-6 py-3 rounded-xl font-semibold transition flex items-center gap-2 ${
             activeTab === t.key
@@ -902,6 +932,222 @@ export default function AdminDashboard() {
         {/* Content */}
         {activeTab === "dashboard" && <DashboardOverview />}
         {activeTab === "users" && <UsersManagement />}
+        {activeTab === "contacts" && (
+          <div className="space-y-6">
+            {/* Search Bar */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <svg
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search by name, email, or query..."
+                    value={contactSearch}
+                    onChange={(e) => {
+                      setContactSearch(e.target.value);
+                      setContactPage(1);
+                    }}
+                    className="w-full pl-12 pr-4 py-3 border-2 border-[#E0F2F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8]"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setContactSearch("");
+                    setContactPage(1);
+                    loadContactQueries();
+                  }}
+                  className="px-6 py-3 bg-gray-100 text-[#003d3b] font-semibold rounded-xl hover:bg-gray-200 transition"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            {/* Contact Queries List */}
+            {loading ? (
+              <div className="text-center py-20">
+                <div className="w-16 h-16 border-4 border-[#00B5B8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading contact queries...</p>
+              </div>
+            ) : contactQueries.length > 0 ? (
+              <div className="space-y-4">
+                {contactQueries.map((query) => (
+                  <div
+                    key={query._id}
+                    className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2] hover:shadow-xl transition"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-12 h-12 bg-[#00B5B8]/10 rounded-full flex items-center justify-center">
+                            <span className="text-[#00B5B8] font-bold text-lg">
+                              {(query.name || "U")[0].toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-[#003d3b]">{query.name || "Anonymous"}</h3>
+                            <p className="text-sm text-gray-600">{query.email || "No email provided"}</p>
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <p className="text-sm font-semibold text-[#003d3b] mb-1">Query:</p>
+                          <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{query.query}</p>
+                        </div>
+                        <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
+                          <span>📅 {formatDate(query.createdAt)}</span>
+                          <span
+                            className={`px-3 py-1 rounded-full font-semibold ${
+                              query.status === "resolved"
+                                ? "bg-green-100 text-green-700"
+                                : query.status === "archived"
+                                ? "bg-gray-100 text-gray-700"
+                                : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
+                            {query.status || "pending"}
+                          </span>
+                        </div>
+                        {query.adminResponse && (
+                          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <p className="text-xs font-semibold text-blue-700 mb-1">Admin Response:</p>
+                            <p className="text-sm text-blue-900">{query.adminResponse}</p>
+                            {query.respondedAt && (
+                              <p className="text-xs text-blue-600 mt-1">
+                                Responded on {formatDate(query.respondedAt)}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      {query.status !== "resolved" && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`${API_URL}/api/contact/${query._id}`, {
+                                method: "PUT",
+                                headers: authHeaders(true),
+                                body: JSON.stringify({ status: "resolved" }),
+                              });
+                              if (!res.ok) throw new Error("Failed to resolve");
+                              loadContactQueries();
+                            } catch (err) {
+                              setError(err.message);
+                            }
+                          }}
+                          className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition text-sm"
+                        >
+                          Mark Resolved
+                        </button>
+                      )}
+                      {query.status !== "archived" && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`${API_URL}/api/contact/${query._id}`, {
+                                method: "PUT",
+                                headers: authHeaders(true),
+                                body: JSON.stringify({ status: "archived" }),
+                              });
+                              if (!res.ok) throw new Error("Failed to archive");
+                              loadContactQueries();
+                            } catch (err) {
+                              setError(err.message);
+                            }
+                          }}
+                          className="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition text-sm"
+                        >
+                          Archive
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-[#E0F2F2]">
+                <p className="text-gray-500 text-lg">No contact queries found</p>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {contactPagination.pages > 1 && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    Showing {((contactPagination.page - 1) * contactPagination.limit) + 1} to{" "}
+                    {Math.min(contactPagination.page * contactPagination.limit, contactPagination.total)} of{" "}
+                    {contactPagination.total} queries
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (contactPage > 1) {
+                          setContactPage(contactPage - 1);
+                        }
+                      }}
+                      disabled={contactPage === 1}
+                      className="px-4 py-2 rounded-lg border border-[#E0F2F2] text-[#003d3b] font-semibold hover:bg-[#E6F7F7] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, contactPagination.pages) }, (_, i) => {
+                        let pageNum;
+                        if (contactPagination.pages <= 5) {
+                          pageNum = i + 1;
+                        } else if (contactPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (contactPage >= contactPagination.pages - 2) {
+                          pageNum = contactPagination.pages - 4 + i;
+                        } else {
+                          pageNum = contactPage - 2 + i;
+                        }
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setContactPage(pageNum)}
+                            className={`px-3 py-2 rounded-lg font-semibold transition ${
+                              contactPage === pageNum
+                                ? "bg-[#00B5B8] text-white"
+                                : "border border-[#E0F2F2] text-[#003d3b] hover:bg-[#E6F7F7]"
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (contactPage < contactPagination.pages) {
+                          setContactPage(contactPage + 1);
+                        }
+                      }}
+                      disabled={contactPage === contactPagination.pages}
+                      className="px-4 py-2 rounded-lg border border-[#E0F2F2] text-[#003d3b] font-semibold hover:bg-[#E6F7F7] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {(activeTab === "pending" || activeTab === "approved" || activeTab === "rejected") && (
           <div className="space-y-6">
             {/* Search and Filters */}
