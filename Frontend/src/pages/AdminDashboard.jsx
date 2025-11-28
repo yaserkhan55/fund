@@ -358,21 +358,6 @@ export default function AdminDashboard() {
     return diffMinutes < 30;
   };
 
-  const formatCurrency = (amount) => {
-    return `₹${Number(amount || 0).toLocaleString("en-IN")}`;
-  };
-
-  const formatDate = (date) => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-IN", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   // Dashboard Overview Component
   const DashboardOverview = () => {
     if (!stats) {
