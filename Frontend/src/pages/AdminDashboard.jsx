@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("pending");
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [items, setItems] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [userPage, setUserPage] = useState(1);
+  const [userSearch, setUserSearch] = useState("");
 
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [infoTarget, setInfoTarget] = useState(null);
@@ -37,10 +43,38 @@ export default function AdminDashboard() {
     return `${API_URL}/${img.replace(/^\/+/, "")}`;
   };
 
-  const infoStatusMeta = {
-    pending: { label: "Awaiting documents", badge: "bg-amber-100 text-amber-900" },
-    submitted: { label: "Needs review", badge: "bg-blue-100 text-blue-900" },
-    resolved: { label: "Resolved", badge: "bg-emerald-100 text-emerald-800" },
+  // Load dashboard statistics
+  const loadStats = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/dashboard/stats`, {
+        headers: authHeaders(false),
+      });
+      if (!res.ok) throw new Error("Failed to load stats");
+      const data = await res.json();
+      setStats(data.stats);
+    } catch (err) {
+      console.error("Error loading stats:", err);
+    }
+  };
+
+  // Load users
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const url = new URL(`${API_URL}/api/admin/users`);
+      url.searchParams.set("page", userPage);
+      url.searchParams.set("limit", "20");
+      if (userSearch) url.searchParams.set("search", userSearch);
+
+      const res = await fetch(url, { headers: authHeaders(false) });
+      if (!res.ok) throw new Error("Failed to load users");
+      const data = await res.json();
+      setUsers(data.users || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const load = async (tab = activeTab) => {
@@ -51,12 +85,12 @@ export default function AdminDashboard() {
       if (tab === "approved") url = `${API_URL}/api/admin/approved-campaigns`;
       if (tab === "rejected") url = `${API_URL}/api/admin/rejected-campaigns`;
 
-      console.log(`🔄 Loading ${tab} campaigns from: ${url}`);
-
       const res = await fetch(url, { headers: authHeaders(false) });
 
       if (res.status === 401) {
         setError("Unauthorized — login again.");
+        localStorage.removeItem("adminToken");
+        navigate("/admin/login");
         return;
       }
 
@@ -71,8 +105,6 @@ export default function AdminDashboard() {
       }
 
       const data = await res.json();
-      
-      // Handle both array response and object with campaigns property
       let list = [];
       if (Array.isArray(data)) {
         list = data;
@@ -83,70 +115,36 @@ export default function AdminDashboard() {
       } else if (data && Array.isArray(data.data)) {
         list = data.data;
       }
-      
-      // Ensure all items have required fields and normalize data
+
       list = list
-        .filter(item => item && (item._id || item.id))
-        .map(item => {
-          // Normalize the item to ensure it has all required fields
+        .filter((item) => item && (item._id || item.id))
+        .map((item) => {
           const normalized = { ...item };
-          
-          // Ensure _id exists
           if (!normalized._id && normalized.id) {
             normalized._id = normalized.id;
           }
-          
-          // Ensure owner has default values if missing
-          if (!normalized.owner || (typeof normalized.owner === 'object' && !normalized.owner._id && !normalized.owner.name)) {
+          if (!normalized.owner || (typeof normalized.owner === "object" && !normalized.owner._id && !normalized.owner.name)) {
             normalized.owner = {
               name: "Unknown User",
               email: "unknown@user.com",
-              ...(normalized.owner || {})
+              ...(normalized.owner || {}),
             };
           }
-          
-          // Ensure status is set
           if (!normalized.status) {
             normalized.status = tab === "pending" ? "pending" : normalized.status || "unknown";
           }
-          
           return normalized;
         });
-      
-      // Check if new campaigns were added
+
       const previousCount = items.length;
       const newCount = list.length;
-      
-      // Debug: Log the actual campaigns data
-      console.log(`📊 API Response for ${tab}:`, {
-        rawData: data,
-        isArray: Array.isArray(data),
-        hasCampaigns: !!(data?.campaigns),
-        parsedListLength: list.length
-      });
-      console.log(`📋 Parsed list (${list.length} items):`, list);
-      if (list.length > 0) {
-        console.log(`📋 First campaign:`, {
-          id: list[0]._id || list[0].id,
-          title: list[0].title,
-          status: list[0].status,
-          owner: list[0].owner
-        });
-        console.log(`📋 All campaign IDs:`, list.map(c => c._id || c.id));
-      } else {
-        console.log(`⚠️ No campaigns found in ${tab} tab`);
-      }
-      
+
       if (tab === "pending" && newCount > previousCount && previousCount > 0) {
         const newCampaigns = newCount - previousCount;
-        console.log(`🆕 ${newCampaigns} new campaign(s) detected!`);
         setNewCampaignsCount(newCampaigns);
-        // Show notification for 5 seconds
         setTimeout(() => setNewCampaignsCount(0), 5000);
       }
-      
-      console.log(`✅ Loaded ${list.length} ${tab} campaigns (was ${previousCount})`);
-      console.log(`✅ Setting items state with ${list.length} campaigns`);
+
       setItems(list);
       setLastRefresh(new Date());
     } catch (err) {
@@ -163,16 +161,23 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    load(activeTab);
-  }, [activeTab]);
+    if (activeTab === "dashboard") {
+      loadStats();
+    } else if (activeTab === "users") {
+      loadUsers();
+    } else {
+      load(activeTab);
+    }
+  }, [activeTab, userPage, userSearch]);
 
-  // Auto-refresh every 10 seconds when on pending tab
+  // Auto-refresh dashboard and pending campaigns
   useEffect(() => {
-    if (activeTab !== "pending") return;
-
     const interval = setInterval(() => {
-      console.log("Auto-refreshing pending campaigns...");
-      load("pending");
+      if (activeTab === "dashboard") {
+        loadStats();
+      } else if (activeTab === "pending") {
+        load("pending");
+      }
     }, 10000); // Refresh every 10 seconds
 
     return () => clearInterval(interval);
@@ -188,6 +193,7 @@ export default function AdminDashboard() {
 
       if (!res.ok) throw new Error("Approve failed");
       load();
+      if (activeTab === "dashboard") loadStats();
     } catch (err) {
       setError(err.message);
     }
@@ -203,6 +209,7 @@ export default function AdminDashboard() {
 
       if (!res.ok) throw new Error("Reject failed");
       load();
+      if (activeTab === "dashboard") loadStats();
     } catch (err) {
       setError(err.message);
     }
@@ -258,14 +265,11 @@ export default function AdminDashboard() {
     if (!infoTarget?._id || !infoMessage.trim()) return;
     setRequestingInfo(true);
     try {
-      const res = await fetch(
-        `${API_URL}/api/admin/campaigns/${infoTarget._id}/request-info`,
-        {
-          method: "POST",
-          headers: authHeaders(true),
-          body: JSON.stringify({ message: infoMessage.trim() }),
-        }
-      );
+      const res = await fetch(`${API_URL}/api/admin/campaigns/${infoTarget._id}/request-info`, {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({ message: infoMessage.trim() }),
+      });
 
       if (!res.ok) {
         throw new Error("Unable to send information request");
@@ -304,412 +308,720 @@ export default function AdminDashboard() {
     }
   };
 
+  const infoStatusMeta = {
+    pending: { label: "Awaiting documents", badge: "bg-amber-100 text-amber-900" },
+    submitted: { label: "Needs review", badge: "bg-blue-100 text-blue-900" },
+    resolved: { label: "Resolved", badge: "bg-emerald-100 text-emerald-800" },
+  };
+
   const latestInfoRequest = (campaign) => {
     const list = Array.isArray(campaign?.infoRequests) ? campaign.infoRequests : [];
     if (!list.length) return null;
     return list[list.length - 1];
   };
 
-  const Tabs = () => (
-    <div className="flex gap-2 mb-4">
-      {[
-        { key: "pending", label: "Pending" },
-        { key: "approved", label: "Approved" },
-        { key: "rejected", label: "Rejected" },
-      ].map((t) => (
-        <button
-          key={t.key}
-          onClick={() => setActiveTab(t.key)}
-          className={`px-4 py-2 rounded-md font-medium ${
-            activeTab === t.key ? "bg-sky-600 text-white" : "bg-gray-100"
-          }`}
-        >
-          {t.label}
-        </button>
-      ))}
-
-      <button
-        onClick={() => {
-          console.log("Manual refresh triggered");
-          load(activeTab);
-        }}
-        className="ml-auto px-4 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2"
-        title="Refresh campaigns (Auto-refreshes every 10 seconds)"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-        Refresh
-        {activeTab === "pending" && (
-          <span className="text-xs bg-blue-500 px-2 py-0.5 rounded">Auto</span>
-        )}
-      </button>
-    </div>
-  );
-
   const isNewCampaign = (campaign) => {
     if (!campaign.createdAt) return false;
     const created = new Date(campaign.createdAt);
     const now = new Date();
     const diffMinutes = (now - created) / (1000 * 60);
-    return diffMinutes < 30; // Show "NEW" badge for campaigns created in last 30 minutes
+    return diffMinutes < 30;
   };
 
+  const formatCurrency = (amount) => {
+    return `₹${Number(amount || 0).toLocaleString("en-IN")}`;
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // Dashboard Overview Component
+  const DashboardOverview = () => {
+    if (!stats) {
+      return (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-[#00B5B8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading statistics...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-[#00B5B8]/10 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-3xl font-bold text-[#003d3b] mb-1">{stats.users.total.toLocaleString()}</h3>
+            <p className="text-gray-600 text-sm">Total Users</p>
+            <p className="text-xs text-[#00B5B8] mt-2">+{stats.users.newLast30Days} this month</p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-[#F9A826]/10 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-[#F9A826]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-3xl font-bold text-[#003d3b] mb-1">{stats.campaigns.total.toLocaleString()}</h3>
+            <p className="text-gray-600 text-sm">Total Campaigns</p>
+            <p className="text-xs text-[#00B5B8] mt-2">+{stats.campaigns.newLast30Days} this month</p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-3xl font-bold text-[#003d3b] mb-1">{formatCurrency(stats.donations.totalRaised)}</h3>
+            <p className="text-gray-600 text-sm">Total Raised</p>
+            <p className="text-xs text-[#00B5B8] mt-2">+{formatCurrency(stats.donations.raisedLast30Days)} this month</p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-3xl font-bold text-[#003d3b] mb-1">{stats.campaigns.pending}</h3>
+            <p className="text-gray-600 text-sm">Pending Reviews</p>
+            <p className="text-xs text-red-500 mt-2">Requires attention</p>
+          </div>
+        </div>
+
+        {/* Campaign Status Breakdown */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[#003d3b]">Campaign Status</h3>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Approved</span>
+                <span className="font-bold text-green-600">{stats.campaigns.approved}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Pending</span>
+                <span className="font-bold text-amber-600">{stats.campaigns.pending}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Rejected</span>
+                <span className="font-bold text-red-600">{stats.campaigns.rejected}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Users */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+            <h3 className="text-lg font-semibold text-[#003d3b] mb-4">Recent Users</h3>
+            <div className="space-y-3">
+              {stats.recent.users.length > 0 ? (
+                stats.recent.users.map((user, idx) => (
+                  <div key={user._id || idx} className="flex items-center justify-between text-sm">
+                    <div>
+                      <p className="font-semibold text-[#003d3b]">{user.name || "Unknown"}</p>
+                      <p className="text-gray-500 text-xs">{user.email}</p>
+                    </div>
+                    <span className="text-xs text-gray-500">{formatDate(user.createdAt)}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-sm">No recent users</p>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Campaigns */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+            <h3 className="text-lg font-semibold text-[#003d3b] mb-4">Recent Campaigns</h3>
+            <div className="space-y-3">
+              {stats.recent.campaigns.length > 0 ? (
+                stats.recent.campaigns.map((campaign, idx) => (
+                  <div key={campaign._id || idx} className="flex items-center justify-between text-sm">
+                    <div className="flex-1">
+                      <p className="font-semibold text-[#003d3b] line-clamp-1">{campaign.title}</p>
+                      <p className="text-gray-500 text-xs">
+                        {campaign.owner?.name || "Unknown"} • {campaign.status}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-sm">No recent campaigns</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Users Management Component
+  const UsersManagement = () => {
+    return (
+      <div className="space-y-6">
+        {/* Search Bar */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+          <div className="flex gap-4">
+            <input
+              type="text"
+              placeholder="Search users by name or email..."
+              value={userSearch}
+              onChange={(e) => {
+                setUserSearch(e.target.value);
+                setUserPage(1);
+              }}
+              className="flex-1 px-4 py-2 border border-[#E0F2F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B5B8]"
+            />
+            <button
+              onClick={() => loadUsers()}
+              className="px-6 py-2 bg-[#00B5B8] text-white font-semibold rounded-xl hover:bg-[#009EA1] transition"
+            >
+              Search
+            </button>
+          </div>
+        </div>
+
+        {/* Users List */}
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 border-4 border-[#00B5B8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading users...</p>
+          </div>
+        ) : users.length > 0 ? (
+          <div className="grid gap-4">
+            {users.map((user) => (
+              <div
+                key={user._id}
+                className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2] hover:shadow-xl transition"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-12 h-12 bg-[#00B5B8]/10 rounded-full flex items-center justify-center">
+                        <span className="text-[#00B5B8] font-bold text-lg">
+                          {(user.name || "U")[0].toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-[#003d3b]">{user.name || "Unknown User"}</h3>
+                        <p className="text-sm text-gray-600">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 mt-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Provider: </span>
+                        <span className="font-semibold text-[#003d3b] capitalize">{user.provider || "local"}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Joined: </span>
+                        <span className="font-semibold text-[#003d3b]">{formatDate(user.createdAt)}</span>
+                      </div>
+                      {user.stats && (
+                        <>
+                          <div>
+                            <span className="text-gray-600">Campaigns: </span>
+                            <span className="font-semibold text-[#003d3b]">{user.stats.campaignsCount || 0}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Raised: </span>
+                            <span className="font-semibold text-[#003d3b]">
+                              {formatCurrency(user.stats.totalRaised || 0)}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-lg p-10 text-center border border-[#E0F2F2]">
+            <p className="text-gray-600">No users found</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Campaign Card Component (keeping existing logic)
   const Card = ({ c }) => {
-    // Safety check: ensure campaign has required fields
     if (!c || (!c._id && !c.id)) {
-      console.error("⚠️ Invalid campaign data:", c);
       return null;
     }
 
     return (
-      <div className="border rounded-lg p-4 shadow-sm bg-white hover:shadow-md transition">
+      <div className="border rounded-2xl p-6 shadow-lg bg-white hover:shadow-xl transition border-[#E0F2F2]">
         <div className="flex gap-4">
           <img
             src={resolveImg(c.image || c.imageUrl)}
             alt={c.title || "Campaign"}
-            className="w-40 h-28 object-cover rounded"
+            className="w-40 h-28 object-cover rounded-xl"
             onError={(e) => {
               e.target.src = "https://via.placeholder.com/400x240?text=No+Image";
             }}
           />
 
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-lg font-semibold">{c.title || "Untitled Campaign"}</h3>
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-lg font-bold text-[#003d3b]">{c.title || "Untitled Campaign"}</h3>
               {isNewCampaign(c) && (
                 <span className="px-2 py-0.5 text-xs font-bold bg-green-500 text-white rounded-full animate-pulse">
                   NEW
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-600 mt-1">{c.shortDescription || "No description"}</p>
+            <p className="text-sm text-gray-600 mb-2 line-clamp-2">{c.shortDescription || "No description"}</p>
 
-          {Array.isArray(c.infoRequests) && c.infoRequests.length > 0 && (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-sm text-[#003d3b]">
-              <p className="font-semibold text-[#8B5E00] mb-2">Verification inbox</p>
-              <div className="space-y-3">
-                {c.infoRequests.map((req, idx) => {
-                  const meta = infoStatusMeta[req.status] || infoStatusMeta.pending;
-                  return (
-                    <div
-                      key={req._id || `${c._id}-req-${idx}`}
-                      className="rounded-2xl border border-white bg-white/90 p-3 text-sm"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="font-semibold text-[#003d3b]">{req.message}</span>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${meta.badge}`}>
-                          {meta.label}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Requested {req.createdAt ? new Date(req.createdAt).toLocaleString() : "recently"}
-                      </p>
-
-                      {Array.isArray(req.responses) && req.responses.length > 0 && (
-                        <div className="mt-3 space-y-2">
-                          {req.responses.map((resp, respIdx) => (
-                            <div
-                              key={`${req._id || idx}-resp-${respIdx}`}
-                              className="rounded-xl border border-gray-100 bg-gray-50 p-2"
-                            >
-                              <p className="text-xs text-gray-600">
-                                {resp.uploadedByName || "Campaigner"} uploaded{" "}
-                                {resp.documents?.length || 0} file(s)
-                                {resp.uploadedAt ? ` · ${new Date(resp.uploadedAt).toLocaleString()}` : ""}
-                              </p>
-                              {resp.note && <p className="mt-1 text-xs text-gray-700">{resp.note}</p>}
-                              {Array.isArray(resp.documents) && resp.documents.length > 0 && (
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  {resp.documents.map((doc, docIdx) => (
-                                    <a
-                                      key={`${req._id || idx}-resp-${respIdx}-doc-${docIdx}`}
-                                      href={resolveImg(doc)}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="rounded-lg border border-sky-200 bg-white px-2 py-1 text-xs font-semibold text-sky-700 hover:border-sky-400"
-                                    >
-                                      View file {docIdx + 1}
-                                    </a>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {req.status !== "resolved" && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <button
-                            onClick={() => markRequestResolved(c._id, req._id)}
-                            disabled={resolvingRequest === req._id}
-                            className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                          >
-                            {resolvingRequest === req._id ? "Marking..." : "Mark resolved"}
-                          </button>
-                          <button
-                            onClick={() => openInfoModal(c)}
-                            className="rounded-md border border-amber-400 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100"
-                          >
-                            Request update
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+            <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+              <span>Owner: {c.owner?.name || "Unknown"}</span>
+              <span>•</span>
+              <span>{formatDate(c.createdAt)}</span>
             </div>
-          )}
 
-          {(Array.isArray(c.documents) && c.documents.length > 0) ||
-          (Array.isArray(c.medicalDocuments) && c.medicalDocuments.length > 0) ? (
-            <div className="mt-3">
-              <p className="text-xs uppercase tracking-wide text-gray-500">
-                Medical documents
-              </p>
-              <div className="flex gap-2 overflow-x-auto pt-2">
-                {(c.documents?.length ? c.documents : c.medicalDocuments || []).map(
-                  (doc, idx) => (
+            {Array.isArray(c.infoRequests) && c.infoRequests.length > 0 && (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-sm text-[#003d3b]">
+                <p className="font-semibold text-[#8B5E00] mb-2">Verification inbox</p>
+                <div className="space-y-3">
+                  {c.infoRequests.map((req, idx) => {
+                    const meta = infoStatusMeta[req.status] || infoStatusMeta.pending;
+                    return (
+                      <div
+                        key={req._id || `${c._id}-req-${idx}`}
+                        className="rounded-2xl border border-white bg-white/90 p-3 text-sm"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-semibold text-[#003d3b]">{req.message}</span>
+                          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${meta.badge}`}>
+                            {meta.label}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Requested {req.createdAt ? formatDate(req.createdAt) : "recently"}
+                        </p>
+
+                        {Array.isArray(req.responses) && req.responses.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {req.responses.map((resp, respIdx) => (
+                              <div
+                                key={`${req._id || idx}-resp-${respIdx}`}
+                                className="rounded-xl border border-gray-100 bg-gray-50 p-2"
+                              >
+                                <p className="text-xs text-gray-600">
+                                  {resp.uploadedByName || "Campaigner"} uploaded{" "}
+                                  {resp.documents?.length || 0} file(s)
+                                  {resp.uploadedAt ? ` · ${formatDate(resp.uploadedAt)}` : ""}
+                                </p>
+                                {resp.note && <p className="mt-1 text-xs text-gray-700">{resp.note}</p>}
+                                {Array.isArray(resp.documents) && resp.documents.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {resp.documents.map((doc, docIdx) => (
+                                      <a
+                                        key={`${req._id || idx}-resp-${respIdx}-doc-${docIdx}`}
+                                        href={resolveImg(doc)}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="rounded-lg border border-sky-200 bg-white px-2 py-1 text-xs font-semibold text-sky-700 hover:border-sky-400"
+                                      >
+                                        View file {docIdx + 1}
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {req.status !== "resolved" && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => markRequestResolved(c._id, req._id)}
+                              disabled={resolvingRequest === req._id}
+                              className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                            >
+                              {resolvingRequest === req._id ? "Marking..." : "Mark resolved"}
+                            </button>
+                            <button
+                              onClick={() => openInfoModal(c)}
+                              className="rounded-md border border-amber-400 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100"
+                            >
+                              Request update
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {(Array.isArray(c.documents) && c.documents.length > 0) ||
+            (Array.isArray(c.medicalDocuments) && c.medicalDocuments.length > 0) ? (
+              <div className="mt-3">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Medical documents</p>
+                <div className="flex gap-2 overflow-x-auto pt-2">
+                  {(c.documents?.length ? c.documents : c.medicalDocuments || []).map((doc, idx) => (
                     <img
                       key={`${c._id}-doc-${idx}`}
                       src={resolveImg(doc)}
                       alt="Document"
                       className="h-16 w-16 object-cover rounded border"
                     />
-                  )
-                )}
+                  ))}
+                </div>
               </div>
+            ) : null}
+
+            <div className="mt-4 flex gap-2 flex-wrap">
+              {activeTab === "pending" && (
+                <>
+                  <button
+                    onClick={() => approve(c._id)}
+                    className="px-4 py-2 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => reject(c._id)}
+                    className="px-4 py-2 rounded-xl bg-orange-600 text-white font-semibold hover:bg-orange-700 transition"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => openInfoModal(c)}
+                    className="px-4 py-2 rounded-xl bg-amber-600 text-white font-semibold hover:bg-amber-700 transition"
+                  >
+                    Request Info
+                  </button>
+                </>
+              )}
+
+              {activeTab === "approved" && (
+                <>
+                  <button
+                    onClick={() => reject(c._id)}
+                    className="px-4 py-2 rounded-xl bg-orange-600 text-white font-semibold hover:bg-orange-700 transition"
+                  >
+                    Mark Rejected
+                  </button>
+                  <button
+                    onClick={() => openInfoModal(c)}
+                    className="px-4 py-2 rounded-xl bg-amber-600 text-white font-semibold hover:bg-amber-700 transition"
+                  >
+                    Request Info
+                  </button>
+                </>
+              )}
+
+              {activeTab === "rejected" && (
+                <>
+                  <button
+                    onClick={() => approve(c._id)}
+                    className="px-4 py-2 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition"
+                  >
+                    Mark Approved
+                  </button>
+                  <button
+                    onClick={() => openInfoModal(c)}
+                    className="px-4 py-2 rounded-xl bg-amber-600 text-white font-semibold hover:bg-amber-700 transition"
+                  >
+                    Request Info
+                  </button>
+                </>
+              )}
+
+              {activeTab !== "pending" && (
+                <button
+                  onClick={() => openEdit(c)}
+                  className="px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
+                >
+                  Edit
+                </button>
+              )}
+
+              <button
+                onClick={() => window.open(`/campaign/${c._id || c.id}`, "_blank")}
+                className="px-4 py-2 rounded-xl bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition"
+              >
+                View
+              </button>
             </div>
-          ) : null}
-
-          <div className="mt-3 flex gap-2 flex-wrap">
-            {activeTab === "pending" && (
-              <>
-                <button onClick={() => approve(c._id)} className="px-3 py-1 rounded bg-green-600 text-white">Approve</button>
-                <button onClick={() => reject(c._id)} className="px-3 py-1 rounded bg-orange-600 text-white">Reject</button>
-                <button onClick={() => openInfoModal(c)} className="px-3 py-1 rounded bg-amber-600 text-white">
-                  Request Info
-                </button>
-              </>
-            )}
-
-            {activeTab === "approved" && (
-              <>
-                <button onClick={() => reject(c._id)} className="px-3 py-1 rounded bg-orange-600 text-white">
-                  Mark Rejected
-                </button>
-                <button onClick={() => openInfoModal(c)} className="px-3 py-1 rounded bg-amber-600 text-white">
-                  Request Info
-                </button>
-              </>
-            )}
-
-            {activeTab === "rejected" && (
-              <>
-                <button onClick={() => approve(c._id)} className="px-3 py-1 rounded bg-green-600 text-white">
-                  Mark Approved
-                </button>
-                <button onClick={() => openInfoModal(c)} className="px-3 py-1 rounded bg-amber-600 text-white">
-                  Request Info
-                </button>
-              </>
-            )}
-
-            {activeTab !== "pending" && (
-              <button onClick={() => openEdit(c)} className="px-3 py-1 rounded bg-blue-600 text-white">Edit</button>
-            )}
-
-            <button
-              onClick={() => window.open(`/campaign/${c._id || c.id}`, "_blank")}
-              className="px-3 py-1 rounded bg-gray-200"
-            >
-              View
-            </button>
           </div>
         </div>
-      </div>
       </div>
     );
   };
 
+  // Tabs Component
+  const Tabs = () => (
+    <div className="flex gap-2 mb-6 flex-wrap">
+      {[
+        { key: "dashboard", label: "Dashboard", icon: "📊" },
+        { key: "pending", label: "Pending", icon: "⏳" },
+        { key: "approved", label: "Approved", icon: "✅" },
+        { key: "rejected", label: "Rejected", icon: "❌" },
+        { key: "users", label: "Users", icon: "👥" },
+      ].map((t) => (
+        <button
+          key={t.key}
+          onClick={() => setActiveTab(t.key)}
+          className={`px-6 py-3 rounded-xl font-semibold transition flex items-center gap-2 ${
+            activeTab === t.key
+              ? "bg-[#00B5B8] text-white shadow-lg"
+              : "bg-white text-[#003d3b] border border-[#E0F2F2] hover:bg-[#E6F7F7]"
+          }`}
+        >
+          <span>{t.icon}</span>
+          {t.label}
+        </button>
+      ))}
+
+      <button
+        onClick={() => {
+          if (activeTab === "dashboard") {
+            loadStats();
+          } else {
+            load(activeTab);
+          }
+        }}
+        className="ml-auto px-6 py-3 rounded-xl bg-[#00B5B8] text-white font-semibold hover:bg-[#009EA1] transition flex items-center gap-2"
+        title="Refresh (Auto-refreshes every 10 seconds)"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          />
+        </svg>
+        Refresh
+        {activeTab === "pending" && (
+          <span className="text-xs bg-[#009EA1] px-2 py-0.5 rounded">Auto</span>
+        )}
+      </button>
+    </div>
+  );
+
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-
-      {newCampaignsCount > 0 && activeTab === "pending" && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🆕</span>
-            <span className="font-semibold">
-              {newCampaignsCount} new campaign{newCampaignsCount > 1 ? "s" : ""} detected!
-            </span>
-          </div>
-        </div>
-      )}
-
-      <Tabs />
-
-      {activeTab === "pending" && (
-        <div className="mb-4 text-xs text-gray-500 flex items-center gap-2">
-          <span>Last refreshed: {lastRefresh.toLocaleTimeString()}</span>
-          <span>•</span>
-          <span>Auto-refreshes every 10 seconds</span>
-        </div>
-      )}
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : items.length === 0 ? (
-        activeTab === "pending" ? (
-          <div className="rounded-xl border border-dashed border-gray-300 p-10 text-center text-gray-700 bg-white">
-            <p className="text-lg font-semibold">
-              No pending campaigns found. Please refresh or try again.
-            </p>
-            <p className="mt-2 text-sm text-gray-500">
-              No pending approvals available. Everything looks updated.
-            </p>
+    <div className="min-h-screen bg-[#F1FAFA] p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold text-[#003d3b] mb-2">Admin Dashboard</h1>
+              <p className="text-gray-600">Manage campaigns, users, and platform statistics</p>
+            </div>
             <button
-              onClick={() => load("pending")}
-              className="mt-4 px-4 py-2 rounded-md bg-gray-200 text-sm"
+              onClick={() => {
+                localStorage.removeItem("adminToken");
+                navigate("/admin/login");
+              }}
+              className="px-6 py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition"
             >
-              Refresh now
+              Logout
             </button>
           </div>
-        ) : (
-          <p className="text-gray-600">No {activeTab} campaigns.</p>
-        )
-      ) : (
-        <div>
-          <div className="mb-2 text-sm text-gray-600">
-            Showing {items.length} campaign{items.length !== 1 ? 's' : ''}
-          </div>
-          {items.length > 0 ? (
-            <div className="grid md:grid-cols-2 gap-4">
-              {items.map((c, index) => {
-                // Debug: Log each campaign being rendered
-                if (index < 2) {
-                  console.log(`🎨 Rendering campaign ${index + 1}:`, {
-                    id: c._id || c.id,
-                    title: c.title,
-                    status: c.status,
-                    hasImage: !!(c.image || c.imageUrl)
-                  });
-                }
-                return <Card key={c._id || c.id || `campaign-${index}`} c={c} />;
-              })}
+
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
+              {error}
             </div>
-          ) : (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
-              <p className="text-yellow-800">
-                ⚠️ Warning: API returned data but no campaigns to display. Check console for details.
-              </p>
+          )}
+
+          {newCampaignsCount > 0 && activeTab === "pending" && (
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🆕</span>
+                <span className="font-semibold">
+                  {newCampaignsCount} new campaign{newCampaignsCount > 1 ? "s" : ""} detected!
+                </span>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "pending" && (
+            <div className="mb-4 text-sm text-gray-600 flex items-center gap-2">
+              <span>Last refreshed: {lastRefresh.toLocaleTimeString()}</span>
+              <span>•</span>
+              <span>Auto-refreshes every 10 seconds</span>
             </div>
           )}
         </div>
-      )}
 
-      {showEdit && editItem && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-white w-full max-w-2xl p-6 rounded shadow-lg">
-            <h2 className="text-xl font-semibold mb-3">Edit Campaign</h2>
+        <Tabs />
 
-            <div className="grid gap-3">
-              <label className="text-sm">Title</label>
-              <input
-                value={editItem.title || ""}
-                onChange={(e) => setEditItem({ ...editItem, title: e.target.value })}
-                className="border p-2 rounded"
-              />
+        {/* Content */}
+        {activeTab === "dashboard" && <DashboardOverview />}
+        {activeTab === "users" && <UsersManagement />}
+        {(activeTab === "pending" || activeTab === "approved" || activeTab === "rejected") && (
+          <div>
+            {loading ? (
+              <div className="text-center py-20">
+                <div className="w-16 h-16 border-4 border-[#00B5B8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading campaigns...</p>
+              </div>
+            ) : items.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-lg p-10 text-center border border-[#E0F2F2]">
+                <p className="text-lg font-semibold text-gray-700 mb-2">
+                  No {activeTab} campaigns found.
+                </p>
+                <p className="text-sm text-gray-500 mb-4">
+                  {activeTab === "pending"
+                    ? "All campaigns have been reviewed."
+                    : `No ${activeTab} campaigns at this time.`}
+                </p>
+                <button
+                  onClick={() => load(activeTab)}
+                  className="px-6 py-2 rounded-xl bg-[#00B5B8] text-white font-semibold hover:bg-[#009EA1] transition"
+                >
+                  Refresh
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-4 text-sm text-gray-600">
+                  Showing {items.length} campaign{items.length !== 1 ? "s" : ""}
+                </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {items.map((c, index) => (
+                    <Card key={c._id || c.id || `campaign-${index}`} c={c} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
-              <label className="text-sm">Short Description</label>
-              <input
-                value={editItem.shortDescription || ""}
-                onChange={(e) => setEditItem({ ...editItem, shortDescription: e.target.value })}
-                className="border p-2 rounded"
-              />
+        {/* Edit Modal */}
+        {showEdit && editItem && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
+            <div className="bg-white w-full max-w-2xl p-6 rounded-2xl shadow-2xl">
+              <h2 className="text-2xl font-bold text-[#003d3b] mb-4">Edit Campaign</h2>
 
-              <label className="text-sm">Full Story</label>
-              <textarea
-                value={editItem.fullStory || ""}
-                onChange={(e) => setEditItem({ ...editItem, fullStory: e.target.value })}
-                className="border p-2 rounded h-28"
-              />
+              <div className="grid gap-4">
+                <label className="text-sm font-semibold text-[#003d3b]">Title</label>
+                <input
+                  value={editItem.title || ""}
+                  onChange={(e) => setEditItem({ ...editItem, title: e.target.value })}
+                  className="border border-[#E0F2F2] p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B5B8]"
+                />
 
-              <label className="text-sm">Goal Amount</label>
-              <input
-                type="number"
-                value={editItem.goalAmount || 0}
-                onChange={(e) => setEditItem({ ...editItem, goalAmount: e.target.value })}
-                className="border p-2 rounded"
-              />
-            </div>
+                <label className="text-sm font-semibold text-[#003d3b]">Short Description</label>
+                <input
+                  value={editItem.shortDescription || ""}
+                  onChange={(e) => setEditItem({ ...editItem, shortDescription: e.target.value })}
+                  className="border border-[#E0F2F2] p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B5B8]"
+                />
 
-            <div className="mt-4 flex gap-2 justify-end">
-              <button
-                onClick={() => { setShowEdit(false); setEditItem(null); }}
-                className="px-4 py-2 rounded border"
-                disabled={saving}
-              >
-                Cancel
-              </button>
+                <label className="text-sm font-semibold text-[#003d3b]">Full Story</label>
+                <textarea
+                  value={editItem.fullStory || ""}
+                  onChange={(e) => setEditItem({ ...editItem, fullStory: e.target.value })}
+                  className="border border-[#E0F2F2] p-3 rounded-xl h-32 focus:outline-none focus:ring-2 focus:ring-[#00B5B8]"
+                />
 
-              <button
-                onClick={saveEdit}
-                className="px-4 py-2 rounded bg-sky-600 text-white"
-                disabled={saving}
-              >
-                {saving ? "Saving..." : "Save"}
-              </button>
+                <label className="text-sm font-semibold text-[#003d3b]">Goal Amount</label>
+                <input
+                  type="number"
+                  value={editItem.goalAmount || 0}
+                  onChange={(e) => setEditItem({ ...editItem, goalAmount: e.target.value })}
+                  className="border border-[#E0F2F2] p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B5B8]"
+                />
+              </div>
+
+              <div className="mt-6 flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowEdit(false);
+                    setEditItem(null);
+                  }}
+                  className="px-6 py-2 rounded-xl border border-[#E0F2F2] text-[#003d3b] font-semibold hover:bg-gray-50 transition"
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={saveEdit}
+                  className="px-6 py-2 rounded-xl bg-[#00B5B8] text-white font-semibold hover:bg-[#009EA1] transition"
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Save"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {infoModalOpen && infoTarget && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-white w-full max-w-lg p-6 rounded shadow-lg">
-            <h2 className="text-xl font-semibold mb-2">Request Additional Information</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Tell the campaigner exactly what is blocking approval so they can respond quickly.
-            </p>
+        {/* Info Request Modal */}
+        {infoModalOpen && infoTarget && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
+            <div className="bg-white w-full max-w-lg p-6 rounded-2xl shadow-2xl">
+              <h2 className="text-2xl font-bold text-[#003d3b] mb-2">Request Additional Information</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Tell the campaigner exactly what is blocking approval so they can respond quickly.
+              </p>
 
-            <div className="mb-4">
-              <label className="text-sm font-medium text-gray-700">Message</label>
-              <textarea
-                value={infoMessage}
-                onChange={(e) => setInfoMessage(e.target.value)}
-                placeholder="Tell the campaigner what you need (e.g., upload medical documents, add patient details, etc.)"
-                className="mt-1 w-full border rounded-md p-3 h-32"
-              />
-            </div>
+              <div className="mb-4">
+                <label className="text-sm font-semibold text-[#003d3b]">Message</label>
+                <textarea
+                  value={infoMessage}
+                  onChange={(e) => setInfoMessage(e.target.value)}
+                  placeholder="Tell the campaigner what you need (e.g., upload medical documents, add patient details, etc.)"
+                  className="mt-1 w-full border border-[#E0F2F2] rounded-xl p-3 h-32 focus:outline-none focus:ring-2 focus:ring-[#00B5B8]"
+                />
+              </div>
 
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={closeInfoModal}
-                className="px-4 py-2 rounded border"
-                disabled={requestingInfo}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={sendInfoRequest}
-                className="px-4 py-2 rounded bg-amber-600 text-white"
-                disabled={requestingInfo}
-              >
-                {requestingInfo ? "Sending..." : "Send Request"}
-              </button>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={closeInfoModal}
+                  className="px-6 py-2 rounded-xl border border-[#E0F2F2] text-[#003d3b] font-semibold hover:bg-gray-50 transition"
+                  disabled={requestingInfo}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={sendInfoRequest}
+                  className="px-6 py-2 rounded-xl bg-amber-600 text-white font-semibold hover:bg-amber-700 transition"
+                  disabled={requestingInfo}
+                >
+                  {requestingInfo ? "Sending..." : "Send Request"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "../lib/api";
 import ErrorDisplay from "../components/ErrorDisplay";
-import { CampaignListSkeleton } from "../components/SkeletonLoader";
 
 export default function CategoryPage() {
   const { category } = useParams();
@@ -28,6 +27,9 @@ export default function CategoryPage() {
     setLoading(true);
     setError(null);
 
+    // Minimum delay for smooth loading experience
+    const minDelay = new Promise((res) => setTimeout(res, 1000)); // 1 sec
+
     try {
       const res = await api.get("api/campaigns/approved");
 
@@ -39,6 +41,9 @@ export default function CategoryPage() {
         const targetCategory = category.toLowerCase()?.trim();
         return campaignCategory === targetCategory;
       });
+
+      // Wait for minimum delay to complete
+      await minDelay;
 
       setCampaigns(filtered);
       setRetryCount(0); // Reset retry count on success
@@ -93,14 +98,17 @@ export default function CategoryPage() {
     );
   }
 
-  // Loading state with skeleton
+  // ---------------------------
+  // CUSTOM LOADER WITH CORRECT IMAGE
+  // ---------------------------
   if (loading) {
     return (
-      <div className="w-[90%] mx-auto mt-20 mb-20">
-        <h1 className="text-3xl font-bold text-[#003d3b] mb-6">
-          {formatCategoryName(category)} Fundraisers
-        </h1>
-        <CampaignListSkeleton count={6} />
+      <div className="w-full h-screen flex justify-center items-center bg-white">
+        <img
+          src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
+          alt="Loading..."
+          className="w-28 h-28 object-contain opacity-90 animate-pulse"
+        />
       </div>
     );
   }
