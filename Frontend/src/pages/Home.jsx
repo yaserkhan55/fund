@@ -192,7 +192,7 @@ function Home() {
             </p>
 
             <p className="mt-4 text-xs text-gray-500">
-              You can respond to this request by going to your profile and editing the campaign.
+              You can respond to this request by going to your dashboard and editing the campaign.
             </p>
 
             <div className="mt-6 flex justify-end gap-2">
@@ -203,10 +203,10 @@ function Home() {
                 Remind me later
               </button>
               <a
-                href="/profile"
+                href="/dashboard"
                 className="rounded-md bg-[#00B5B8] px-5 py-2 text-sm font-semibold text-white shadow hover:bg-[#009f9f] transition"
               >
-                Go to Profile
+                Go to Dashboard
               </a>
             </div>
           </div>

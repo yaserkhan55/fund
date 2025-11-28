@@ -30,7 +30,7 @@ export default function CreatorDashboard() {
     return authToken;
   }, [getToken]);
 
-  // Fetch campaigns with auto-refresh
+  // Fetch campaigns (silent refresh without loader)
   useEffect(() => {
     if (!isSignedIn) {
       setMyCampaigns([]);
@@ -38,9 +38,9 @@ export default function CreatorDashboard() {
       return;
     }
 
-    const fetchCampaigns = async () => {
+    const fetchCampaigns = async (showLoader = true) => {
       try {
-        setLoading(true);
+        if (showLoader) setLoading(true);
         const authToken = await resolveAuthToken();
         if (!authToken) {
           setMyCampaigns([]);
@@ -56,13 +56,15 @@ export default function CreatorDashboard() {
         console.error("Error fetching campaigns:", err);
         setMyCampaigns([]);
       } finally {
-        setLoading(false);
+        if (showLoader) setLoading(false);
       }
     };
 
-    fetchCampaigns();
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchCampaigns, 30000);
+    // Initial load with loader
+    fetchCampaigns(true);
+    
+    // Silent refresh every 30 seconds (no loader)
+    const interval = setInterval(() => fetchCampaigns(false), 30000);
     return () => clearInterval(interval);
   }, [isSignedIn, resolveAuthToken]);
 
@@ -549,7 +551,149 @@ export default function CreatorDashboard() {
                 </button>
               </div>
             </div>
+
+            {/* List of all admin requests */}
+            <ul className="mt-4 space-y-3 text-sm">
+              {adminRequests.map((req) => (
+                <li key={`${req.campaignId}-${req._id}`} className="rounded-md border border-amber-100 bg-white/70 p-3 text-amber-900">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-[#8B5E00]">{req.campaignTitle}</p>
+                      <p>{req.message}</p>
+                    </div>
+                    <button
+                      onClick={() => openRequestPopup(req)}
+                      className="text-xs font-semibold uppercase tracking-wide text-[#C05621]"
+                    >
+                      Details
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-amber-700">Requested {formatRequestTime(req.createdAt)}</p>
+                </li>
+              ))}
+            </ul>
           </div>
+        )}
+
+        {/* Verification Center - From Profile */}
+        {verificationQueue.length > 0 && (
+          <section className="bg-white rounded-3xl border border-[#CFE7E7] p-6 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="uppercase text-xs tracking-[0.4em] text-[#00B5B8] font-semibold">
+                  Verification Center
+                </p>
+                <h2 className="text-2xl font-semibold text-[#003d3b]">
+                  Pending actions ({verificationQueue.length})
+                </h2>
+              </div>
+              <p className="text-sm text-gray-500 max-w-xl">
+                Upload the supporting documents the admin requested so your campaign can go live faster.
+              </p>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {verificationQueue.map((req) => {
+                const meta = requestStatusStyles[req.status] || requestStatusStyles.pending;
+                return (
+                  <div
+                    key={`${req.campaignId}-${req._id}`}
+                    className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
+                  >
+                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <p className="text-xs uppercase text-gray-500">Campaign</p>
+                        <p className="text-lg font-semibold text-[#003d3b]">{req.campaignTitle}</p>
+                      </div>
+                      <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${meta.pill}`}>
+                        {meta.label}
+                      </span>
+                    </div>
+
+                    <p className="mt-3 text-sm text-gray-700">{req.message}</p>
+
+                    <div className="mt-4">
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Timeline</p>
+                      <ul className="mt-2 space-y-3">
+                        <li className="rounded-2xl border border-dashed border-amber-200 bg-amber-50/70 p-3 text-sm text-[#8B5E00]">
+                          <p className="font-semibold">Admin requested clarification</p>
+                          <p className="text-xs text-amber-700 mt-1">{formatFullDate(req.createdAt)}</p>
+                        </li>
+                        {Array.isArray(req.responses) &&
+                          req.responses.map((resp, idx) => (
+                            <li
+                              key={`${req._id}-resp-${idx}`}
+                              className="rounded-2xl border border-gray-100 bg-gray-50 p-3 text-sm text-[#003d3b]"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="font-semibold">
+                                  {resp.uploadedByName || "You"} submitted documents
+                                </p>
+                                <span className="text-xs text-gray-500">
+                                  {formatFullDate(resp.uploadedAt)}
+                                </span>
+                              </div>
+                              {resp.note && (
+                                <p className="mt-2 text-gray-600 whitespace-pre-line">{resp.note}</p>
+                              )}
+                              {Array.isArray(resp.documents) && resp.documents.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {resp.documents.map((doc, fileIdx) => (
+                                    <a
+                                      key={`${req._id}-resp-${idx}-doc-${fileIdx}`}
+                                      href={resolveImg(doc)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="group inline-flex items-center gap-2 rounded-xl border border-[#CFE7E7] bg-white px-3 py-1 text-xs font-semibold text-[#005A58] hover:border-[#00B5B8]"
+                                    >
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-4 w-4 text-[#00B5B8]"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={1.5}
+                                          d="M7 7h10M7 12h6m-2 7l-4-4H5a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v6a2 2 0 01-2 2h-4l-4 4z"
+                                        />
+                                      </svg>
+                                      <span className="truncate max-w-[120px]">{fileLabel(doc)}</span>
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+
+                    <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <p className="text-xs text-gray-500">
+                        Last updated {formatRequestTime(req.respondedAt || req.createdAt)}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          to={`/edit-campaign/${req.campaignId}`}
+                          className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                          Edit campaign form
+                        </Link>
+                        <button
+                          onClick={() => openRespondModal(req.campaign, req)}
+                          className="rounded-xl bg-[#00B5B8] px-4 py-2 text-sm font-semibold text-white shadow hover:bg-[#009ea1] transition"
+                        >
+                          {req.status === "pending" ? "Upload documents" : "Add more proofs"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         )}
 
         {/* Key Metrics Grid */}
@@ -1042,6 +1186,41 @@ export default function CreatorDashboard() {
                   </ul>
                 )}
               </div>
+
+              {Array.isArray(responseModal.request?.responses) &&
+                responseModal.request.responses.length > 0 && (
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">
+                      Previous submissions
+                    </p>
+                    <ul className="mt-3 space-y-2 text-sm text-[#003d3b]">
+                      {responseModal.request.responses.map((resp, idx) => (
+                        <li key={`${resp._id || idx}`} className="rounded-2xl border border-white bg-white p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="font-semibold">{resp.uploadedByName || "You"}</span>
+                            <span className="text-xs text-gray-500">{formatFullDate(resp.uploadedAt)}</span>
+                          </div>
+                          {resp.note && <p className="mt-2 text-gray-600 whitespace-pre-line">{resp.note}</p>}
+                          {Array.isArray(resp.documents) && resp.documents.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {resp.documents.map((doc, fileIdx) => (
+                                <a
+                                  key={`${resp._id || idx}-doc-${fileIdx}`}
+                                  href={resolveImg(doc)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="rounded-xl border border-[#CFE7E7] bg-white px-3 py-1 text-xs font-semibold text-[#005A58] hover:border-[#00B5B8]"
+                                >
+                                  {fileLabel(doc)}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
               {responseError && (
                 <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">

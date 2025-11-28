@@ -348,13 +348,28 @@ export default function Navbar() {
             Browse Fundraisers
           </Link>
 
-          <div>
-            <p className="font-semibold mb-2">Fundraise For</p>
-            <div className="flex flex-col space-y-2 ml-3">
-              <Link to="/category/medical" onClick={() => setOpen(false)}>Medical</Link>
-              <Link to="/category/education" onClick={() => setOpen(false)}>Education</Link>
-              <Link to="/category/emergency" onClick={() => setOpen(false)}>Emergencies</Link>
-            </div>
+          <div className="flex flex-col space-y-2">
+            <Link 
+              to="/category/medical" 
+              onClick={() => setOpen(false)}
+              className="font-bold text-[#003d3b] shadow-sm px-3 py-2 rounded-lg bg-white/50"
+            >
+              Medical
+            </Link>
+            <Link 
+              to="/category/education" 
+              onClick={() => setOpen(false)}
+              className="font-bold text-[#003d3b] shadow-sm px-3 py-2 rounded-lg bg-white/50"
+            >
+              Education
+            </Link>
+            <Link 
+              to="/category/emergency" 
+              onClick={() => setOpen(false)}
+              className="font-bold text-[#003d3b] shadow-sm px-3 py-2 rounded-lg bg-white/50"
+            >
+              Emergencies
+            </Link>
           </div>
 
           <Link to="/how-it-works" onClick={() => setOpen(false)} className="block text-lg">

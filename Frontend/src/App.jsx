@@ -13,7 +13,6 @@ import Home from "./pages/Home";
 import CreateCampaign from "./pages/CreateCampaign";
 import EditCampaign from "./pages/EditCampaign";
 import CampaignDetails from "./pages/CampaignDetails";
-import Profile from "./pages/Profile";
 import CategoryPage from "./pages/CategoryPage";   // ✅ ADDED
 import CreatorDashboard from "./pages/CreatorDashboard";
 
@@ -128,17 +127,6 @@ export default function App() {
           <Layout>
             <ClerkProtectedRoute>
               <EditCampaign />
-            </ClerkProtectedRoute>
-          </Layout>
-        }
-      />
-
-      <Route
-        path="/profile"
-        element={
-          <Layout>
-            <ClerkProtectedRoute>
-              <Profile />
             </ClerkProtectedRoute>
           </Layout>
         }

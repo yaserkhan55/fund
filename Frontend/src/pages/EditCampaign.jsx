@@ -165,7 +165,7 @@ export default function EditCampaign() {
       });
 
       setSuccess("Campaign updated. Redirecting back to dashboard...");
-      setTimeout(() => navigate("/profile"), 1500);
+      setTimeout(() => navigate("/dashboard"), 1500);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || err.message || "Failed to update campaign.");
