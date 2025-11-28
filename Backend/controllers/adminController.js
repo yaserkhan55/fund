@@ -37,13 +37,14 @@ export const adminLogin = async (req, res) => {
    CAMPAIGN LISTS (P/A/R)
 ---------------------------------------------------- */
 
-// ✅ PENDING CAMPAIGNS
+// ✅ PENDING CAMPAIGNS (with pagination and search)
 export const getPendingCampaigns = async (req, res) => {
   try {
-    // Get ALL campaigns that are NOT approved and NOT rejected
-    // This catches everything: pending, null, undefined, "", or missing status
-    // Also include campaigns where isApproved is false or not set
-    const pending = await Campaign.find({
+    const { page = 1, limit = 20, search = "" } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build query
+    const query = {
       $or: [
         { status: { $exists: false } },
         { status: null },
@@ -56,14 +57,36 @@ export const getPendingCampaigns = async (req, res) => {
           },
         },
       ],
-    })
-    .populate({
-      path: "owner",
-      select: "name email clerkId provider",
-      options: { strictPopulate: false } // Don't fail if owner doesn't exist
-    })
-    .sort({ createdAt: -1 }) // Newest first
-    .lean(); // Use lean for better performance
+    };
+
+    // Add search filter
+    if (search) {
+      query.$and = [
+        {
+          $or: [
+            { title: { $regex: search, $options: "i" } },
+            { shortDescription: { $regex: search, $options: "i" } },
+            { beneficiaryName: { $regex: search, $options: "i" } },
+            { city: { $regex: search, $options: "i" } },
+            { category: { $regex: search, $options: "i" } },
+          ],
+        },
+      ];
+    }
+
+    const [pending, total] = await Promise.all([
+      Campaign.find(query)
+        .populate({
+          path: "owner",
+          select: "name email clerkId provider createdAt",
+          options: { strictPopulate: false },
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Campaign.countDocuments(query),
+    ]);
 
     // Convert to plain objects and ensure owner is handled properly
     const campaigns = pending.map(campaign => {
@@ -123,7 +146,36 @@ export const getPendingCampaigns = async (req, res) => {
       console.log(`📊 Database stats: Total=${totalCampaigns}, Approved=${approvedCount}, Rejected=${rejectedCount}, Pending=${pendingCount}`);
     }
 
-    return res.json({ success: true, campaigns }); // Return consistent shape
+    // Convert to plain objects and ensure owner is handled properly
+    const campaigns = pending.map(campaign => {
+      const campaignObj = { ...campaign };
+      
+      if (!campaignObj.owner || (typeof campaignObj.owner === 'object' && !campaignObj.owner._id)) {
+        campaignObj.owner = {
+          name: "Unknown User",
+          email: "unknown@user.com",
+          clerkId: null,
+          provider: "unknown"
+        };
+      }
+      
+      if (!campaignObj.status) {
+        campaignObj.status = "pending";
+      }
+      
+      return campaignObj;
+    });
+
+    return res.json({
+      success: true,
+      campaigns,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
 
   } catch (err) {
     console.error("Error fetching pending campaigns:", err);
@@ -131,23 +183,47 @@ export const getPendingCampaigns = async (req, res) => {
   }
 };
 
-// ✅ APPROVED CAMPAIGNS
+// ✅ APPROVED CAMPAIGNS (with pagination and search)
 export const getApprovedCampaignsAdmin = async (req, res) => {
   try {
-    const approved = await Campaign.find({
+    const { page = 1, limit = 20, search = "" } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const query = {
       $or: [
         { status: "approved" },
         { status: { $exists: false }, isApproved: true },
         { isApproved: true }
       ],
-    })
-    .populate({
-      path: "owner",
-      select: "name email clerkId provider",
-      options: { strictPopulate: false }
-    })
-    .sort({ approvedAt: -1, createdAt: -1 })
-    .lean();
+    };
+
+    if (search) {
+      query.$and = [
+        {
+          $or: [
+            { title: { $regex: search, $options: "i" } },
+            { shortDescription: { $regex: search, $options: "i" } },
+            { beneficiaryName: { $regex: search, $options: "i" } },
+            { city: { $regex: search, $options: "i" } },
+            { category: { $regex: search, $options: "i" } },
+          ],
+        },
+      ];
+    }
+
+    const [approved, total] = await Promise.all([
+      Campaign.find(query)
+        .populate({
+          path: "owner",
+          select: "name email clerkId provider createdAt",
+          options: { strictPopulate: false },
+        })
+        .sort({ approvedAt: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Campaign.countDocuments(query),
+    ]);
 
     // Handle missing owners
     const campaigns = approved.map(campaign => {
@@ -163,7 +239,16 @@ export const getApprovedCampaignsAdmin = async (req, res) => {
       return campaignObj;
     });
 
-    return res.json({ success: true, campaigns });
+    return res.json({
+      success: true,
+      campaigns,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
 
   } catch (err) {
     console.error("Error fetching approved campaigns:", err);
@@ -171,19 +256,41 @@ export const getApprovedCampaignsAdmin = async (req, res) => {
   }
 };
 
-// ✅ REJECTED CAMPAIGNS
+// ✅ REJECTED CAMPAIGNS (with pagination and search)
 export const getRejectedCampaignsAdmin = async (req, res) => {
   try {
-    const rejected = await Campaign.find({
-      status: "rejected"
-    })
-    .populate({
-      path: "owner",
-      select: "name email clerkId provider",
-      options: { strictPopulate: false }
-    })
-    .sort({ createdAt: -1 })
-    .lean();
+    const { page = 1, limit = 20, search = "" } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const query = { status: "rejected" };
+
+    if (search) {
+      query.$and = [
+        {
+          $or: [
+            { title: { $regex: search, $options: "i" } },
+            { shortDescription: { $regex: search, $options: "i" } },
+            { beneficiaryName: { $regex: search, $options: "i" } },
+            { city: { $regex: search, $options: "i" } },
+            { category: { $regex: search, $options: "i" } },
+          ],
+        },
+      ];
+    }
+
+    const [rejected, total] = await Promise.all([
+      Campaign.find(query)
+        .populate({
+          path: "owner",
+          select: "name email clerkId provider createdAt",
+          options: { strictPopulate: false },
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Campaign.countDocuments(query),
+    ]);
 
     // Handle missing owners
     const campaigns = rejected.map(campaign => {
@@ -199,7 +306,16 @@ export const getRejectedCampaignsAdmin = async (req, res) => {
       return campaignObj;
     });
 
-    return res.json({ success: true, campaigns });
+    return res.json({
+      success: true,
+      campaigns,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
 
   } catch (err) {
     console.error("Error fetching rejected campaigns:", err);

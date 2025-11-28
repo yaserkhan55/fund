@@ -15,6 +15,7 @@ import fundraiserRoutes from "./routes/fundraiserRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import donationRoutes from "./routes/donationRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
 import googleAuthRoutes from "./routes/googleAuthRoutes.js";
 
 import User from "./models/User.js";
@@ -67,6 +68,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api", authRoutes);
 app.use("/api/google", googleAuthRoutes);
 app.use("/api/campaigns", campaignRoutes);
+app.use("/api/contact", contactRoutes);
 
 /* PROTECTED ROUTES */
 app.use("/api/profile", requireAuth(), syncClerkUser, profileRoutes);
