@@ -93,20 +93,27 @@ export const getMyCampaigns = async (req, res) => {
 
     const mongoUserId = mongoUser._id.toString();
 
+    // Find campaigns - use $in to handle both ObjectId and string, and remove duplicates
     const campaigns = await Campaign.find({
       $or: [
-        { owner: mongoUserId },
         { owner: mongoUser._id },
+        { owner: mongoUserId },
+        { createdBy: mongoUser._id },
         { createdBy: mongoUserId }
       ]
     })
     .sort({ createdAt: -1 })
     .lean();
 
-    console.log(`Found ${campaigns.length} campaigns for user ${mongoUser.email} (MongoDB ID: ${mongoUserId}, Clerk ID: ${clerkUserId})`);
+    // Remove duplicates by _id (in case same campaign matches multiple conditions)
+    const uniqueCampaigns = campaigns.filter((campaign, index, self) => 
+      index === self.findIndex((c) => c._id.toString() === campaign._id.toString())
+    );
+
+    console.log(`Found ${uniqueCampaigns.length} unique campaigns for user ${mongoUser.email} (MongoDB ID: ${mongoUserId}, Clerk ID: ${clerkUserId})`);
     
     // Log campaigns with infoRequests for debugging
-    const campaignsWithRequests = campaigns.filter(c => c.infoRequests && c.infoRequests.length > 0);
+    const campaignsWithRequests = uniqueCampaigns.filter(c => c.infoRequests && c.infoRequests.length > 0);
     if (campaignsWithRequests.length > 0) {
       console.log(`Found ${campaignsWithRequests.length} campaigns with infoRequests`);
       campaignsWithRequests.forEach(c => {
@@ -114,7 +121,7 @@ export const getMyCampaigns = async (req, res) => {
       });
     }
 
-    res.json({ success: true, campaigns });
+    res.json({ success: true, campaigns: uniqueCampaigns });
 
   } catch (error) {
     console.error("Error in getMyCampaigns:", error);
