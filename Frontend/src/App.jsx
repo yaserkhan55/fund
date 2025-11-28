@@ -15,6 +15,7 @@ import EditCampaign from "./pages/EditCampaign";
 import CampaignDetails from "./pages/CampaignDetails";
 import Profile from "./pages/Profile";
 import CategoryPage from "./pages/CategoryPage";   // ✅ ADDED
+import CreatorDashboard from "./pages/CreatorDashboard";
 
 // Admin
 import AdminLogin from "./pages/AdminLogin";
@@ -138,6 +139,17 @@ export default function App() {
           <Layout>
             <ClerkProtectedRoute>
               <Profile />
+            </ClerkProtectedRoute>
+          </Layout>
+        }
+      />
+
+      <Route
+        path="/dashboard"
+        element={
+          <Layout>
+            <ClerkProtectedRoute>
+              <CreatorDashboard />
             </ClerkProtectedRoute>
           </Layout>
         }

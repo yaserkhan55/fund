@@ -149,6 +149,27 @@ export default function Navbar() {
           </SignedOut>
 
           <SignedIn>
+            {/* Dashboard Icon */}
+            <Link
+              to="/dashboard"
+              className="relative p-2 text-gray-700 hover:text-[#00B5B8] transition-colors rounded-lg hover:bg-[#E6F7F7]"
+              aria-label="Dashboard"
+              title="My Dashboard"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
+            </Link>
             {/* Notifications Bell */}
             <div className="relative" ref={notificationRef}>
               <button
@@ -218,6 +239,27 @@ export default function Navbar() {
         {/* Mobile Right Area */}
         <div className="md:hidden flex items-center gap-3">
           <SignedIn>
+            {/* Mobile Dashboard Icon */}
+            <Link
+              to="/dashboard"
+              className="relative p-2 text-gray-700 hover:text-[#00B5B8] transition-colors rounded-lg hover:bg-[#E6F7F7]"
+              aria-label="Dashboard"
+              title="My Dashboard"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
+            </Link>
             {/* Mobile Notifications Bell */}
             <div className="relative" ref={notificationRef}>
               <button

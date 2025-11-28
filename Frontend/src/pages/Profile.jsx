@@ -16,6 +16,7 @@ export default function Profile() {
   const [responseNote, setResponseNote] = useState("");
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [responseError, setResponseError] = useState("");
+  const [campaignSearch, setCampaignSearch] = useState("");
   const popupShownRef = useRef(false);
   const resolveAuthToken = useCallback(async () => {
     let authToken = null;
@@ -106,6 +107,138 @@ export default function Profile() {
     });
   }, [myCampaigns]);
 
+  const hasCampaigns = Array.isArray(myCampaigns) && myCampaigns.length > 0;
+
+  const metrics = useMemo(() => {
+    if (!hasCampaigns) {
+      return {
+        totalCampaigns: 0,
+        totalRaised: 0,
+        approved: 0,
+        pending: 0,
+        rejected: 0,
+        awaitingDocuments: verificationQueue.length,
+        avgTicket: 0,
+        newIn30Days: 0,
+      };
+    }
+
+    const totalRaised = myCampaigns.reduce(
+      (sum, campaign) => sum + (Number(campaign.raisedAmount) || 0),
+      0
+    );
+    const approved = myCampaigns.filter((c) => c.status === "approved").length;
+    const rejected = myCampaigns.filter((c) => c.status === "rejected").length;
+    const pending = myCampaigns.filter(
+      (c) => c.status !== "approved" && c.status !== "rejected"
+    ).length;
+    const awaitingDocuments = verificationQueue.length;
+    const avgTicket = approved > 0 ? Math.round(totalRaised / approved) : 0;
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const newIn30Days = myCampaigns.filter((c) => {
+      if (!c.createdAt) return false;
+      return new Date(c.createdAt) >= thirtyDaysAgo;
+    }).length;
+
+    return {
+      totalCampaigns: myCampaigns.length,
+      totalRaised,
+      approved,
+      pending,
+      rejected,
+      awaitingDocuments,
+      avgTicket,
+      newIn30Days,
+    };
+  }, [myCampaigns, verificationQueue, hasCampaigns]);
+
+  const filteredCampaigns = useMemo(() => {
+    if (!hasCampaigns) return [];
+    const query = campaignSearch.trim().toLowerCase();
+
+    const sortByRecent = [...myCampaigns].sort((a, b) => {
+      const aDate = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const bDate = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return bDate - aDate;
+    });
+
+    if (!query) return sortByRecent;
+
+    return sortByRecent.filter((campaign) => {
+      const title = campaign.title?.toLowerCase() || "";
+      const category = campaign.category?.toLowerCase() || "";
+      return title.includes(query) || category.includes(query);
+    });
+  }, [myCampaigns, campaignSearch, hasCampaigns]);
+
+  const topCampaigns = filteredCampaigns.slice(0, 3);
+  const pipelineCampaigns = filteredCampaigns.slice(0, 8);
+
+  const activityFeed = useMemo(() => {
+    if (!hasCampaigns) return [];
+    const events = [];
+
+    myCampaigns.forEach((campaign) => {
+      if (campaign.status) {
+        events.push({
+          id: `${campaign._id}-status`,
+          label: `${campaign.title} is ${campaign.status || "pending"}`,
+          detail: `Goal ₹${Number(campaign.goalAmount || 0).toLocaleString("en-IN")}`,
+          time: campaign.updatedAt || campaign.createdAt,
+          tone:
+            campaign.status === "approved"
+              ? "success"
+              : campaign.status === "rejected"
+              ? "danger"
+              : "warning",
+        });
+      }
+
+      if (Array.isArray(campaign.infoRequests)) {
+        campaign.infoRequests.forEach((req) => {
+          events.push({
+            id: `${campaign._id}-req-${req._id}`,
+            label: `Info requested · ${campaign.title}`,
+            detail: req.message,
+            time: req.createdAt,
+            tone: req.status === "resolved" ? "success" : "info",
+          });
+
+          if (Array.isArray(req.responses)) {
+            req.responses.forEach((resp, idx) => {
+              events.push({
+                id: `${campaign._id}-resp-${req._id}-${idx}`,
+                label: `Documents uploaded · ${campaign.title}`,
+                detail: resp.note || "Files submitted",
+                time: resp.uploadedAt,
+                tone: "neutral",
+              });
+            });
+          }
+        });
+      }
+
+      if (Array.isArray(campaign.adminActions)) {
+        campaign.adminActions.forEach((action, idx) => {
+          events.push({
+            id: `${campaign._id}-action-${idx}`,
+            label: `Admin ${action.action}`,
+            detail: `${campaign.title} • ${action.message || ""}`,
+            time: action.createdAt,
+            tone: action.action === "approved" ? "success" : "danger",
+          });
+        });
+      }
+    });
+
+    return events
+      .filter((event) => event.time)
+      .sort((a, b) => new Date(b.time) - new Date(a.time))
+      .slice(0, 6);
+  }, [myCampaigns, hasCampaigns]);
+
   const requestStatusStyles = {
     pending: {
       label: "Action required",
@@ -143,6 +276,9 @@ export default function Profile() {
       timeStyle: "short",
     });
   };
+
+  const formatCurrency = (value) =>
+    `₹${Number(value || 0).toLocaleString("en-IN")}`;
 
   const openRespondModal = (campaign, request) => {
     setResponseModal({ campaign, request });
