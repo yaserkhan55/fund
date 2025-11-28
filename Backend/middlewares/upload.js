@@ -1,30 +1,31 @@
 // middlewares/upload.js
 import multer from "multer";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
-import cloudinary from "../config/cloudinary.js";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
 
-// Check Cloudinary configuration
-if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-  console.warn("⚠️ Cloudinary credentials missing! File uploads may fail.");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, "../uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-/**
- * Multer + Cloudinary storage setup
- * We ensure that the final req.files entries provide secure_url values.
- */
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: (req, file) => {
-    console.log(`📤 Uploading file: ${file.originalname}, type: ${file.mimetype}`);
-    return {
-      folder: "fundraiser",
-      allowed_formats: ["jpg", "jpeg", "png", "webp", "pdf"],
-      transformation: [{ quality: "auto" }, { fetch_format: "auto" }],
-    };
+// Default to local disk storage (works without Cloudinary)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
   },
 });
 
-// Multer instance using cloudinary storage
+// Multer instance
 const upload = multer({ 
   storage,
   limits: {

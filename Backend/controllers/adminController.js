@@ -146,26 +146,6 @@ export const getPendingCampaigns = async (req, res) => {
       console.log(`📊 Database stats: Total=${totalCampaigns}, Approved=${approvedCount}, Rejected=${rejectedCount}, Pending=${pendingCount}`);
     }
 
-    // Convert to plain objects and ensure owner is handled properly
-    const campaigns = pending.map(campaign => {
-      const campaignObj = { ...campaign };
-      
-      if (!campaignObj.owner || (typeof campaignObj.owner === 'object' && !campaignObj.owner._id)) {
-        campaignObj.owner = {
-          name: "Unknown User",
-          email: "unknown@user.com",
-          clerkId: null,
-          provider: "unknown"
-        };
-      }
-      
-      if (!campaignObj.status) {
-        campaignObj.status = "pending";
-      }
-      
-      return campaignObj;
-    });
-
     return res.json({
       success: true,
       campaigns,
