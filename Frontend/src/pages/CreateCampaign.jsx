@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import api from "../lib/api";
+import ContactForm from "../components/ContactForm";
 
 export default function CreateCampaign() {
   const { isSignedIn, getToken } = useAuth();
@@ -796,12 +797,9 @@ export default function CreateCampaign() {
                   </ol>
                 </div>
 
-                {/* Support */}
-                <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
-                  <h4 className="font-bold text-[#003D3B] mb-2">Need Help?</h4>
-                  <p className="text-sm text-gray-600">
-                    If you have questions or need assistance filling this form, contact our support team.
-                  </p>
+                {/* Contact Form */}
+                <div className="mt-6">
+                  <ContactForm compact={true} />
                 </div>
               </div>
             </div>

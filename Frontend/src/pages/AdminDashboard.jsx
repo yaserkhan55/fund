@@ -13,6 +13,9 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [userPage, setUserPage] = useState(1);
   const [userSearch, setUserSearch] = useState("");
+  const [campaignPage, setCampaignPage] = useState(1);
+  const [campaignSearch, setCampaignSearch] = useState("");
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
 
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [infoTarget, setInfoTarget] = useState(null);
@@ -41,6 +44,19 @@ export default function AdminDashboard() {
     if (!img) return FALLBACK;
     if (img.startsWith("http")) return img;
     return `${API_URL}/${img.replace(/^\/+/, "")}`;
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const formatCurrency = (value) => {
+    return `₹${Number(value || 0).toLocaleString("en-IN")}`;
   };
 
   // Load dashboard statistics
@@ -81,11 +97,16 @@ export default function AdminDashboard() {
     setLoading(true);
     setError("");
     try {
-      let url = `${API_URL}/api/admin/pending-campaigns`;
-      if (tab === "approved") url = `${API_URL}/api/admin/approved-campaigns`;
-      if (tab === "rejected") url = `${API_URL}/api/admin/rejected-campaigns`;
+      let url = new URL(`${API_URL}/api/admin/pending-campaigns`);
+      if (tab === "approved") url = new URL(`${API_URL}/api/admin/approved-campaigns`);
+      if (tab === "rejected") url = new URL(`${API_URL}/api/admin/rejected-campaigns`);
 
-      const res = await fetch(url, { headers: authHeaders(false) });
+      // Add pagination and search params
+      url.searchParams.set("page", campaignPage);
+      url.searchParams.set("limit", "20");
+      if (campaignSearch) url.searchParams.set("search", campaignSearch);
+
+      const res = await fetch(url.toString(), { headers: authHeaders(false) });
 
       if (res.status === 401) {
         setError("Unauthorized — login again.");
@@ -112,6 +133,10 @@ export default function AdminDashboard() {
         list = data.campaigns;
       } else if (data && data.success && Array.isArray(data.campaigns)) {
         list = data.campaigns;
+        // Update pagination if available
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
       } else if (data && Array.isArray(data.data)) {
         list = data.data;
       }
@@ -160,15 +185,20 @@ export default function AdminDashboard() {
     }
   };
 
+  // Debounce search
   useEffect(() => {
-    if (activeTab === "dashboard") {
-      loadStats();
-    } else if (activeTab === "users") {
-      loadUsers();
-    } else {
-      load(activeTab);
-    }
-  }, [activeTab, userPage, userSearch]);
+    const timer = setTimeout(() => {
+      if (activeTab === "dashboard") {
+        loadStats();
+      } else if (activeTab === "users") {
+        loadUsers();
+      } else {
+        load(activeTab);
+      }
+    }, campaignSearch ? 500 : 0); // 500ms delay for search, immediate for other changes
+
+    return () => clearTimeout(timer);
+  }, [activeTab, userPage, userSearch, campaignPage, campaignSearch]);
 
   // Auto-refresh dashboard and pending campaigns
   useEffect(() => {
@@ -792,7 +822,11 @@ export default function AdminDashboard() {
       ].map((t) => (
         <button
           key={t.key}
-          onClick={() => setActiveTab(t.key)}
+          onClick={() => {
+            setActiveTab(t.key);
+            setCampaignPage(1);
+            setCampaignSearch("");
+          }}
           className={`px-6 py-3 rounded-xl font-semibold transition flex items-center gap-2 ${
             activeTab === t.key
               ? "bg-[#00B5B8] text-white shadow-lg"
@@ -884,9 +918,50 @@ export default function AdminDashboard() {
         {activeTab === "dashboard" && <DashboardOverview />}
         {activeTab === "users" && <UsersManagement />}
         {(activeTab === "pending" || activeTab === "approved" || activeTab === "rejected") && (
-          <div>
+          <div className="space-y-6">
+            {/* Search and Filters */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <svg
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search by title, beneficiary, city, category..."
+                    value={campaignSearch}
+                    onChange={(e) => {
+                      setCampaignSearch(e.target.value);
+                      setCampaignPage(1);
+                    }}
+                    className="w-full pl-12 pr-4 py-3 border-2 border-[#E0F2F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8]"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setCampaignSearch("");
+                    setCampaignPage(1);
+                    load(activeTab);
+                  }}
+                  className="px-6 py-3 rounded-xl border-2 border-[#E0F2F2] text-[#003d3b] font-semibold hover:bg-[#E6F7F7] transition"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
             {loading ? (
-              <div className="text-center py-20">
+              <div className="text-center py-20 bg-white rounded-2xl shadow-lg border border-[#E0F2F2]">
                 <div className="w-16 h-16 border-4 border-[#00B5B8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-gray-600">Loading campaigns...</p>
               </div>
@@ -908,15 +983,239 @@ export default function AdminDashboard() {
                 </button>
               </div>
             ) : (
-              <div>
-                <div className="mb-4 text-sm text-gray-600">
-                  Showing {items.length} campaign{items.length !== 1 ? "s" : ""}
+              <div className="bg-white rounded-2xl shadow-lg border border-[#E0F2F2] overflow-hidden">
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-[#E6F7F7] border-b-2 border-[#00B5B8]">
+                      <tr>
+                        <th className="px-4 py-4 text-left text-sm font-bold text-[#003d3b]">Campaign</th>
+                        <th className="px-4 py-4 text-left text-sm font-bold text-[#003d3b]">User</th>
+                        <th className="px-4 py-4 text-left text-sm font-bold text-[#003d3b]">Category</th>
+                        <th className="px-4 py-4 text-left text-sm font-bold text-[#003d3b]">Goal</th>
+                        <th className="px-4 py-4 text-left text-sm font-bold text-[#003d3b]">Raised</th>
+                        <th className="px-4 py-4 text-left text-sm font-bold text-[#003d3b]">Status</th>
+                        <th className="px-4 py-4 text-left text-sm font-bold text-[#003d3b]">Created</th>
+                        <th className="px-4 py-4 text-center text-sm font-bold text-[#003d3b]">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {items.map((c, index) => {
+                        const owner = c.owner || {};
+                        const ownerName = typeof owner === "object" ? owner.name : owner || "Unknown";
+                        const ownerEmail = typeof owner === "object" ? owner.email : "";
+                        const raised = Number(c.raisedAmount || 0);
+                        const goal = Number(c.goalAmount || 0);
+                        const percentage = goal > 0 ? Math.round((raised / goal) * 100) : 0;
+                        const statusColor =
+                          c.status === "approved"
+                            ? "bg-green-100 text-green-800"
+                            : c.status === "rejected"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-amber-100 text-amber-800";
+
+                        return (
+                          <tr key={c._id || c.id || `campaign-${index}`} className="hover:bg-[#F1FAFA] transition">
+                            <td className="px-4 py-4">
+                              <div className="flex items-start gap-3">
+                                <img
+                                  src={resolveImg(c.image || c.imageUrl)}
+                                  alt={c.title}
+                                  className="w-16 h-16 object-cover rounded-lg"
+                                  onError={(e) => {
+                                    e.target.src = "https://via.placeholder.com/64x64?text=No+Image";
+                                  }}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-bold text-[#003d3b] line-clamp-1">{c.title || "Untitled"}</p>
+                                  <p className="text-xs text-gray-500 line-clamp-2 mt-1">
+                                    {c.shortDescription || "No description"}
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    Beneficiary: {c.beneficiaryName || "N/A"}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              <div>
+                                <p className="font-semibold text-[#003d3b] text-sm">{ownerName}</p>
+                                <p className="text-xs text-gray-500">{ownerEmail || "No email"}</p>
+                                {owner.provider && (
+                                  <p className="text-xs text-gray-400 mt-1 capitalize">
+                                    {owner.provider}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-2 py-1 rounded">
+                                {c.category || "N/A"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4">
+                              <p className="font-semibold text-[#003d3b]">
+                                ₹{goal.toLocaleString("en-IN")}
+                              </p>
+                            </td>
+                            <td className="px-4 py-4">
+                              <div>
+                                <p className="font-semibold text-[#00B5B8]">
+                                  ₹{raised.toLocaleString("en-IN")}
+                                </p>
+                                <p className="text-xs text-gray-500">{percentage}%</p>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${statusColor}`}>
+                                {c.status || "pending"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4">
+                              <p className="text-xs text-gray-600">
+                                {c.createdAt
+                                  ? new Date(c.createdAt).toLocaleDateString()
+                                  : "N/A"}
+                              </p>
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="flex flex-col gap-2">
+                                {activeTab === "pending" && (
+                                  <>
+                                    <button
+                                      onClick={() => approve(c._id)}
+                                      className="px-3 py-1.5 text-xs rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() => reject(c._id)}
+                                      className="px-3 py-1.5 text-xs rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition"
+                                    >
+                                      Reject
+                                    </button>
+                                    <button
+                                      onClick={() => openInfoModal(c)}
+                                      className="px-3 py-1.5 text-xs rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 transition"
+                                    >
+                                      Request Info
+                                    </button>
+                                  </>
+                                )}
+                                {activeTab === "approved" && (
+                                  <>
+                                    <button
+                                      onClick={() => reject(c._id)}
+                                      className="px-3 py-1.5 text-xs rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition"
+                                    >
+                                      Reject
+                                    </button>
+                                    <button
+                                      onClick={() => openInfoModal(c)}
+                                      className="px-3 py-1.5 text-xs rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 transition"
+                                    >
+                                      Request Info
+                                    </button>
+                                  </>
+                                )}
+                                {activeTab === "rejected" && (
+                                  <>
+                                    <button
+                                      onClick={() => approve(c._id)}
+                                      className="px-3 py-1.5 text-xs rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() => openInfoModal(c)}
+                                      className="px-3 py-1.5 text-xs rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700 transition"
+                                    >
+                                      Request Info
+                                    </button>
+                                  </>
+                                )}
+                                <button
+                                  onClick={() => openEdit(c)}
+                                  className="px-3 py-1.5 text-xs rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => window.open(`/campaign/${c._id || c.id}`, "_blank")}
+                                  className="px-3 py-1.5 text-xs rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition"
+                                >
+                                  View
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="grid md:grid-cols-2 gap-6">
-                  {items.map((c, index) => (
-                    <Card key={c._id || c.id || `campaign-${index}`} c={c} />
-                  ))}
-                </div>
+
+                {/* Pagination */}
+                {pagination.pages > 1 && (
+                  <div className="px-6 py-4 border-t border-[#E0F2F2] flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
+                      {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+                      {pagination.total} campaigns
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          if (campaignPage > 1) {
+                            setCampaignPage(campaignPage - 1);
+                          }
+                        }}
+                        disabled={campaignPage === 1}
+                        className="px-4 py-2 rounded-lg border border-[#E0F2F2] text-[#003d3b] font-semibold hover:bg-[#E6F7F7] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                          let pageNum;
+                          if (pagination.pages <= 5) {
+                            pageNum = i + 1;
+                          } else if (campaignPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (campaignPage >= pagination.pages - 2) {
+                            pageNum = pagination.pages - 4 + i;
+                          } else {
+                            pageNum = campaignPage - 2 + i;
+                          }
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => setCampaignPage(pageNum)}
+                              className={`px-3 py-2 rounded-lg font-semibold transition ${
+                                campaignPage === pageNum
+                                  ? "bg-[#00B5B8] text-white"
+                                  : "border border-[#E0F2F2] text-[#003d3b] hover:bg-[#E6F7F7]"
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (campaignPage < pagination.pages) {
+                            setCampaignPage(campaignPage + 1);
+                          }
+                        }}
+                        disabled={campaignPage === pagination.pages}
+                        className="px-4 py-2 rounded-lg border border-[#E0F2F2] text-[#003d3b] font-semibold hover:bg-[#E6F7F7] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

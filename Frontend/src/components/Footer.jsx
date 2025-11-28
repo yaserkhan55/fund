@@ -1,3 +1,5 @@
+import ContactForm from "./ContactForm";
+
 export default function Footer() {
   return (
     <footer className="bg-[#E6F8F8] text-[#004445] py-12 px-6 mt-16 border-t-2 border-teal-300">
@@ -59,15 +61,10 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Column 3 */}
+        {/* Column 3 - Contact Form */}
         <div>
-          <h3 className="font-semibold text-lg mb-3">Support</h3>
-          <ul className="space-y-2 text-sm opacity-90">
-            <li>FAQs</li>
-            <li>Help Center</li>
-            <li>Trust & Safety</li>
-            <li>Contact Us</li>
-          </ul>
+          <h3 className="font-semibold text-lg mb-3">Contact Us</h3>
+          <ContactForm compact={true} />
         </div>
       </div>
 
