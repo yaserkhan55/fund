@@ -988,9 +988,21 @@ export const createCampaign = async (req, res) => {
       // Image file
       if (req.files.image && req.files.image.length > 0) {
         const imgFile = req.files.image[0];
-        // Cloudinary returns secure_url or path
-        image = imgFile.secure_url || imgFile.path || imgFile.url;
+        // Cloudinary returns secure_url, or use path/url for local storage
+        image = imgFile.secure_url || imgFile.url || imgFile.path;
+        
+        // If it's a local path, convert to full URL
+        if (image && !image.startsWith('http') && !image.startsWith('/')) {
+          image = `/uploads/${image}`;
+        }
+        
         console.log(`📷 Image uploaded: ${image}`);
+        console.log(`📷 Image file details:`, {
+          secure_url: imgFile.secure_url,
+          url: imgFile.url,
+          path: imgFile.path,
+          filename: imgFile.filename
+        });
       }
 
       // Document files

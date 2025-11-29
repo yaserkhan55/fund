@@ -1,5 +1,5 @@
 import express from "express";
-import upload from "../middlewares/upload.js";
+import upload, { uploadToCloudinary } from "../middlewares/upload.js";
 
 // Clerk
 import { requireAuth } from "@clerk/express";
@@ -130,7 +130,7 @@ router.post(
   requireAuth(),
   syncClerkUser,
   (req, res, next) => {
-    uploadMiddleware(req, res, (err) => {
+    uploadMiddleware(req, res, async (err) => {
       if (err) {
         console.error("❌ File upload error:", err);
         return res.status(400).json({
@@ -148,6 +148,7 @@ router.post(
       next();
     });
   },
+  uploadToCloudinary, // Upload files to Cloudinary after multer processes them
   createCampaign
 );
 
