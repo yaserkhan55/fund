@@ -7,6 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com"
 export default function ContactForm({ compact = false }) {
   const { isSignedIn, user } = useAuth();
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -17,6 +18,10 @@ export default function ContactForm({ compact = false }) {
       // Only auto-fill if name is empty (don't override user input)
       if (!name) {
         setName(user.fullName || user.firstName || user.emailAddresses?.[0]?.emailAddress || "");
+      }
+      // Auto-fill email if empty
+      if (!email) {
+        setEmail(user.emailAddresses?.[0]?.emailAddress || "");
       }
     }
   }, [isSignedIn, user]);
@@ -31,10 +36,30 @@ export default function ContactForm({ compact = false }) {
     }
   };
 
+  const handleEmailInputClick = () => {
+    // Auto-fill email when input is clicked if user is logged in
+    if (isSignedIn && user && !email) {
+      const userEmail = user.emailAddresses?.[0]?.emailAddress || "";
+      if (userEmail) {
+        setEmail(userEmail);
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!query.trim()) {
       setError("Please enter your query");
+      return;
+    }
+    if (!email.trim()) {
+      setError("Please enter your email address");
+      return;
+    }
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError("Please enter a valid email address");
       return;
     }
 
@@ -45,13 +70,14 @@ export default function ContactForm({ compact = false }) {
     try {
       await axios.post(`${API_URL}/api/contact`, {
         name: name.trim() || "Anonymous",
+        email: email.trim(),
         query: query.trim(),
-        email: user?.emailAddresses?.[0]?.emailAddress || "",
       });
 
       setSuccess(true);
       setQuery("");
       setTimeout(() => setSuccess(false), 3000);
+      // Don't clear email and name so user can see what was sent
     } catch (err) {
       setError(err.response?.data?.message || "Failed to send message. Please try again.");
     } finally {
@@ -76,6 +102,17 @@ export default function ContactForm({ compact = false }) {
               onChange={(e) => setName(e.target.value)}
               onClick={handleNameInputClick}
               placeholder="Your name (click to auto-fill if logged in)"
+              className="w-full p-2.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] text-sm cursor-text"
+              required
+            />
+          </div>
+          <div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onClick={handleEmailInputClick}
+              placeholder="Your email address (click to auto-fill if logged in) *"
               className="w-full p-2.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] text-sm cursor-text"
               required
             />
@@ -127,6 +164,20 @@ export default function ContactForm({ compact = false }) {
             className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition cursor-text"
             required
           />
+        </div>
+
+        <div>
+          <label className="block font-semibold text-[#003D3B] mb-2">Your Email *</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onClick={handleEmailInputClick}
+            placeholder="Enter your email address (click to auto-fill if logged in)"
+            className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition cursor-text"
+            required
+          />
+          <p className="text-xs text-gray-500 mt-1">We'll send notifications to this email when admin replies</p>
         </div>
 
         <div>
