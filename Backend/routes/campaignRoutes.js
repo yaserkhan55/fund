@@ -17,7 +17,9 @@ import {
   getCampaignForOwner,
   updateCampaignByOwner,
   getUserNotifications,
-  markAllNotificationsAsViewed
+  markAllNotificationsAsViewed,
+  getPlatformStats,
+  getFeaturedCampaigns
 } from "../controllers/campaignController.js";
 
 // NEW CONTROLLERS (Ketto-style details)
@@ -70,6 +72,16 @@ router.put("/details/:id/about", requireAuth(), syncClerkUser, updateAboutSectio
    PUBLIC — Homepage campaigns
 =========================== */
 router.get("/approved", getApprovedCampaigns);
+
+/* ===========================
+   PUBLIC — Platform Statistics
+=========================== */
+router.get("/stats", getPlatformStats);
+
+/* ===========================
+   PUBLIC — Featured/Urgent Campaigns
+=========================== */
+router.get("/featured", getFeaturedCampaigns);
 
 /* ===========================
    USER'S OWN CAMPAIGNS

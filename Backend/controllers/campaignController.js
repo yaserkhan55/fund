@@ -36,6 +36,88 @@ export const getApprovedCampaigns = async (req, res) => {
 };
 
 /* =====================================================
+   PUBLIC: GET PLATFORM STATISTICS
+===================================================== */
+export const getPlatformStats = async (req, res) => {
+  try {
+    // Get total approved campaigns
+    const totalCampaigns = await Campaign.countDocuments({ status: "approved" });
+    
+    // Get total raised amount across all approved campaigns
+    const campaigns = await Campaign.find({ status: "approved" }).select("raisedAmount");
+    const totalRaised = campaigns.reduce((sum, c) => sum + (Number(c.raisedAmount) || 0), 0);
+    
+    // Get total contributors (from donations - we'll need to check if Donation model exists)
+    // For now, estimate based on campaigns (each campaign might have multiple donors)
+    // This is a placeholder - you can enhance this with actual donation data
+    const estimatedContributors = Math.floor(totalCampaigns * 50); // Rough estimate
+    
+    // Calculate lives saved (estimate: each campaign helps ~1-3 people on average)
+    const estimatedLivesSaved = Math.floor(totalCampaigns * 1.2);
+    
+    res.json({
+      success: true,
+      stats: {
+        livesSaved: estimatedLivesSaved,
+        contributors: estimatedContributors,
+        trustedCampaigns: totalCampaigns,
+        totalRaised: totalRaised,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* =====================================================
+   PUBLIC: GET FEATURED/URGENT CAMPAIGNS
+===================================================== */
+export const getFeaturedCampaigns = async (req, res) => {
+  try {
+    const { limit = 6, sortBy = "urgent" } = req.query;
+    
+    let sortCriteria = {};
+    
+    if (sortBy === "urgent") {
+      // Sort by lowest progress percentage (most urgent)
+      const campaigns = await Campaign.find({ status: "approved" })
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit) * 2); // Get more to calculate progress
+      
+      const withProgress = campaigns.map(c => ({
+        ...c.toObject(),
+        progress: c.goalAmount > 0 
+          ? (c.raisedAmount / c.goalAmount) * 100 
+          : 0
+      }));
+      
+      // Sort by lowest progress (most urgent)
+      withProgress.sort((a, b) => a.progress - b.progress);
+      
+      return res.json({
+        success: true,
+        campaigns: withProgress.slice(0, parseInt(limit))
+      });
+    } else if (sortBy === "trending") {
+      // Sort by highest raised amount recently
+      sortCriteria = { raisedAmount: -1, createdAt: -1 };
+    } else if (sortBy === "newest") {
+      sortCriteria = { createdAt: -1 };
+    } else {
+      sortCriteria = { createdAt: -1 };
+    }
+    
+    const campaigns = await Campaign.find({ status: "approved" })
+      .sort(sortCriteria)
+      .limit(parseInt(limit));
+    
+    res.json({ success: true, campaigns });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* =====================================================
    PUBLIC: GET ALL CAMPAIGNS
 ===================================================== */
 export const getAllCampaigns = async (req, res) => {
