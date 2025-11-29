@@ -412,8 +412,8 @@ export default function CreatorDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F1FAFA] pt-24 pb-12">
-      <div className="max-w-7xl mx-auto px-4 space-y-8">
+    <div className="min-h-screen bg-[#F1FAFA] pt-24 pb-12 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-[#E6F7F7] via-white to-[#FEF6E6] border border-[#E0F2F2] rounded-3xl p-6 lg:p-10 shadow-lg">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -697,7 +697,7 @@ export default function CreatorDashboard() {
         )}
 
         {/* Key Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-[#00B5B8]/10 rounded-xl flex items-center justify-center">
@@ -896,7 +896,7 @@ export default function CreatorDashboard() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredCampaigns.map((c) => {
               const raised = Number(c.raisedAmount || 0);
               const goal = Math.max(1, Number(c.goalAmount || 0));

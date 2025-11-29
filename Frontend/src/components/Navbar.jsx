@@ -113,24 +113,24 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="w-full bg-white border-b border-gray-200 shadow-sm fixed top-0 left-0 z-50">
-      <div className="max-w-7xl mx-auto h-20 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+    <nav className="w-full bg-white border-b border-gray-200 shadow-sm fixed top-0 left-0 right-0 z-50 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto h-20 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
 
         {/* Logo */}
-        <Link to="/" className="flex items-center space-x-3">
-          <div className="w-16 h-16 flex items-center justify-center rounded-full bg-white border-2 border-[#00B5B8] overflow-hidden shadow-sm">
+        <Link to="/" className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 min-w-0">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center rounded-full bg-white border-2 border-[#00B5B8] overflow-hidden shadow-sm flex-shrink-0">
             <img
               src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
               className="w-full h-full object-contain p-1.5"
             />
           </div>
-          <span className="text-xl md:text-2xl font-bold text-[#003d3b] tracking-wide">
+          <span className="text-lg sm:text-xl md:text-2xl font-bold text-[#003d3b] tracking-wide truncate">
             SEUMP
           </span>
         </Link>
 
         {/* Desktop Menu */}
-        <div className="hidden md:flex items-center space-x-6 text-gray-700 font-medium">
+        <div className="hidden lg:flex items-center space-x-4 xl:space-x-6 text-gray-700 font-medium flex-shrink-0">
           <Link to="/browse" className="hover:text-[#00B5B8]">Browse Fundraisers</Link>
 
           {/* FIXED DROPDOWN (click-to-open) */}
@@ -163,10 +163,10 @@ export default function Navbar() {
         </div>
 
         {/* Desktop Right Side */}
-        <div className="hidden md:flex items-center space-x-4">
+        <div className="hidden md:flex items-center space-x-2 lg:space-x-4 flex-shrink-0">
           <Link
             to="/create-campaign"
-            className="border border-[#00B5B8] text-[#00B5B8] px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7]"
+            className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
           >
             Start a Fundraiser
           </Link>
@@ -174,14 +174,14 @@ export default function Navbar() {
           <SignedOut>
             <Link
               to="/sign-in"
-              className="border border-[#00B5B8] text-[#00B5B8] px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7]"
+              className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
             >
               Login
             </Link>
 
             <Link
               to="/sign-up"
-              className="bg-[#00B5B8] text-white px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f]"
+              className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap"
             >
               Sign Up
             </Link>
@@ -191,20 +191,20 @@ export default function Navbar() {
             {/* Dashboard Icon */}
             <Link
               to="/dashboard"
-              className="relative p-2 text-gray-700 hover:text-[#00B5B8] transition-colors rounded-lg hover:bg-[#E6F7F7]"
+              className="relative p-2 text-gray-700 hover:text-[#00B5B8] transition-colors rounded-lg hover:bg-[#E6F7F7] flex-shrink-0"
               aria-label="Dashboard"
               title="My Dashboard"
             >
-              <FiGrid className="w-6 h-6" />
+              <FiGrid className="w-5 h-5 lg:w-6 lg:h-6" />
             </Link>
             {/* Notifications Bell */}
-            <div className="relative" ref={notificationRef}>
+            <div className="relative flex-shrink-0" ref={notificationRef}>
               <button
                 onClick={handleNotificationsToggle}
                 className="relative p-2 text-gray-700 hover:text-[#00B5B8] transition-colors"
                 aria-label="Notifications"
               >
-                <FaBell className="text-xl" />
+                <FaBell className="text-lg lg:text-xl" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                     {unreadCount > 9 ? "9+" : unreadCount}
@@ -259,12 +259,14 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-            <UserButton afterSignOutUrl="/" />
+            <div className="flex-shrink-0">
+              <UserButton afterSignOutUrl="/" />
+            </div>
           </SignedIn>
         </div>
 
         {/* Mobile Right Area */}
-        <div className="md:hidden flex items-center gap-3">
+        <div className="md:hidden flex items-center gap-2 flex-shrink-0">
           <SignedIn>
             {/* Mobile Dashboard Icon */}
             <Link

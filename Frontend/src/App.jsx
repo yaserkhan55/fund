@@ -22,11 +22,11 @@ import AdminDashboard from "./pages/AdminDashboard";
 
 function Layout({ children }) {
   return (
-    <>
+    <div className="overflow-x-hidden">
       <Navbar />
-      <main className="pt-20">{children}</main>
+      <main className="pt-20 overflow-x-hidden">{children}</main>
       <Footer />
-    </>
+    </div>
   );
 }
 
