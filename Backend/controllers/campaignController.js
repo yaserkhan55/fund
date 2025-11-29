@@ -545,46 +545,106 @@ export const getUserNotifications = async (req, res) => {
     // Contact query notifications (admin replies)
     const Contact = (await import("../models/Contact.js")).default;
     
-    // Find all contacts for this user (by email, userId, or clerkId)
-    const contactQueries = await Contact.find({
-      $or: [
-        { email: mongoUser.email },
-        { userId: mongoUser._id },
-        { clerkId: clerkUserId }
-      ],
-      conversation: { $exists: true, $ne: [] } // Has conversation
-    })
-    .sort({ updatedAt: -1 })
-    .lean();
-
-    contactQueries.forEach((contact) => {
-      if (!contact.conversation || !Array.isArray(contact.conversation)) return;
+    try {
+      // Build query to find contacts for this user
+      const contactQuery = {
+        conversation: { $exists: true, $ne: [] } // Has conversation
+      };
       
-      // Get all admin messages from conversation
-      const adminMessages = contact.conversation.filter(msg => msg.sender === "admin");
+      // Add user matching conditions
+      const userConditions = [];
       
-      if (adminMessages.length > 0) {
-        // Get the latest admin message
-        const latestAdminMsg = adminMessages.sort((a, b) => 
-          new Date(b.createdAt) - new Date(a.createdAt)
-        )[0];
-        
-        // Only show if it's recent (within last 30 days)
-        const msgDate = new Date(latestAdminMsg.createdAt);
-        const daysAgo = (Date.now() - msgDate.getTime()) / (1000 * 60 * 60 * 24);
-        
-        if (daysAgo <= 30) {
-          notifications.push({
-            id: `contact_${contact._id}_${latestAdminMsg.createdAt}`,
-            type: "contact_reply",
-            contactId: contact._id.toString(),
-            message: latestAdminMsg.message || "Admin replied to your query",
-            createdAt: latestAdminMsg.createdAt,
-            viewed: false,
-          });
-        }
+      // Match by email (case insensitive) - try both exact and regex
+      if (mongoUser.email) {
+        const emailLower = mongoUser.email.toLowerCase().trim();
+        userConditions.push({ email: { $regex: new RegExp(`^${emailLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") } });
+        // Also try exact match
+        userConditions.push({ email: emailLower });
       }
-    });
+      
+      // Match by userId
+      if (mongoUser._id) {
+        userConditions.push({ userId: mongoUser._id });
+      }
+      
+      // Match by clerkId
+      if (clerkUserId) {
+        userConditions.push({ clerkId: clerkUserId });
+      }
+      
+      // Only add $or if we have conditions
+      if (userConditions.length > 0) {
+        contactQuery.$or = userConditions;
+        
+        const contactQueries = await Contact.find(contactQuery)
+          .sort({ updatedAt: -1 })
+          .limit(50) // Limit to recent contacts
+          .lean();
+
+        console.log(`[Notifications] Found ${contactQueries.length} contact queries for user (email: ${mongoUser.email}, userId: ${mongoUser._id}, clerkId: ${clerkUserId})`);
+
+        // Update contacts that don't have userId/clerkId but match by email
+        for (const contact of contactQueries) {
+          const needsUpdate = contact.email && 
+            (contact.email.toLowerCase() === mongoUser.email?.toLowerCase()) &&
+            (!contact.userId || !contact.clerkId);
+          
+          if (needsUpdate) {
+            try {
+              await Contact.updateOne(
+                { _id: contact._id },
+                { 
+                  $set: { 
+                    userId: mongoUser._id,
+                    clerkId: clerkUserId 
+                  } 
+                }
+              );
+              console.log(`[Notifications] Updated contact ${contact._id} with user info`);
+            } catch (err) {
+              console.error(`[Notifications] Error updating contact:`, err);
+            }
+          }
+        }
+
+        contactQueries.forEach((contact) => {
+          if (!contact.conversation || !Array.isArray(contact.conversation)) return;
+          
+          // Get all admin messages from conversation
+          const adminMessages = contact.conversation.filter(msg => msg.sender === "admin");
+          
+          if (adminMessages.length > 0) {
+            // Get the latest admin message
+            const latestAdminMsg = adminMessages.sort((a, b) => {
+              const dateA = new Date(a.createdAt || 0);
+              const dateB = new Date(b.createdAt || 0);
+              return dateB - dateA;
+            })[0];
+            
+            // Only show if it's recent (within last 30 days)
+            const msgDate = new Date(latestAdminMsg.createdAt);
+            const daysAgo = (Date.now() - msgDate.getTime()) / (1000 * 60 * 60 * 24);
+            
+            if (daysAgo <= 30 && latestAdminMsg.message) {
+              const notificationId = `contact_${contact._id}_${latestAdminMsg.createdAt}`;
+              notifications.push({
+                id: notificationId,
+                type: "contact_reply",
+                contactId: contact._id.toString(),
+                message: latestAdminMsg.message,
+                createdAt: latestAdminMsg.createdAt,
+                viewed: false,
+              });
+              console.log(`[Notifications] Added contact notification: ${latestAdminMsg.message.substring(0, 50)}...`);
+            }
+          }
+        });
+      } else {
+        console.log("[Notifications] No user conditions for contact notifications");
+      }
+    } catch (error) {
+      console.error("[Notifications] Error fetching contact notifications:", error);
+    }
 
     // Sort by date (newest first)
     notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
