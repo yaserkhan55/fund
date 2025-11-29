@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { SignedIn, SignedOut, UserButton, useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import { FaBell } from "react-icons/fa";
+import { FiGrid } from "react-icons/fi";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
@@ -72,6 +73,44 @@ export default function Navbar() {
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [isSignedIn, getToken]);
+
+  const handleNotificationsToggle = async () => {
+    const willOpen = !notificationsOpen;
+    setNotificationsOpen(willOpen);
+
+    // When opening and there are unread notifications, mark them as viewed
+    if (willOpen && unreadCount > 0) {
+      try {
+        let token = null;
+        try {
+          token = await getToken();
+        } catch (e) {
+          token = localStorage.getItem("token");
+        }
+
+        if (!token) return;
+
+        await axios.put(
+          `${API_URL}/api/campaigns/notifications/mark-read`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        // Optimistically update UI
+        setUnreadCount(0);
+        setNotifications((prev) =>
+          prev.map((n) => ({
+            ...n,
+            viewed: true,
+          }))
+        );
+      } catch (error) {
+        console.error("Error marking notifications as read:", error);
+      }
+    }
+  };
 
   return (
     <nav className="w-full bg-white border-b border-gray-200 shadow-sm fixed top-0 left-0 z-50">
@@ -156,24 +195,12 @@ export default function Navbar() {
               aria-label="Dashboard"
               title="My Dashboard"
             >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                />
-              </svg>
+              <FiGrid className="w-6 h-6" />
             </Link>
             {/* Notifications Bell */}
             <div className="relative" ref={notificationRef}>
               <button
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                onClick={handleNotificationsToggle}
                 className="relative p-2 text-gray-700 hover:text-[#00B5B8] transition-colors"
                 aria-label="Notifications"
               >
@@ -246,24 +273,12 @@ export default function Navbar() {
               aria-label="Dashboard"
               title="My Dashboard"
             >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                />
-              </svg>
+              <FiGrid className="w-6 h-6" />
             </Link>
             {/* Mobile Notifications Bell */}
             <div className="relative z-50" ref={notificationRef}>
               <button
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                onClick={handleNotificationsToggle}
                 className="relative p-2 text-gray-700 hover:text-[#00B5B8] transition-colors"
                 aria-label="Notifications"
               >
