@@ -144,18 +144,26 @@ function Home() {
         });
 
         const notifications = res.data?.notifications || [];
+        console.log("Fetched notifications:", notifications.length, notifications);
+        
         if (notifications.length > 0) {
-          // Filter to get only unviewed notifications
-          const unviewedNotifications = notifications.filter(n => !n.viewed);
+          // Prioritize contact_reply notifications, then filter unviewed
+          const contactReplies = notifications.filter(n => n.type === "contact_reply" && !n.viewed);
+          const otherNotifications = notifications.filter(n => n.type !== "contact_reply" && !n.viewed);
+          
+          // Combine: contact replies first, then others
+          const unviewedNotifications = [...contactReplies, ...otherNotifications];
           
           if (unviewedNotifications.length > 0) {
             const latest = unviewedNotifications[0]; // Already sorted by newest first
+            console.log("Latest notification to show:", latest);
             
             // Check if this notification has been shown before
             const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
             const notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
             
             if (!shownNotifications.includes(notificationKey)) {
+              console.log("Showing notification popup:", latest.type, latest.message);
               setLatestNotification(latest);
               setShowNotificationPopup(true);
               // Mark as shown
@@ -165,7 +173,11 @@ function Home() {
                 shownNotifications.shift();
               }
               localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
+            } else {
+              console.log("Notification already shown:", notificationKey);
             }
+          } else {
+            console.log("No unviewed notifications found");
           }
         }
       } catch (err) {
