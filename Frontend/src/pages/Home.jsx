@@ -137,23 +137,33 @@ function Home() {
           token = localStorage.getItem("token");
         }
         
-        if (!token) return;
+        if (!token) {
+          console.log("[Home Notifications] No token available");
+          return;
+        }
 
+        console.log("[Home Notifications] Fetching notifications...");
         const res = await axios.get(`${API_URL}/api/campaigns/notifications`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         const notifications = res.data?.notifications || [];
-        console.log("=== NOTIFICATION FETCH ===");
+        console.log("=== NOTIFICATION FETCH (HOME PAGE) ===");
         console.log("Total notifications:", notifications.length);
         console.log("Contact replies:", notifications.filter(n => n.type === "contact_reply").length);
+        notifications.filter(n => n.type === "contact_reply").forEach(n => {
+          console.log(`  - Contact reply: "${n.message?.substring(0, 50)}..." (ID: ${n.id}, createdAt: ${n.createdAt})`);
+        });
         console.log("All notifications:", notifications);
-        console.log("==========================");
+        console.log("=====================================");
         
         if (notifications.length > 0) {
           // Prioritize contact_reply notifications, then filter unviewed
           const contactReplies = notifications.filter(n => n.type === "contact_reply" && !n.viewed);
           const otherNotifications = notifications.filter(n => n.type !== "contact_reply" && !n.viewed);
+          
+          console.log(`[Home Notifications] Unviewed contact replies: ${contactReplies.length}`);
+          console.log(`[Home Notifications] Unviewed other notifications: ${otherNotifications.length}`);
           
           // Combine: contact replies first, then others
           const unviewedNotifications = [...contactReplies, ...otherNotifications];
@@ -165,44 +175,19 @@ function Home() {
             // Check if this notification has been shown before
             const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
             
-            // For contact replies, use contactId + createdAt to allow new replies to show
-            // For other notifications, use the full key
+            // Simplified key generation - use contactId + createdAt for contact replies
+            // This allows new admin replies to the same contact to show
             let notificationKey;
             if (latest.type === "contact_reply") {
-              // For contact replies, check if we've shown ANY notification for this contact
-              // This allows new admin replies to the same contact to show
-              const contactNotificationKeys = shownNotifications.filter(key => 
-                key.startsWith(`contact_reply_contact_${latest.contactId}_`)
-              );
-              
-              // If we have shown notifications for this contact, check if this one is newer
-              if (contactNotificationKeys.length > 0) {
-                // Extract timestamps from shown keys
-                const shownTimestamps = contactNotificationKeys.map(key => {
-                  const parts = key.split('_');
-                  return parts[parts.length - 1]; // Last part is timestamp
-                });
-                
-                const latestTimestamp = new Date(latest.createdAt).getTime();
-                const maxShownTimestamp = Math.max(...shownTimestamps.map(ts => new Date(ts).getTime()));
-                
-                // Only show if this notification is newer than what we've shown
-                if (latestTimestamp > maxShownTimestamp) {
-                  notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
-                } else {
-                  notificationKey = null; // Already shown a newer or same notification
-                }
-              } else {
-                // No previous notifications for this contact, show it
-                notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
-              }
+              // Simple key: contact_reply_contactId_createdAt
+              notificationKey = `contact_reply_${latest.contactId}_${latest.createdAt}`;
             } else {
               // For other notification types, use the standard key
               notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
             }
             
             if (notificationKey && !shownNotifications.includes(notificationKey)) {
-              console.log("Showing notification popup:", latest.type, latest.message);
+              console.log("[Home Notifications] ✅✅✅ SHOWING NOTIFICATION POPUP:", latest.type, latest.message);
               setLatestNotification(latest);
               setShowNotificationPopup(true);
               // Mark as shown
@@ -213,20 +198,27 @@ function Home() {
               }
               localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
             } else if (notificationKey === null) {
-              console.log("Contact reply already shown (newer notification exists)");
+              console.log("[Home Notifications] Contact reply already shown (newer notification exists)");
             } else {
-              console.log("Notification already shown:", notificationKey);
+              console.log("[Home Notifications] Notification already shown:", notificationKey);
             }
           } else {
-            console.log("No unviewed notifications found");
+            console.log("[Home Notifications] No unviewed notifications found");
           }
+        } else {
+          console.log("[Home Notifications] No notifications returned from API");
         }
       } catch (err) {
-        console.error("Error fetching notifications:", err);
+        console.error("[Home Notifications] Error fetching notifications:", err);
+        console.error("[Home Notifications] Error details:", err.response?.data);
       }
     };
 
     fetchLatestNotification();
+    
+    // Refresh notifications every 30 seconds
+    const interval = setInterval(fetchLatestNotification, 30000);
+    return () => clearInterval(interval);
   }, [isSignedIn, getToken]);
 
   // Auto-show popup when admin requests are found (only if not already shown)
