@@ -1007,10 +1007,17 @@ export const createCampaign = async (req, res) => {
 
       // Document files
       if (req.files.documents && req.files.documents.length > 0) {
-        documents = req.files.documents.map((doc) => {
-          return doc.secure_url || doc.path || doc.url;
-        });
+        documents = req.files.documents
+          .map((doc) => {
+            const url = doc.secure_url || doc.url || doc.path;
+            if (!url) {
+              console.warn('⚠️ Document missing URL:', doc);
+            }
+            return url;
+          })
+          .filter(url => url); // Remove any undefined/null values
         console.log(`📄 Documents uploaded: ${documents.length} files`);
+        console.log(`📄 Document URLs:`, documents);
       }
     }
 
@@ -1022,7 +1029,9 @@ export const createCampaign = async (req, res) => {
       documents: documents
     });
 
-    if (!documents.length) {
+    if (!documents || documents.length === 0) {
+      console.error("❌ No documents found in request");
+      console.error("Request files:", req.files);
       return res.status(400).json({
         success: false,
         message: "At least one medical document is required.",

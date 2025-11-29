@@ -68,47 +68,56 @@ const upload = multer({
 
 // Middleware to upload to Cloudinary after multer processes the file
 export const uploadToCloudinary = async (req, res, next) => {
-  if (!isCloudinaryConfigured) {
-    console.log("⚠️ Cloudinary not configured, using local file paths");
-    // If Cloudinary is not configured, files are already saved to disk
-    // Convert file paths to URLs that can be accessed
-    if (req.files) {
-      // Process image files
-      if (req.files.image && Array.isArray(req.files.image)) {
-        for (const file of req.files.image) {
-          // For local storage, path is the file path
-          const filename = file.filename || path.basename(file.path);
-          // Create a URL path (will be served statically by express.static)
-          file.url = `/uploads/${filename}`;
-          file.secure_url = file.url; // Use same for compatibility
-          file.path = file.path || path.join(uploadsDir, filename);
-          console.log(`📁 Local image saved: ${file.path} -> ${file.url}`);
+  try {
+    if (!isCloudinaryConfigured) {
+      console.log("⚠️ Cloudinary not configured, using local file paths");
+      // If Cloudinary is not configured, files are already saved to disk
+      // Convert file paths to URLs that can be accessed
+      if (req.files) {
+        // Process image files
+        if (req.files.image && Array.isArray(req.files.image)) {
+          for (const file of req.files.image) {
+            // For local storage, path is the file path
+            const filename = file.filename || path.basename(file.path);
+            // Create a URL path (will be served statically by express.static)
+            file.url = `/uploads/${filename}`;
+            file.secure_url = file.url; // Use same for compatibility
+            file.path = file.path || path.join(uploadsDir, filename);
+            console.log(`📁 Local image saved: ${file.path} -> ${file.url}`);
+          }
+        }
+        
+        // Process document files
+        if (req.files.documents && Array.isArray(req.files.documents)) {
+          for (const file of req.files.documents) {
+            const filename = file.filename || path.basename(file.path);
+            file.url = `/uploads/${filename}`;
+            file.secure_url = file.url;
+            file.path = file.path || path.join(uploadsDir, filename);
+            console.log(`📁 Local document saved: ${file.path} -> ${file.url}`);
+          }
         }
       }
-      
-      // Process document files
-      if (req.files.documents && Array.isArray(req.files.documents)) {
-        for (const file of req.files.documents) {
-          const filename = file.filename || path.basename(file.path);
-          file.url = `/uploads/${filename}`;
-          file.secure_url = file.url;
-          file.path = file.path || path.join(uploadsDir, filename);
-          console.log(`📁 Local document saved: ${file.path} -> ${file.url}`);
-        }
-      }
+      return next();
     }
-    return next();
-  }
 
-  // Process files and upload to Cloudinary
-  if (req.files) {
+    // Process files and upload to Cloudinary
+    if (!req.files) {
+      console.log("⚠️ No files in request, skipping Cloudinary upload");
+      return next();
+    }
     const uploadPromises = [];
     
     // Process image files
     if (req.files.image && Array.isArray(req.files.image)) {
+      console.log(`📷 Processing ${req.files.image.length} image file(s) for Cloudinary upload`);
       for (const file of req.files.image) {
-        if (file.buffer) {
-          uploadPromises.push(
+        if (!file.buffer) {
+          console.warn(`⚠️ Image file missing buffer:`, { filename: file.originalname, fieldname: file.fieldname });
+          continue;
+        }
+        console.log(`📷 Uploading image to Cloudinary: ${file.originalname} (${file.buffer.length} bytes)`);
+        uploadPromises.push(
             new Promise((resolve, reject) => {
               const uploadStream = cloudinary.uploader.upload_stream(
                 {
@@ -143,9 +152,14 @@ export const uploadToCloudinary = async (req, res, next) => {
     
     // Process document files
     if (req.files.documents && Array.isArray(req.files.documents)) {
+      console.log(`📄 Processing ${req.files.documents.length} document file(s) for Cloudinary upload`);
       for (const file of req.files.documents) {
-        if (file.buffer) {
-          uploadPromises.push(
+        if (!file.buffer) {
+          console.warn(`⚠️ Document file missing buffer:`, { filename: file.originalname, fieldname: file.fieldname });
+          continue;
+        }
+        console.log(`📄 Uploading document to Cloudinary: ${file.originalname} (${file.buffer.length} bytes)`);
+        uploadPromises.push(
             new Promise((resolve, reject) => {
               const uploadStream = cloudinary.uploader.upload_stream(
                 {
@@ -175,17 +189,31 @@ export const uploadToCloudinary = async (req, res, next) => {
       }
     }
     
+    if (uploadPromises.length === 0) {
+      console.log("⚠️ No files to upload to Cloudinary (no buffers found)");
+      return next();
+    }
+
     try {
       await Promise.all(uploadPromises);
       console.log('✅ All files uploaded to Cloudinary successfully');
     } catch (error) {
       console.error('❌ Error uploading files to Cloudinary:', error);
+      console.error('❌ Error details:', error.stack);
       return res.status(500).json({
         success: false,
         message: 'Failed to upload files to Cloudinary',
-        error: error.message
+        error: error.message || 'Unknown error'
       });
     }
+  } catch (error) {
+    console.error('❌ Error in uploadToCloudinary middleware:', error);
+    console.error('❌ Error details:', error.stack);
+    return res.status(500).json({
+      success: false,
+      message: 'File processing error',
+      error: error.message || 'Unknown error'
+    });
   }
   
   next();
