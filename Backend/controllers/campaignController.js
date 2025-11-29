@@ -715,34 +715,6 @@ export const createCampaign = async (req, res) => {
     // Use MongoDB ObjectId directly (not string)
     const userId = mongoUser._id;
 
-    // Anti-spam: Check for rapid submissions from same user
-    const userRecentCampaigns = await Campaign.countDocuments({
-      owner: userId,
-      createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
-    });
-    
-    if (userRecentCampaigns >= 3) {
-      return res.status(429).json({
-        success: false,
-        message: "You have created too many campaigns recently. Please wait 24 hours before creating another campaign."
-      });
-    }
-
-    // Anti-spam: Check for duplicate submissions (same title and beneficiary name)
-    const duplicateCheck = await Campaign.findOne({
-      title: req.body.title?.trim(),
-      beneficiaryName: req.body.beneficiaryName?.trim(),
-      owner: userId,
-      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
-    });
-    
-    if (duplicateCheck) {
-      return res.status(400).json({
-        success: false,
-        message: "A similar campaign was created recently. Please check your dashboard or contact support."
-      });
-    }
-
     const {
       title,
       shortDescription,
@@ -750,7 +722,6 @@ export const createCampaign = async (req, res) => {
       goalAmount,
       category,
       beneficiaryName,
-      beneficiarySurname,
       city,
       relation,
       zakatEligible,
@@ -758,13 +729,7 @@ export const createCampaign = async (req, res) => {
       islamicAffirmation,
       educationQualification,
       employmentStatus,
-      duration,
-      phoneNumber,
-      alternateContact,
-      bankAccountName,
-      bankAccountNumber,
-      idProofType,
-      idProofNumber
+      duration
     } = req.body;
 
     // Validate required fields
@@ -775,12 +740,12 @@ export const createCampaign = async (req, res) => {
       });
     }
 
-    // Islamic validation: Require Islamic affirmation if Zakat eligible
+    // Zakat validation
     if (zakatEligible === "true" || zakatEligible === true) {
       if (!islamicAffirmation || islamicAffirmation === "false") {
         return res.status(400).json({
           success: false,
-          message: "Islamic affirmation is required for Zakat-eligible campaigns. Please confirm that all information is truthful according to Islamic principles."
+          message: "Islamic affirmation is required for Zakat-eligible campaigns."
         });
       }
       if (!zakatCategory) {
@@ -791,57 +756,28 @@ export const createCampaign = async (req, res) => {
       }
     }
 
-    // Enhanced validation: Minimum character requirements
-    if (title.trim().length < 15) {
-      return res.status(400).json({
-        success: false,
-        message: "Title must be at least 15 characters long. Please provide a more descriptive title."
-      });
-    }
-
-    if (shortDescription.trim().length < 30) {
-      return res.status(400).json({
-        success: false,
-        message: "Short description must be at least 30 characters. Please provide more details."
-      });
-    }
-
-    if (fullStory.trim().length < 100) {
-      return res.status(400).json({
-        success: false,
-        message: "Full story must be at least 100 characters. Please provide a comprehensive description of the situation."
-      });
-    }
-
     // Validate goal amount
     const goal = Number(goalAmount);
-    if (goal < 5000) {
+    if (goal < 2000) {
       return res.status(400).json({
         success: false,
-        message: "Minimum goal amount is ₹5,000. Please set a realistic fundraising goal."
+        message: "Minimum goal amount is ₹2,000."
       });
     }
-    if (goal > 50000000) {
+    if (goal > 10000000) {
       return res.status(400).json({
         success: false,
-        message: "Maximum goal amount is ₹5,00,00,000. For larger amounts, please contact support."
+        message: "Maximum goal amount is ₹1,00,00,000."
       });
     }
 
     // Validate duration
     const campaignDuration = duration ? Number(duration) : null;
-    if (campaignDuration && (campaignDuration < 14 || campaignDuration > 365)) {
+    if (campaignDuration && (campaignDuration < 7 || campaignDuration > 365)) {
       return res.status(400).json({
         success: false,
-        message: "Campaign duration must be between 14 and 365 days."
+        message: "Campaign duration must be between 7 and 365 days."
       });
-    }
-
-    // Islamic name validation (basic check for common Muslim names/patterns)
-    const muslimNamePattern = /^[A-Za-z\s\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+$/;
-    if (!muslimNamePattern.test(beneficiaryName.trim())) {
-      // Allow but log for admin review
-      console.log(`⚠️ Unusual name pattern detected: ${beneficiaryName}`);
     }
 
     // Set default category if missing
@@ -884,9 +820,6 @@ export const createCampaign = async (req, res) => {
       });
     }
 
-    // Get client IP for spam tracking
-    const clientIP = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
-
     // Ensure status is explicitly set and owner is ObjectId
     const campaignData = {
       title: title.trim(),
@@ -895,7 +828,6 @@ export const createCampaign = async (req, res) => {
       goalAmount: goal,
       category: finalCategory,
       beneficiaryName: beneficiaryName.trim(),
-      beneficiarySurname: beneficiarySurname?.trim() || "",
       city: city.trim(),
       relation: relation.trim(),
       zakatEligible: zakatEligible === "true" || zakatEligible === true,
@@ -904,14 +836,6 @@ export const createCampaign = async (req, res) => {
       educationQualification: educationQualification || "",
       employmentStatus: employmentStatus || "",
       duration: campaignDuration,
-      phoneNumber: phoneNumber?.trim() || "",
-      alternateContact: alternateContact?.trim() || "",
-      bankAccountName: bankAccountName?.trim() || "",
-      bankAccountNumber: bankAccountNumber?.trim() || "",
-      idProofType: idProofType || "",
-      idProofNumber: idProofNumber?.trim() || "",
-      submissionIP: clientIP,
-      submissionTime: new Date(),
       image,
       documents,
       owner: userId, // MongoDB ObjectId (not string)

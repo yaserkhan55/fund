@@ -11,33 +11,21 @@ const campaignSchema = new mongoose.Schema(
     category: { type: String, required: true },
 
     beneficiaryName: { type: String, required: true },
-    beneficiarySurname: { type: String, default: "" }, // Islamic surname/family name
     city: { type: String, required: true },
     relation: { type: String, required: true },
 
-    // Islamic fields
     zakatEligible: { type: Boolean, default: false },
     zakatCategory: { 
       type: String, 
       enum: ["", "poor", "needy", "debtors", "wayfarers", "slaves", "new_muslims", "cause_of_allah"],
       default: "" 
-    }, // Categories of Zakat recipients
-    islamicAffirmation: { type: Boolean, default: false }, // User confirms information is truthful (Islamic principle)
+    },
+    islamicAffirmation: { type: Boolean, default: false },
 
     // NEW FIELDS (User Input)
     educationQualification: { type: String, default: "" },
     employmentStatus: { type: String, default: "" },
     duration: { type: Number, default: null }, // days
-    
-    // Additional verification fields (anti-spam)
-    phoneNumber: { type: String, default: "" },
-    alternateContact: { type: String, default: "" },
-    bankAccountName: { type: String, default: "" }, // Account holder name for verification
-    bankAccountNumber: { type: String, default: "" }, // Last 4 digits for verification
-    idProofType: { type: String, enum: ["aadhar", "pan", "passport", "driving_license", "voter_id", ""], default: "" },
-    idProofNumber: { type: String, default: "" }, // Last 4 digits only for security
-    submissionIP: { type: String, default: "" }, // Track IP for spam prevention
-    submissionTime: { type: Date, default: Date.now }, // Track submission time
 
     // Cover image
     image: { type: String },
