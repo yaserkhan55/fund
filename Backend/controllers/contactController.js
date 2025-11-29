@@ -106,6 +106,26 @@ export const updateContactStatus = async (req, res) => {
       });
     }
 
+    // Try to find and update user info if contact has email but no userId/clerkId
+    if (contact.email && (!contact.userId || !contact.clerkId)) {
+      try {
+        const user = await User.findOne({ 
+          $or: [
+            { email: { $regex: new RegExp(`^${contact.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") } },
+            { email: contact.email.toLowerCase() }
+          ]
+        });
+        
+        if (user) {
+          contact.userId = user._id;
+          contact.clerkId = user.clerkId || contact.clerkId;
+          console.log(`[Contact Update] Updated contact ${contact._id} with user info: userId=${user._id}, clerkId=${user.clerkId}`);
+        }
+      } catch (err) {
+        console.error(`[Contact Update] Error finding user for contact:`, err);
+      }
+    }
+
     // Update status
     if (status) {
       contact.status = status;
@@ -114,6 +134,7 @@ export const updateContactStatus = async (req, res) => {
     // Add admin response to conversation thread
     if (message || adminResponse) {
       const responseMessage = message || adminResponse;
+      
       contact.conversation = contact.conversation || [];
       contact.conversation.push({
         sender: "admin",
@@ -124,6 +145,10 @@ export const updateContactStatus = async (req, res) => {
       contact.adminResponse = responseMessage;
       contact.respondedAt = new Date();
       contact.respondedBy = req.admin?.id || req.user?._id;
+      contact.lastNotificationAt = new Date();
+      contact.notificationSent = false;
+      
+      console.log(`[Contact Update] Admin reply added to contact ${id}. Email: ${contact.email}, userId: ${contact.userId}, clerkId: ${contact.clerkId}`);
     }
 
     // Update priority
@@ -206,6 +231,26 @@ export const addAdminReply = async (req, res) => {
       });
     }
 
+    // Try to find and update user info if contact has email but no userId/clerkId
+    if (contact.email && (!contact.userId || !contact.clerkId)) {
+      try {
+        const user = await User.findOne({ 
+          $or: [
+            { email: { $regex: new RegExp(`^${contact.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") } },
+            { email: contact.email.toLowerCase() }
+          ]
+        });
+        
+        if (user) {
+          contact.userId = user._id;
+          contact.clerkId = user.clerkId || contact.clerkId;
+          console.log(`[Contact Reply] Updated contact ${id} with user info: userId=${user._id}, clerkId=${user.clerkId}`);
+        }
+      } catch (err) {
+        console.error(`[Contact Reply] Error finding user for contact:`, err);
+      }
+    }
+
     contact.conversation = contact.conversation || [];
     contact.conversation.push({
       sender: "admin",
@@ -226,6 +271,8 @@ export const addAdminReply = async (req, res) => {
     contact.notificationSent = false; // Will be sent via notification system
 
     await contact.save();
+    
+    console.log(`[Contact Reply] Admin reply added to contact ${id}. Email: ${contact.email}, userId: ${contact.userId}, clerkId: ${contact.clerkId}`);
 
     const updated = await Contact.findById(id)
       .populate("respondedBy", "name email")

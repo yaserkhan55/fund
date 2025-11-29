@@ -554,12 +554,17 @@ export const getUserNotifications = async (req, res) => {
       // Add user matching conditions
       const userConditions = [];
       
-      // Match by email (case insensitive) - try both exact and regex
+      // Match by email (case insensitive) - multiple matching strategies
       if (mongoUser.email) {
         const emailLower = mongoUser.email.toLowerCase().trim();
+        const emailOriginal = mongoUser.email.trim();
+        
+        // Try exact match (case insensitive)
         userConditions.push({ email: { $regex: new RegExp(`^${emailLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") } });
-        // Also try exact match
+        // Try exact lowercase match
         userConditions.push({ email: emailLower });
+        // Try original case match
+        userConditions.push({ email: emailOriginal });
       }
       
       // Match by userId
@@ -608,10 +613,15 @@ export const getUserNotifications = async (req, res) => {
         }
 
         contactQueries.forEach((contact) => {
-          if (!contact.conversation || !Array.isArray(contact.conversation)) return;
+          if (!contact.conversation || !Array.isArray(contact.conversation)) {
+            console.log(`[Notifications] Contact ${contact._id} has no conversation array`);
+            return;
+          }
           
           // Get all admin messages from conversation
-          const adminMessages = contact.conversation.filter(msg => msg.sender === "admin");
+          const adminMessages = contact.conversation.filter(msg => msg && msg.sender === "admin");
+          
+          console.log(`[Notifications] Contact ${contact._id} has ${adminMessages.length} admin messages`);
           
           if (adminMessages.length > 0) {
             // Get the latest admin message
@@ -621,21 +631,26 @@ export const getUserNotifications = async (req, res) => {
               return dateB - dateA;
             })[0];
             
-            // Only show if it's recent (within last 30 days)
+            // Only show if it's recent (within last 30 days) and has a message
             const msgDate = new Date(latestAdminMsg.createdAt);
             const daysAgo = (Date.now() - msgDate.getTime()) / (1000 * 60 * 60 * 24);
             
-            if (daysAgo <= 30 && latestAdminMsg.message) {
+            console.log(`[Notifications] Latest admin message for contact ${contact._id}: daysAgo=${daysAgo.toFixed(1)}, hasMessage=${!!latestAdminMsg.message}`);
+            
+            if (daysAgo <= 30 && latestAdminMsg.message && latestAdminMsg.message.trim()) {
               const notificationId = `contact_${contact._id}_${latestAdminMsg.createdAt}`;
-              notifications.push({
+              const notification = {
                 id: notificationId,
                 type: "contact_reply",
                 contactId: contact._id.toString(),
-                message: latestAdminMsg.message,
+                message: latestAdminMsg.message.trim(),
                 createdAt: latestAdminMsg.createdAt,
                 viewed: false,
-              });
-              console.log(`[Notifications] Added contact notification: ${latestAdminMsg.message.substring(0, 50)}...`);
+              };
+              notifications.push(notification);
+              console.log(`[Notifications] ✅ Added contact notification: "${latestAdminMsg.message.substring(0, 50)}..." (ID: ${notificationId})`);
+            } else {
+              console.log(`[Notifications] ❌ Skipped contact notification: daysAgo=${daysAgo.toFixed(1)} (max 30), hasMessage=${!!latestAdminMsg.message}`);
             }
           }
         });
