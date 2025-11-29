@@ -30,6 +30,35 @@ const contactSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    // Enhanced: Conversation thread
+    conversation: [
+      {
+        sender: {
+          type: String,
+          enum: ["user", "admin"],
+          required: true,
+        },
+        message: {
+          type: String,
+          required: true,
+        },
+        attachments: [{ type: String }],
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+        sentBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high", "urgent"],
+      default: "medium",
+    },
+    tags: [{ type: String }],
   },
   {
     timestamps: true,

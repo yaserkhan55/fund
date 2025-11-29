@@ -551,6 +551,358 @@ export const resolveInfoRequest = async (req, res) => {
   }
 };
 
+// ✅ GET CAMPAIGN WITH USER RESPONSES TO INFO REQUESTS
+export const getCampaignWithResponses = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const campaign = await Campaign.findById(id)
+      .populate("owner", "name email clerkId")
+      .lean();
+
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        message: "Campaign not found",
+      });
+    }
+
+    // Get all info requests with their responses
+    const infoRequests = campaign.infoRequests || [];
+    const requestsWithResponses = infoRequests.map((req) => ({
+      ...req,
+      responses: req.responses || [],
+      hasNewResponse: req.responses?.some(
+        (resp) => !resp.adminViewed || resp.adminViewed === false
+      ),
+    }));
+
+    return res.json({
+      success: true,
+      campaign: {
+        ...campaign,
+        infoRequests: requestsWithResponses,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching campaign with responses:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch campaign details",
+    });
+  }
+};
+
+// ✅ ADMIN RESPOND TO USER'S SECOND ATTEMPT
+export const adminRespondToUserResponse = async (req, res) => {
+  try {
+    const { id, requestId, responseId } = req.params;
+    const { message, action } = req.body; // action: "approve", "request_more", "reject"
+
+    const campaign = await Campaign.findById(id);
+
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        message: "Campaign not found",
+      });
+    }
+
+    const infoRequest = campaign.infoRequests?.id(requestId);
+    if (!infoRequest) {
+      return res.status(404).json({
+        success: false,
+        message: "Info request not found",
+      });
+    }
+
+    const userResponse = infoRequest.responses?.id(responseId);
+    if (!userResponse) {
+      return res.status(404).json({
+        success: false,
+        message: "User response not found",
+      });
+    }
+
+    // Mark user response as viewed by admin
+    userResponse.adminViewed = true;
+    userResponse.adminViewedAt = new Date();
+
+    // Add admin's follow-up message/action
+    if (message || action) {
+      // Create a new info request for follow-up if needed
+      if (action === "request_more" && message) {
+        const followUpRequest = {
+          message: message,
+          createdAt: new Date(),
+          status: "pending",
+          requestedBy: req.admin?.id || "admin",
+          parentRequestId: requestId,
+          parentResponseId: responseId,
+        };
+        campaign.infoRequests.push(followUpRequest);
+        campaign.requiresMoreInfo = true;
+        campaign.lastInfoRequestAt = new Date();
+      } else if (action === "approve") {
+        // If admin approves the response, mark request as resolved
+        infoRequest.status = "resolved";
+        infoRequest.resolvedAt = new Date();
+        infoRequest.resolvedBy = req.admin?.id || "admin";
+        infoRequest.resolutionMessage = message || "Response approved. Proceeding with verification.";
+
+        // Check if all requests are resolved
+        const hasPending = campaign.infoRequests.some(
+          (reqItem) => reqItem.status !== "resolved" && reqItem._id.toString() !== requestId
+        );
+        if (!hasPending) {
+          campaign.requiresMoreInfo = false;
+          campaign.lastInfoRequestAt = null;
+        }
+      }
+    }
+
+    await campaign.save();
+
+    return res.json({
+      success: true,
+      message: "Response processed successfully",
+      campaign: campaign.toObject(),
+    });
+  } catch (error) {
+    console.error("Error processing user response:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to process user response",
+    });
+  }
+};
+
+// ✅ GET ALL CAMPAIGNS WITH PENDING USER RESPONSES
+export const getCampaignsWithPendingResponses = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Find campaigns with info requests that have unviewed responses
+    const campaigns = await Campaign.find({
+      "infoRequests.responses.adminViewed": { $ne: true },
+      deleted: { $ne: true },
+    })
+      .populate("owner", "name email")
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    // Filter and format campaigns with pending responses
+    const campaignsWithPending = campaigns
+      .map((campaign) => {
+        const pendingRequests = (campaign.infoRequests || []).filter((req) => {
+          const responses = req.responses || [];
+          return responses.some((resp) => !resp.adminViewed);
+        });
+
+        if (pendingRequests.length === 0) return null;
+
+        return {
+          ...campaign,
+          pendingRequests: pendingRequests.map((req) => ({
+            ...req,
+            unviewedResponses: (req.responses || []).filter(
+              (resp) => !resp.adminViewed
+            ),
+          })),
+        };
+      })
+      .filter((c) => c !== null);
+
+    const total = await Campaign.countDocuments({
+      "infoRequests.responses.adminViewed": { $ne: true },
+      deleted: { $ne: true },
+    });
+
+    return res.json({
+      success: true,
+      campaigns: campaignsWithPending,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching campaigns with pending responses:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch campaigns with pending responses",
+    });
+  }
+};
+
+// ✅ GET COMPREHENSIVE ACTIVITY LOG
+export const getActivityLog = async (req, res) => {
+  try {
+    const { page = 1, limit = 50, type, userId, campaignId } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const activities = [];
+
+    // Campaign activities
+    if (!type || type === "campaign") {
+      const campaignQuery = {};
+      if (campaignId) campaignQuery._id = campaignId;
+      if (userId) campaignQuery.owner = userId;
+
+      const campaigns = await Campaign.find(campaignQuery)
+        .populate("owner", "name email")
+        .sort({ updatedAt: -1 })
+        .skip(type === "campaign" ? skip : 0)
+        .limit(type === "campaign" ? parseInt(limit) : 10)
+        .lean();
+
+      campaigns.forEach((campaign) => {
+        // Campaign creation
+        activities.push({
+          type: "campaign_created",
+          timestamp: campaign.createdAt,
+          user: campaign.owner,
+          campaign: {
+            id: campaign._id,
+            title: campaign.title,
+          },
+          details: `Campaign "${campaign.title}" was created`,
+        });
+
+        // Admin actions
+        if (campaign.adminActions) {
+          campaign.adminActions.forEach((action) => {
+            activities.push({
+              type: `campaign_${action.action}`,
+              timestamp: action.createdAt,
+              user: campaign.owner,
+              campaign: {
+                id: campaign._id,
+                title: campaign.title,
+              },
+              details: action.message || `Campaign ${action.action}`,
+              adminAction: action,
+            });
+          });
+        }
+
+        // Info requests
+        if (campaign.infoRequests) {
+          campaign.infoRequests.forEach((req) => {
+            activities.push({
+              type: "info_request_sent",
+              timestamp: req.createdAt,
+              user: campaign.owner,
+              campaign: {
+                id: campaign._id,
+                title: campaign.title,
+              },
+              details: `Info request sent: ${req.message}`,
+            });
+
+            // User responses
+            if (req.responses) {
+              req.responses.forEach((resp) => {
+                activities.push({
+                  type: "user_response",
+                  timestamp: resp.uploadedAt,
+                  user: campaign.owner,
+                  campaign: {
+                    id: campaign._id,
+                    title: campaign.title,
+                  },
+                  details: `User responded to info request`,
+                  response: resp,
+                });
+              });
+            }
+          });
+        }
+      });
+    }
+
+    // User activities
+    if (!type || type === "user") {
+      const userQuery = {};
+      if (userId) userQuery._id = userId;
+
+      const users = await User.find(userQuery)
+        .sort({ createdAt: -1 })
+        .skip(type === "user" ? skip : 0)
+        .limit(type === "user" ? parseInt(limit) : 10)
+        .lean();
+
+      users.forEach((user) => {
+        activities.push({
+          type: "user_registered",
+          timestamp: user.createdAt,
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+          },
+          details: `User ${user.name} registered`,
+        });
+      });
+    }
+
+    // Donation activities
+    if (!type || type === "donation") {
+      const donationQuery = {};
+      if (campaignId) donationQuery.campaignId = campaignId;
+
+      const donations = await Donation.find(donationQuery)
+        .populate("campaignId", "title")
+        .sort({ createdAt: -1 })
+        .skip(type === "donation" ? skip : 0)
+        .limit(type === "donation" ? parseInt(limit) : 10)
+        .lean();
+
+      donations.forEach((donation) => {
+        activities.push({
+          type: "donation_made",
+          timestamp: donation.createdAt,
+          campaign: {
+            id: donation.campaignId?._id,
+            title: donation.campaignId?.title,
+          },
+          details: `Donation of ₹${donation.amount} made`,
+          donation: donation,
+        });
+      });
+    }
+
+    // Sort all activities by timestamp
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    // Apply pagination
+    const paginatedActivities = activities.slice(skip, skip + parseInt(limit));
+    const total = activities.length;
+
+    return res.json({
+      success: true,
+      activities: paginatedActivities,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching activity log:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch activity log",
+    });
+  }
+};
+
 /* ---------------------------------------------------
    DASHBOARD STATISTICS
 ---------------------------------------------------- */

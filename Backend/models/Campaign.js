@@ -87,8 +87,19 @@ const campaignSchema = new mongoose.Schema(
             uploadedAt: { type: Date, default: Date.now },
             uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
             uploadedByName: { type: String, default: "" },
+            adminViewed: { type: Boolean, default: false },
+            adminViewedAt: { type: Date, default: null },
+            adminFollowUp: {
+              message: { type: String, default: "" },
+              action: { type: String, enum: ["approve", "request_more", "reject", ""], default: "" },
+              createdAt: { type: Date, default: null },
+              createdBy: { type: String, default: "" },
+            },
           },
         ],
+        parentRequestId: { type: String, default: null }, // For follow-up requests
+        parentResponseId: { type: String, default: null }, // Link to parent response
+        resolutionMessage: { type: String, default: "" }, // Admin's resolution message
       },
     ],
     // Admin actions notifications (approve/reject/delete)

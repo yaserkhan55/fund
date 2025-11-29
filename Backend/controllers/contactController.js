@@ -76,18 +76,74 @@ export const getContacts = async (req, res) => {
 export const updateContactStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, adminResponse } = req.body;
+    const { status, adminResponse, message, priority, tags } = req.body;
 
-    const updateData = { status };
-    if (adminResponse) {
-      updateData.adminResponse = adminResponse;
-      updateData.respondedAt = new Date();
-      updateData.respondedBy = req.user._id;
+    const contact = await Contact.findById(id);
+    if (!contact) {
+      return res.status(404).json({
+        success: false,
+        message: "Contact not found",
+      });
     }
 
-    const contact = await Contact.findByIdAndUpdate(id, updateData, {
-      new: true,
-    }).populate("respondedBy", "name email");
+    // Update status
+    if (status) {
+      contact.status = status;
+    }
+
+    // Add admin response to conversation thread
+    if (message || adminResponse) {
+      const responseMessage = message || adminResponse;
+      contact.conversation = contact.conversation || [];
+      contact.conversation.push({
+        sender: "admin",
+        message: responseMessage,
+        createdAt: new Date(),
+        sentBy: req.admin?.id || req.user?._id,
+      });
+      contact.adminResponse = responseMessage;
+      contact.respondedAt = new Date();
+      contact.respondedBy = req.admin?.id || req.user?._id;
+    }
+
+    // Update priority
+    if (priority) {
+      contact.priority = priority;
+    }
+
+    // Update tags
+    if (tags && Array.isArray(tags)) {
+      contact.tags = tags;
+    }
+
+    await contact.save();
+
+    const updated = await Contact.findById(id)
+      .populate("respondedBy", "name email")
+      .populate("conversation.sentBy", "name email");
+
+    res.json({
+      success: true,
+      message: "Contact updated successfully",
+      contact: updated,
+    });
+  } catch (error) {
+    console.error("Error updating contact:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update contact",
+    });
+  }
+};
+
+// Get single contact with full conversation
+export const getContactById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const contact = await Contact.findById(id)
+      .populate("respondedBy", "name email")
+      .populate("conversation.sentBy", "name email");
 
     if (!contact) {
       return res.status(404).json({
@@ -98,14 +154,71 @@ export const updateContactStatus = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Contact updated successfully",
       contact,
     });
   } catch (error) {
-    console.error("Error updating contact:", error);
+    console.error("Error fetching contact:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to update contact",
+      message: error.message || "Failed to fetch contact",
+    });
+  }
+};
+
+// Add admin reply to conversation
+export const addAdminReply = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message, attachments } = req.body;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Message is required",
+      });
+    }
+
+    const contact = await Contact.findById(id);
+    if (!contact) {
+      return res.status(404).json({
+        success: false,
+        message: "Contact not found",
+      });
+    }
+
+    contact.conversation = contact.conversation || [];
+    contact.conversation.push({
+      sender: "admin",
+      message: message.trim(),
+      attachments: attachments || [],
+      createdAt: new Date(),
+      sentBy: req.admin?.id || req.user?._id,
+    });
+
+    // Update status if it was pending
+    if (contact.status === "pending") {
+      contact.status = "resolved";
+    }
+
+    contact.respondedAt = new Date();
+    contact.respondedBy = req.admin?.id || req.user?._id;
+
+    await contact.save();
+
+    const updated = await Contact.findById(id)
+      .populate("respondedBy", "name email")
+      .populate("conversation.sentBy", "name email");
+
+    res.json({
+      success: true,
+      message: "Reply added successfully",
+      contact: updated,
+    });
+  } catch (error) {
+    console.error("Error adding admin reply:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to add reply",
     });
   }
 };
