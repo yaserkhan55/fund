@@ -19,6 +19,30 @@ function NotificationAutoDismiss({ onDismiss }) {
   return null;
 }
 
+// Minimal sound effect for notification
+function playNotificationSound() {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800; // Pleasant tone
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Very quiet
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.1);
+  } catch (e) {
+    // Silently fail if audio context is not available
+    console.log("Audio not available");
+  }
+}
+
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 function Home() {
@@ -190,6 +214,8 @@ function Home() {
               console.log("[Home Notifications] ✅✅✅ SHOWING NOTIFICATION POPUP:", latest.type, latest.message);
               setLatestNotification(latest);
               setShowNotificationPopup(true);
+              // Play minimal sound effect
+              playNotificationSound();
               // Mark as shown
               shownNotifications.push(notificationKey);
               // Keep only last 50 shown notifications
@@ -341,39 +367,68 @@ function Home() {
 
       {/* Small Notification Popup - Latest notification */}
       {showNotificationPopup && latestNotification && (
-        <div className="fixed inset-0 flex items-center justify-center z-[9999] px-4" style={{ zIndex: 9999 }}>
-          <div className="bg-white rounded-xl shadow-2xl border border-[#E0F2F2] p-4 flex items-start gap-3 max-w-sm w-full animate-in fade-in zoom-in">
-            <div className="flex-shrink-0 w-10 h-10 bg-[#00B5B8]/10 rounded-full flex items-center justify-center">
-              <span className="text-[#00B5B8] text-lg">
-                {latestNotification.type === "contact_reply" ? "💬" :
-                 latestNotification.type === "info_request" ? "📋" :
-                 latestNotification.type === "admin_action" ? "✅" : "🔔"}
-              </span>
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] px-4 bg-black/40 backdrop-blur-sm" style={{ zIndex: 9999 }}>
+          <div className="bg-gradient-to-br from-white to-[#E6F8F8] rounded-2xl shadow-2xl border-2 border-[#00B5B8]/30 p-6 max-w-lg w-full transform transition-all duration-300 animate-in fade-in zoom-in">
+            {/* Header with icon and close button */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-[#00B5B8] to-[#009EA1] rounded-full flex items-center justify-center shadow-lg">
+                  <span className="text-white text-2xl">
+                    {latestNotification.type === "contact_reply" ? "💬" :
+                     latestNotification.type === "info_request" ? "📋" :
+                     latestNotification.type === "admin_action" ? "✅" : "🔔"}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[#00B5B8] uppercase tracking-wider mb-1">
+                    {latestNotification.type === "contact_reply" ? "Admin Reply" :
+                     latestNotification.type === "info_request" ? "Info Request" :
+                     "Notification"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(latestNotification.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowNotificationPopup(false);
+                  setLatestNotification(null);
+                }}
+                className="flex-shrink-0 text-gray-400 hover:text-[#00B5B8] hover:bg-[#00B5B8]/10 rounded-full p-1.5 transition-all duration-200 text-xl font-light"
+                aria-label="Close"
+              >
+                ×
+              </button>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-[#00B5B8] uppercase tracking-wide mb-1">
-                {latestNotification.type === "contact_reply" ? "Admin Reply" :
-                 latestNotification.type === "info_request" ? "Info Request" :
-                 "Notification"}
-              </p>
-              <p className="text-sm font-semibold text-[#003d3b] line-clamp-2">
+
+            {/* Message content */}
+            <div className="bg-white/60 rounded-xl p-4 border border-[#E0F2F2]">
+              <p className="text-base font-semibold text-[#003d3b] leading-relaxed">
                 {latestNotification.message}
               </p>
               {latestNotification.campaignTitle && (
-                <p className="text-xs text-gray-500 mt-1 truncate">
-                  {latestNotification.campaignTitle}
-                </p>
+                <div className="mt-3 pt-3 border-t border-[#E0F2F2]">
+                  <p className="text-xs text-gray-500 mb-1">Campaign:</p>
+                  <p className="text-sm font-medium text-[#00B5B8]">
+                    {latestNotification.campaignTitle}
+                  </p>
+                </div>
               )}
             </div>
-            <button
-              onClick={() => {
-                setShowNotificationPopup(false);
-                setLatestNotification(null);
-              }}
-              className="flex-shrink-0 text-gray-400 hover:text-gray-600 text-lg"
-            >
-              ×
-            </button>
+
+            {/* Footer with action button */}
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowNotificationPopup(false);
+                  setLatestNotification(null);
+                }}
+                className="px-6 py-2.5 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white font-semibold rounded-xl hover:from-[#009EA1] hover:to-[#008B8E] transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+              >
+                Got it
+              </button>
+            </div>
           </div>
         </div>
       )}
