@@ -14,6 +14,7 @@ import CreateCampaign from "./pages/CreateCampaign";
 import EditCampaign from "./pages/EditCampaign";
 import CampaignDetails from "./pages/CampaignDetails";
 import CategoryPage from "./pages/CategoryPage";   // ✅ ADDED
+import BrowseFundraisers from "./pages/BrowseFundraisers";   // ✅ ADDED
 import CreatorDashboard from "./pages/CreatorDashboard";
 
 // Admin
@@ -85,6 +86,16 @@ export default function App() {
               afterSignUpUrl="/"
               redirectUrl="/"
             />
+          </Layout>
+        }
+      />
+
+      {/* BROWSE FUNDRAISERS — ✅ ADDED */}
+      <Route
+        path="/browse"
+        element={
+          <Layout>
+            <BrowseFundraisers />
           </Layout>
         }
       />
