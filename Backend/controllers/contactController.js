@@ -252,13 +252,14 @@ export const addAdminReply = async (req, res) => {
     }
 
     contact.conversation = contact.conversation || [];
-    contact.conversation.push({
+    const newMessage = {
       sender: "admin",
       message: message.trim(),
       attachments: attachments || [],
       createdAt: new Date(),
       sentBy: req.admin?.id || req.user?._id,
-    });
+    };
+    contact.conversation.push(newMessage);
 
     // Update status if it was pending
     if (contact.status === "pending") {
@@ -272,7 +273,13 @@ export const addAdminReply = async (req, res) => {
 
     await contact.save();
     
-    console.log(`[Contact Reply] Admin reply added to contact ${id}. Email: ${contact.email}, userId: ${contact.userId}, clerkId: ${contact.clerkId}`);
+    console.log(`[Contact Reply] ✅ Admin reply added to contact ${id}`);
+    console.log(`[Contact Reply] Contact email: ${contact.email}`);
+    console.log(`[Contact Reply] Contact userId: ${contact.userId}`);
+    console.log(`[Contact Reply] Contact clerkId: ${contact.clerkId}`);
+    console.log(`[Contact Reply] Message: "${message.trim().substring(0, 50)}..."`);
+    console.log(`[Contact Reply] Conversation length: ${contact.conversation.length}`);
+    console.log(`[Contact Reply] Admin messages: ${contact.conversation.filter(m => m.sender === "admin").length}`);
 
     const updated = await Contact.findById(id)
       .populate("respondedBy", "name email")
