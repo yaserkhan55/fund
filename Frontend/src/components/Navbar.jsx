@@ -227,23 +227,25 @@ export default function Navbar() {
                     <div className="p-4 text-center text-gray-500">No notifications</div>
                   ) : (
                     <div className="divide-y divide-gray-100">
-                      {notifications.map((notif) => (
-                        <Link
-                          key={notif.id}
-                          to={`/campaign/${notif.campaignId}`}
-                          onClick={() => setNotificationsOpen(false)}
-                          className={`block p-4 hover:bg-gray-50 transition-colors ${
+                      {notifications.map((notif) => {
+                        const NotificationContent = (
+                          <div className={`flex items-start gap-3 ${
                             !notif.viewed ? "bg-blue-50" : ""
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
+                          }`}>
                             <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
                               !notif.viewed ? "bg-[#00B5B8]" : "bg-gray-300"
                             }`}></div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-[#003d3b] line-clamp-1">
-                                {notif.campaignTitle}
+                              <p className="text-xs font-semibold text-[#00B5B8] uppercase tracking-wide mb-1">
+                                {notif.type === "contact_reply" ? "Admin Reply" :
+                                 notif.type === "info_request" ? "Info Request" :
+                                 notif.type === "admin_action" ? "Campaign Update" : "Notification"}
                               </p>
+                              {notif.campaignTitle && (
+                                <p className="text-sm font-semibold text-[#003d3b] line-clamp-1">
+                                  {notif.campaignTitle}
+                                </p>
+                              )}
                               <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                                 {notif.message}
                               </p>
@@ -252,8 +254,33 @@ export default function Navbar() {
                               </p>
                             </div>
                           </div>
-                        </Link>
-                      ))}
+                        );
+
+                        if (notif.type === "contact_reply") {
+                          return (
+                            <div
+                              key={notif.id}
+                              onClick={() => setNotificationsOpen(false)}
+                              className="block p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                            >
+                              {NotificationContent}
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <Link
+                            key={notif.id}
+                            to={notif.campaignId ? `/campaign/${notif.campaignId}` : "#"}
+                            onClick={() => setNotificationsOpen(false)}
+                            className={`block p-4 hover:bg-gray-50 transition-colors ${
+                              !notif.viewed ? "bg-blue-50" : ""
+                            }`}
+                          >
+                            {NotificationContent}
+                          </Link>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

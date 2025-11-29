@@ -8,6 +8,17 @@ import TrendingFundraisers from "../components/TrendingFundraisers";
 import SuccessStories from "../components/SuccessStories";
 import FAQ from "../components/FAQ";
 
+// Auto-dismiss component for notifications
+function NotificationAutoDismiss({ onDismiss }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onDismiss();
+    }, 5000); // Auto-dismiss after 5 seconds
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+  return null;
+}
+
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 function Home() {
@@ -18,6 +29,8 @@ function Home() {
   const [activeRequest, setActiveRequest] = useState(null);
   const [showActionPopup, setShowActionPopup] = useState(false);
   const [activeAction, setActiveAction] = useState(null);
+  const [showNotificationPopup, setShowNotificationPopup] = useState(false);
+  const [latestNotification, setLatestNotification] = useState(null);
 
   // Fetch user's campaigns to check for admin requests
   useEffect(() => {
@@ -111,35 +124,98 @@ function Home() {
     return actions;
   }, [myCampaigns]);
 
-  // Auto-show popup when admin requests are found (every time user visits)
+  // Fetch latest notification from API
   useEffect(() => {
-    if (!loading && adminRequests.length > 0 && isSignedIn) {
-      // Always show the most recent pending request
+    if (!isSignedIn) return;
+
+    const fetchLatestNotification = async () => {
+      try {
+        let token = null;
+        try {
+          token = await getToken();
+        } catch (e) {
+          token = localStorage.getItem("token");
+        }
+        
+        if (!token) return;
+
+        const res = await axios.get(`${API_URL}/api/campaigns/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const notifications = res.data?.notifications || [];
+        if (notifications.length > 0) {
+          const latest = notifications[0]; // Already sorted by newest first
+          
+          // Check if this notification has been shown before
+          const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
+          const notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
+          
+          if (!shownNotifications.includes(notificationKey)) {
+            setLatestNotification(latest);
+            setShowNotificationPopup(true);
+            // Mark as shown
+            shownNotifications.push(notificationKey);
+            // Keep only last 50 shown notifications
+            if (shownNotifications.length > 50) {
+              shownNotifications.shift();
+            }
+            localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching notifications:", err);
+      }
+    };
+
+    fetchLatestNotification();
+  }, [isSignedIn, getToken]);
+
+  // Auto-show popup when admin requests are found (only if not already shown)
+  useEffect(() => {
+    if (!loading && adminRequests.length > 0 && isSignedIn && !showNotificationPopup) {
       const mostRecent = adminRequests.sort((a, b) => {
         const dateA = new Date(a.createdAt || 0);
         const dateB = new Date(b.createdAt || 0);
         return dateB - dateA;
       })[0];
       
-      setActiveRequest(mostRecent);
-      setShowRequestPopup(true);
+      // Check if this request has been shown
+      const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
+      const requestKey = `info_request_${mostRecent._id || mostRecent.id}_${mostRecent.createdAt}`;
+      
+      if (!shownNotifications.includes(requestKey)) {
+        setActiveRequest(mostRecent);
+        setShowRequestPopup(true);
+        shownNotifications.push(requestKey);
+        if (shownNotifications.length > 50) shownNotifications.shift();
+        localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
+      }
     }
-  }, [loading, adminRequests, isSignedIn]);
+  }, [loading, adminRequests, isSignedIn, showNotificationPopup]);
 
-  // Auto-show popup when admin actions are found (approve/reject/delete)
+  // Auto-show popup when admin actions are found (only if not already shown)
   useEffect(() => {
-    if (!loading && adminActions.length > 0 && isSignedIn) {
-      // Always show the most recent action
+    if (!loading && adminActions.length > 0 && isSignedIn && !showNotificationPopup && !showRequestPopup) {
       const mostRecent = adminActions.sort((a, b) => {
         const dateA = new Date(a.createdAt || 0);
         const dateB = new Date(b.createdAt || 0);
         return dateB - dateA;
       })[0];
       
-      setActiveAction(mostRecent);
-      setShowActionPopup(true);
+      // Check if this action has been shown
+      const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
+      const actionKey = `admin_action_${mostRecent._id || mostRecent.id}_${mostRecent.createdAt}`;
+      
+      if (!shownNotifications.includes(actionKey)) {
+        setActiveAction(mostRecent);
+        setShowActionPopup(true);
+        shownNotifications.push(actionKey);
+        if (shownNotifications.length > 50) shownNotifications.shift();
+        localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
+      }
     }
-  }, [loading, adminActions, isSignedIn]);
+  }, [loading, adminActions, isSignedIn, showNotificationPopup, showRequestPopup]);
 
   const formatRequestTime = (date) => {
     if (!date) return "Just now";
@@ -211,6 +287,55 @@ function Home() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Small Notification Popup - Latest notification */}
+      {showNotificationPopup && latestNotification && (
+        <div className="fixed top-20 right-4 z-50 max-w-sm animate-in slide-in-from-right">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#E0F2F2] p-4 flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 bg-[#00B5B8]/10 rounded-full flex items-center justify-center">
+              <span className="text-[#00B5B8] text-lg">
+                {latestNotification.type === "contact_reply" ? "💬" :
+                 latestNotification.type === "info_request" ? "📋" :
+                 latestNotification.type === "admin_action" ? "✅" : "🔔"}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-[#00B5B8] uppercase tracking-wide mb-1">
+                {latestNotification.type === "contact_reply" ? "Admin Reply" :
+                 latestNotification.type === "info_request" ? "Info Request" :
+                 "Notification"}
+              </p>
+              <p className="text-sm font-semibold text-[#003d3b] line-clamp-2">
+                {latestNotification.message}
+              </p>
+              {latestNotification.campaignTitle && (
+                <p className="text-xs text-gray-500 mt-1 truncate">
+                  {latestNotification.campaignTitle}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                setShowNotificationPopup(false);
+                setLatestNotification(null);
+              }}
+              className="flex-shrink-0 text-gray-400 hover:text-gray-600 text-lg"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-dismiss notification after 5 seconds */}
+      {showNotificationPopup && latestNotification && (
+        <NotificationAutoDismiss
+          onDismiss={() => {
+            setShowNotificationPopup(false);
+            setLatestNotification(null);
+          }}
+        />
       )}
 
       {/* Admin Action Popup - Shows approve/reject/delete notifications */}
