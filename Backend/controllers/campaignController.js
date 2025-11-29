@@ -564,9 +564,11 @@ export const getUserNotifications = async (req, res) => {
       // Filter contacts that belong to this user
       const userEmail = mongoUser.email?.toLowerCase().trim();
       const userContacts = allContactsWithReplies.filter(contact => {
-        // Match by email (case insensitive)
+        // Match by email (case insensitive, trimmed)
         if (userEmail && contact.email) {
-          if (contact.email.toLowerCase().trim() === userEmail) {
+          const contactEmail = (contact.email || "").toLowerCase().trim();
+          if (contactEmail === userEmail) {
+            console.log(`[Notifications] ✅ Matched contact ${contact._id} by email: ${contactEmail} === ${userEmail}`);
             return true;
           }
         }
@@ -574,6 +576,7 @@ export const getUserNotifications = async (req, res) => {
         // Match by userId
         if (mongoUser._id && contact.userId) {
           if (contact.userId.toString() === mongoUser._id.toString()) {
+            console.log(`[Notifications] ✅ Matched contact ${contact._id} by userId`);
             return true;
           }
         }
@@ -581,6 +584,7 @@ export const getUserNotifications = async (req, res) => {
         // Match by clerkId
         if (clerkUserId && contact.clerkId) {
           if (contact.clerkId === clerkUserId) {
+            console.log(`[Notifications] ✅ Matched contact ${contact._id} by clerkId`);
             return true;
           }
         }

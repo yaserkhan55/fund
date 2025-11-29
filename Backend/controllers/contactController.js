@@ -12,6 +12,23 @@ export const createContact = async (req, res) => {
       });
     }
 
+    // Email is now required
+    if (!email || !email.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required to receive notifications",
+      });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address",
+      });
+    }
+
     // Try to get user info if authenticated
     let userId = null;
     let clerkId = null;
@@ -29,13 +46,30 @@ export const createContact = async (req, res) => {
       }
     }
 
+    // Also try to find user by email if not found by clerkId
+    if (!userId && email) {
+      try {
+        const userByEmail = await User.findOne({ 
+          email: { $regex: new RegExp(`^${email.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") }
+        });
+        if (userByEmail) {
+          userId = userByEmail._id;
+          clerkId = userByEmail.clerkId || clerkId;
+        }
+      } catch (err) {
+        console.log("Could not find user by email:", err.message);
+      }
+    }
+
     const contact = await Contact.create({
       name,
-      email: email || "",
+      email: email.trim().toLowerCase(), // Store email in lowercase for consistent matching
       query,
       userId: userId,
       clerkId: clerkId,
     });
+
+    console.log(`[Contact Created] Contact ${contact._id} created with email: ${contact.email}, userId: ${userId}, clerkId: ${clerkId}`);
 
     res.status(201).json({
       success: true,
@@ -234,22 +268,27 @@ export const addAdminReply = async (req, res) => {
     // Try to find and update user info if contact has email but no userId/clerkId
     if (contact.email && (!contact.userId || !contact.clerkId)) {
       try {
+        const contactEmail = contact.email.toLowerCase().trim();
         const user = await User.findOne({ 
           $or: [
-            { email: { $regex: new RegExp(`^${contact.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") } },
-            { email: contact.email.toLowerCase() }
+            { email: { $regex: new RegExp(`^${contactEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") } },
+            { email: contactEmail }
           ]
         });
         
         if (user) {
           contact.userId = user._id;
           contact.clerkId = user.clerkId || contact.clerkId;
-          console.log(`[Contact Reply] Updated contact ${id} with user info: userId=${user._id}, clerkId=${user.clerkId}`);
+          console.log(`[Contact Reply] ✅ Updated contact ${id} with user info: userId=${user._id}, clerkId=${user.clerkId}, email=${contactEmail}`);
+        } else {
+          console.log(`[Contact Reply] ⚠️ No user found for contact email: ${contactEmail}`);
         }
       } catch (err) {
         console.error(`[Contact Reply] Error finding user for contact:`, err);
       }
     }
+    
+    console.log(`[Contact Reply] Contact before save - email: ${contact.email}, userId: ${contact.userId}, clerkId: ${contact.clerkId}`);
 
     contact.conversation = contact.conversation || [];
     const newMessage = {
