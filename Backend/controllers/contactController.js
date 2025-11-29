@@ -1,4 +1,5 @@
 import Contact from "../models/Contact.js";
+import User from "../models/User.js";
 
 export const createContact = async (req, res) => {
   try {
@@ -202,6 +203,8 @@ export const addAdminReply = async (req, res) => {
 
     contact.respondedAt = new Date();
     contact.respondedBy = req.admin?.id || req.user?._id;
+    contact.lastNotificationAt = new Date();
+    contact.notificationSent = false; // Will be sent via notification system
 
     await contact.save();
 

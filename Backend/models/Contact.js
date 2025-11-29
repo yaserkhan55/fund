@@ -10,6 +10,15 @@ const contactSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    clerkId: {
+      type: String,
+      default: null,
+    },
     query: {
       type: String,
       required: [true, "Query is required"],
@@ -59,6 +68,14 @@ const contactSchema = new mongoose.Schema(
       default: "medium",
     },
     tags: [{ type: String }],
+    notificationSent: {
+      type: Boolean,
+      default: false,
+    },
+    lastNotificationAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

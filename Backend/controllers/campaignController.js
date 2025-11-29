@@ -542,6 +542,44 @@ export const getUserNotifications = async (req, res) => {
       }
     });
 
+    // Contact query notifications (admin replies)
+    const Contact = (await import("../models/Contact.js")).default;
+    const contactQueries = await Contact.find({
+      $or: [
+        { email: mongoUser.email },
+        { userId: mongoUser._id },
+        { clerkId: clerkUserId }
+      ],
+      "conversation.sender": "admin",
+      "conversation.createdAt": {
+        $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
+      }
+    })
+    .sort({ "conversation.createdAt": -1 })
+    .lean();
+
+    contactQueries.forEach((contact) => {
+      // Get the latest admin message
+      const adminMessages = (contact.conversation || []).filter(msg => msg.sender === "admin");
+      if (adminMessages.length > 0) {
+        const latestAdminMsg = adminMessages[adminMessages.length - 1];
+        // Only show if it's recent (within last 7 days) and not already shown
+        const msgDate = new Date(latestAdminMsg.createdAt);
+        const daysAgo = (Date.now() - msgDate.getTime()) / (1000 * 60 * 60 * 24);
+        
+        if (daysAgo <= 7) {
+          notifications.push({
+            id: `contact_${contact._id}_${latestAdminMsg.createdAt}`,
+            type: "contact_reply",
+            contactId: contact._id.toString(),
+            message: latestAdminMsg.message || "Admin replied to your query",
+            createdAt: latestAdminMsg.createdAt,
+            viewed: false,
+          });
+        }
+      }
+    });
+
     // Sort by date (newest first)
     notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
