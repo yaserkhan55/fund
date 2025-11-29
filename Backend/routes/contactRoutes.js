@@ -7,11 +7,12 @@ import {
   addAdminReply
 } from "../controllers/contactController.js";
 import { adminAuth } from "../middlewares/adminAuth.js";
+import { clerkMiddleware } from "@clerk/express";
 
 const router = express.Router();
 
-// Public route - anyone can submit contact form
-router.post("/", createContact);
+// Public route - anyone can submit contact form (but we'll try to get user info if available)
+router.post("/", clerkMiddleware(), createContact);
 
 // Admin routes
 router.get("/", adminAuth, getContacts);

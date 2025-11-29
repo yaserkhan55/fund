@@ -12,10 +12,29 @@ export const createContact = async (req, res) => {
       });
     }
 
+    // Try to get user info if authenticated
+    let userId = null;
+    let clerkId = null;
+    
+    if (req.auth?.userId) {
+      clerkId = req.auth.userId;
+      // Try to find user by clerkId
+      try {
+        const user = await User.findOne({ clerkId: req.auth.userId });
+        if (user) {
+          userId = user._id;
+        }
+      } catch (err) {
+        console.log("Could not find user by clerkId:", err.message);
+      }
+    }
+
     const contact = await Contact.create({
       name,
       email: email || "",
       query,
+      userId: userId,
+      clerkId: clerkId,
     });
 
     res.status(201).json({

@@ -544,30 +544,36 @@ export const getUserNotifications = async (req, res) => {
 
     // Contact query notifications (admin replies)
     const Contact = (await import("../models/Contact.js")).default;
+    
+    // Find all contacts for this user (by email, userId, or clerkId)
     const contactQueries = await Contact.find({
       $or: [
         { email: mongoUser.email },
         { userId: mongoUser._id },
         { clerkId: clerkUserId }
       ],
-      "conversation.sender": "admin",
-      "conversation.createdAt": {
-        $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
-      }
+      conversation: { $exists: true, $ne: [] } // Has conversation
     })
-    .sort({ "conversation.createdAt": -1 })
+    .sort({ updatedAt: -1 })
     .lean();
 
     contactQueries.forEach((contact) => {
-      // Get the latest admin message
-      const adminMessages = (contact.conversation || []).filter(msg => msg.sender === "admin");
+      if (!contact.conversation || !Array.isArray(contact.conversation)) return;
+      
+      // Get all admin messages from conversation
+      const adminMessages = contact.conversation.filter(msg => msg.sender === "admin");
+      
       if (adminMessages.length > 0) {
-        const latestAdminMsg = adminMessages[adminMessages.length - 1];
-        // Only show if it's recent (within last 7 days) and not already shown
+        // Get the latest admin message
+        const latestAdminMsg = adminMessages.sort((a, b) => 
+          new Date(b.createdAt) - new Date(a.createdAt)
+        )[0];
+        
+        // Only show if it's recent (within last 30 days)
         const msgDate = new Date(latestAdminMsg.createdAt);
         const daysAgo = (Date.now() - msgDate.getTime()) / (1000 * 60 * 60 * 24);
         
-        if (daysAgo <= 7) {
+        if (daysAgo <= 30) {
           notifications.push({
             id: `contact_${contact._id}_${latestAdminMsg.createdAt}`,
             type: "contact_reply",
