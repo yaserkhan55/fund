@@ -341,8 +341,8 @@ function Home() {
 
       {/* Small Notification Popup - Latest notification */}
       {showNotificationPopup && latestNotification && (
-        <div className="fixed top-20 right-4 z-[9999] max-w-sm" style={{ zIndex: 9999 }}>
-          <div className="bg-white rounded-xl shadow-2xl border border-[#E0F2F2] p-4 flex items-start gap-3">
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] px-4" style={{ zIndex: 9999 }}>
+          <div className="bg-white rounded-xl shadow-2xl border border-[#E0F2F2] p-4 flex items-start gap-3 max-w-sm w-full animate-in fade-in zoom-in">
             <div className="flex-shrink-0 w-10 h-10 bg-[#00B5B8]/10 rounded-full flex items-center justify-center">
               <span className="text-[#00B5B8] text-lg">
                 {latestNotification.type === "contact_reply" ? "💬" :
