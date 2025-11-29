@@ -160,9 +160,44 @@ function Home() {
             
             // Check if this notification has been shown before
             const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
-            const notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
             
-            if (!shownNotifications.includes(notificationKey)) {
+            // For contact replies, use contactId + createdAt to allow new replies to show
+            // For other notifications, use the full key
+            let notificationKey;
+            if (latest.type === "contact_reply") {
+              // For contact replies, check if we've shown ANY notification for this contact
+              // This allows new admin replies to the same contact to show
+              const contactNotificationKeys = shownNotifications.filter(key => 
+                key.startsWith(`contact_reply_contact_${latest.contactId}_`)
+              );
+              
+              // If we have shown notifications for this contact, check if this one is newer
+              if (contactNotificationKeys.length > 0) {
+                // Extract timestamps from shown keys
+                const shownTimestamps = contactNotificationKeys.map(key => {
+                  const parts = key.split('_');
+                  return parts[parts.length - 1]; // Last part is timestamp
+                });
+                
+                const latestTimestamp = new Date(latest.createdAt).getTime();
+                const maxShownTimestamp = Math.max(...shownTimestamps.map(ts => new Date(ts).getTime()));
+                
+                // Only show if this notification is newer than what we've shown
+                if (latestTimestamp > maxShownTimestamp) {
+                  notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
+                } else {
+                  notificationKey = null; // Already shown a newer or same notification
+                }
+              } else {
+                // No previous notifications for this contact, show it
+                notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
+              }
+            } else {
+              // For other notification types, use the standard key
+              notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
+            }
+            
+            if (notificationKey && !shownNotifications.includes(notificationKey)) {
               console.log("Showing notification popup:", latest.type, latest.message);
               setLatestNotification(latest);
               setShowNotificationPopup(true);
@@ -173,6 +208,8 @@ function Home() {
                 shownNotifications.shift();
               }
               localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
+            } else if (notificationKey === null) {
+              console.log("Contact reply already shown (newer notification exists)");
             } else {
               console.log("Notification already shown:", notificationKey);
             }
@@ -308,7 +345,7 @@ function Home() {
 
       {/* Small Notification Popup - Latest notification */}
       {showNotificationPopup && latestNotification && (
-        <div className="fixed top-20 right-4 z-50 max-w-sm animate-in slide-in-from-right">
+        <div className="fixed top-20 right-4 z-[9999] max-w-sm" style={{ zIndex: 9999 }}>
           <div className="bg-white rounded-xl shadow-2xl border border-[#E0F2F2] p-4 flex items-start gap-3">
             <div className="flex-shrink-0 w-10 h-10 bg-[#00B5B8]/10 rounded-full flex items-center justify-center">
               <span className="text-[#00B5B8] text-lg">
