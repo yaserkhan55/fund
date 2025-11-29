@@ -148,7 +148,6 @@ export const uploadToCloudinary = async (req, res, next) => {
           );
         }
       }
-    }
     
     // Process document files
     if (req.files.documents && Array.isArray(req.files.documents)) {
@@ -187,7 +186,6 @@ export const uploadToCloudinary = async (req, res, next) => {
           );
         }
       }
-    }
     
     if (uploadPromises.length === 0) {
       console.log("⚠️ No files to upload to Cloudinary (no buffers found)");
