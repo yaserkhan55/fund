@@ -506,7 +506,6 @@ export default function CreateCampaign() {
                       Optional: Family name or tribal name (لقب)
                     </p>
                   </div>
-                </div>
 
                   <div>
                     <label className="block font-semibold text-[#003D3B] mb-2">
