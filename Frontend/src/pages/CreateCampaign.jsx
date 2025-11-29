@@ -13,12 +13,21 @@ export default function CreateCampaign() {
     goalAmount: "",
     category: "",
     beneficiaryName: "",
+    beneficiarySurname: "",
     city: "",
     relation: "",
     zakatEligible: false,
+    zakatCategory: "",
+    islamicAffirmation: false,
     educationQualification: "",
     employmentStatus: "",
     duration: "",
+    phoneNumber: "",
+    alternateContact: "",
+    bankAccountName: "",
+    bankAccountNumber: "",
+    idProofType: "",
+    idProofNumber: "",
   });
 
   const [image, setImage] = useState(null);
@@ -77,34 +86,57 @@ export default function CreateCampaign() {
   const validateForm = () => {
     const newErrors = {};
 
-    // Title validation
-    if (!formData.title || formData.title.trim().length < 10) {
-      newErrors.title = "Title must be at least 10 characters";
+    // Title validation (more strict)
+    if (!formData.title || formData.title.trim().length < 15) {
+      newErrors.title = "Title must be at least 15 characters. Please provide a more descriptive title.";
     }
 
-    // Description validation
-    if (!formData.shortDescription || formData.shortDescription.trim().length < 20) {
-      newErrors.shortDescription = "Short description must be at least 20 characters";
+    // Description validation (more strict)
+    if (!formData.shortDescription || formData.shortDescription.trim().length < 30) {
+      newErrors.shortDescription = "Short description must be at least 30 characters. Please provide more details.";
     }
 
-    // Full story validation
-    if (!formData.fullStory || formData.fullStory.trim().length < 50) {
-      newErrors.fullStory = "Full story must be at least 50 characters";
+    // Full story validation (more strict)
+    if (!formData.fullStory || formData.fullStory.trim().length < 100) {
+      newErrors.fullStory = "Full story must be at least 100 characters. Please provide a comprehensive description.";
     }
 
-    // Goal amount validation
+    // Goal amount validation (increased minimum)
     const goal = parseFloat(formData.goalAmount);
-    if (!goal || goal < 2000) {
-      newErrors.goalAmount = "Minimum goal amount is ₹2,000";
+    if (!goal || goal < 5000) {
+      newErrors.goalAmount = "Minimum goal amount is ₹5,000";
     }
-    if (goal > 10000000) {
-      newErrors.goalAmount = "Maximum goal amount is ₹1,00,00,000";
+    if (goal > 50000000) {
+      newErrors.goalAmount = "Maximum goal amount is ₹5,00,00,000";
     }
 
-    // Duration validation
+    // Beneficiary name validation
+    if (!formData.beneficiaryName || formData.beneficiaryName.trim().length < 2) {
+      newErrors.beneficiaryName = "Please enter the full name of the beneficiary";
+    }
+
+    // Phone number validation (if provided)
+    if (formData.phoneNumber && formData.phoneNumber.trim()) {
+      const phoneRegex = /^[6-9]\d{9}$/;
+      if (!phoneRegex.test(formData.phoneNumber.replace(/\D/g, ""))) {
+        newErrors.phoneNumber = "Please enter a valid 10-digit mobile number";
+      }
+    }
+
+    // Zakat validation
+    if (formData.zakatEligible) {
+      if (!formData.zakatCategory) {
+        newErrors.zakatCategory = "Please select a Zakat category";
+      }
+      if (!formData.islamicAffirmation) {
+        newErrors.islamicAffirmation = "Islamic affirmation is required for Zakat-eligible campaigns";
+      }
+    }
+
+    // Duration validation (increased minimum)
     const duration = parseInt(formData.duration);
-    if (!duration || duration < 7) {
-      newErrors.duration = "Minimum duration is 7 days";
+    if (!duration || duration < 14) {
+      newErrors.duration = "Minimum duration is 14 days";
     }
     if (duration > 365) {
       newErrors.duration = "Maximum duration is 365 days";
@@ -423,21 +455,58 @@ export default function CreateCampaign() {
                   </p>
                 </div>
 
-                {/* BENEFICIARY INFO */}
+                {/* BENEFICIARY INFO - Islamic Names */}
+                <div className="bg-gradient-to-r from-[#E6F5F3] to-[#F1FAFA] p-4 rounded-xl border border-[#00B5B8]/20 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <h3 className="font-bold text-[#003D3B]">Beneficiary Information (معلومات المستفيد)</h3>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Please provide the complete name as per Islamic naming conventions (اسم كامل)
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block font-semibold text-[#003D3B] mb-2">
-                      Beneficiary Name *
+                      Beneficiary First Name (الاسم الأول) *
                     </label>
                     <input
                       name="beneficiaryName"
                       value={formData.beneficiaryName}
                       onChange={handleChange}
-                      placeholder="Full name"
-                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                      placeholder="e.g., Muhammad, Fatima, Ahmed"
+                      className={`w-full p-3 border-2 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition ${
+                        errors.beneficiaryName ? "border-red-300" : "border-gray-200"
+                      }`}
                       required
                     />
+                    {errors.beneficiaryName && (
+                      <p className="text-red-500 text-sm mt-1">{errors.beneficiaryName}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter the first/given name (اسم)
+                    </p>
                   </div>
+
+                  <div>
+                    <label className="block font-semibold text-[#003D3B] mb-2">
+                      Beneficiary Surname/Family Name (اسم العائلة)
+                    </label>
+                    <input
+                      name="beneficiarySurname"
+                      value={formData.beneficiarySurname}
+                      onChange={handleChange}
+                      placeholder="e.g., Khan, Ali, Sheikh, Ansari"
+                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Optional: Family name or tribal name (لقب)
+                    </p>
+                  </div>
+                </div>
 
                   <div>
                     <label className="block font-semibold text-[#003D3B] mb-2">
@@ -539,22 +608,211 @@ export default function CreateCampaign() {
                     <p className="text-red-500 text-sm mt-1">{errors.duration}</p>
                   )}
                   <p className="text-xs text-gray-500 mt-1">
-                    Minimum 7 days, Maximum 365 days
+                    Minimum 14 days, Maximum 365 days (increased minimum to prevent hasty submissions)
                   </p>
                 </div>
 
-                {/* ZAKAT ELIGIBLE */}
-                <div className="flex items-center gap-3 p-4 bg-[#E6F5F3] rounded-xl border border-[#00B5B8]/20">
-                  <input
-                    type="checkbox"
-                    name="zakatEligible"
-                    checked={formData.zakatEligible}
-                    onChange={handleChange}
-                    className="w-5 h-5 text-[#00B5B8] rounded focus:ring-2 focus:ring-[#00B5B8]"
-                  />
-                  <label className="text-sm font-semibold text-[#003D3B]">
-                    This campaign is Zakat eligible
-                  </label>
+                {/* ZAKAT ELIGIBLE - Enhanced Islamic Section */}
+                <div className="bg-gradient-to-br from-[#E6F5F3] via-[#F0F9F8] to-[#E6F5F3] rounded-xl border-2 border-[#00B5B8]/30 p-6 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <svg className="w-6 h-6 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-[#003D3B] mb-1">
+                        Zakat Eligibility (أهلية الزكاة)
+                      </h3>
+                      <p className="text-sm text-gray-700 mb-4">
+                        Zakat (الزكاة) is one of the Five Pillars of Islam. If this campaign qualifies for Zakat according to Islamic principles, please mark it below.
+                      </p>
+                      
+                      <div className="flex items-start gap-3 mb-4">
+                        <input
+                          type="checkbox"
+                          name="zakatEligible"
+                          checked={formData.zakatEligible}
+                          onChange={handleChange}
+                          className="w-5 h-5 text-[#00B5B8] rounded focus:ring-2 focus:ring-[#00B5B8] mt-1"
+                        />
+                        <label className="text-sm font-semibold text-[#003D3B] flex-1">
+                          This campaign is eligible for Zakat (هذا الحملة مؤهلة للزكاة)
+                        </label>
+                      </div>
+
+                      {formData.zakatEligible && (
+                        <div className="space-y-4 mt-4 p-4 bg-white rounded-lg border border-[#00B5B8]/20">
+                          <div>
+                            <label className="block font-semibold text-[#003D3B] mb-2 text-sm">
+                              Zakat Category (فئة الزكاة) *
+                            </label>
+                            <select
+                              name="zakatCategory"
+                              value={formData.zakatCategory}
+                              onChange={handleChange}
+                              className={`w-full p-3 border-2 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition ${
+                                errors.zakatCategory ? "border-red-300" : "border-gray-200"
+                              }`}
+                              required={formData.zakatEligible}
+                            >
+                              <option value="">Select Zakat category</option>
+                              <option value="poor">Poor (الفقراء) - Those who have insufficient wealth</option>
+                              <option value="needy">Needy (المساكين) - Those in extreme need</option>
+                              <option value="debtors">Debtors (الغارمين) - Those in debt</option>
+                              <option value="wayfarers">Wayfarers (ابن السبيل) - Travelers in need</option>
+                              <option value="new_muslims">New Muslims (المؤلفة قلوبهم) - New converts</option>
+                              <option value="cause_of_allah">Cause of Allah (في سبيل الله) - For Islamic causes</option>
+                            </select>
+                            {errors.zakatCategory && (
+                              <p className="text-red-500 text-sm mt-1">{errors.zakatCategory}</p>
+                            )}
+                            <p className="text-xs text-gray-500 mt-1">
+                              Select the appropriate category according to Islamic jurisprudence (فقه)
+                            </p>
+                          </div>
+
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                            <div className="flex items-start gap-2">
+                              <input
+                                type="checkbox"
+                                name="islamicAffirmation"
+                                checked={formData.islamicAffirmation}
+                                onChange={handleChange}
+                                className={`w-5 h-5 text-[#00B5B8] rounded focus:ring-2 focus:ring-[#00B5B8] mt-0.5 ${
+                                  errors.islamicAffirmation ? "border-red-500" : ""
+                                }`}
+                                required={formData.zakatEligible}
+                              />
+                              <label className="text-sm font-semibold text-[#003D3B]">
+                                <span className="text-[#00B5B8] font-bold">Islamic Affirmation (التأكيد الإسلامي):</span>{" "}
+                                I affirm that all information provided is truthful and accurate according to Islamic principles (أؤكد أن جميع المعلومات المقدمة صحيحة ودقيقة وفقاً للمبادئ الإسلامية). 
+                                <span className="text-red-500">*</span>
+                              </label>
+                            </div>
+                            {errors.islamicAffirmation && (
+                              <p className="text-red-500 text-sm mt-1">{errors.islamicAffirmation}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ADDITIONAL VERIFICATION FIELDS */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <h3 className="font-bold text-[#003D3B]">Additional Verification (للتحقق الإضافي)</h3>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    These fields help us verify your campaign and prevent fraud. All information is kept confidential.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-semibold text-[#003D3B] mb-2 text-sm">
+                        Contact Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        name="phoneNumber"
+                        value={formData.phoneNumber}
+                        onChange={handleChange}
+                        placeholder="10-digit mobile number"
+                        maxLength="10"
+                        className={`w-full p-3 border-2 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition ${
+                          errors.phoneNumber ? "border-red-300" : "border-gray-200"
+                        }`}
+                      />
+                      {errors.phoneNumber && (
+                        <p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-[#003D3B] mb-2 text-sm">
+                        Alternate Contact
+                      </label>
+                      <input
+                        type="text"
+                        name="alternateContact"
+                        value={formData.alternateContact}
+                        onChange={handleChange}
+                        placeholder="Email or another phone"
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-[#003D3B] mb-2 text-sm">
+                        Bank Account Holder Name
+                      </label>
+                      <input
+                        type="text"
+                        name="bankAccountName"
+                        value={formData.bankAccountName}
+                        onChange={handleChange}
+                        placeholder="Name as per bank account"
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-[#003D3B] mb-2 text-sm">
+                        Bank Account Last 4 Digits
+                      </label>
+                      <input
+                        type="text"
+                        name="bankAccountNumber"
+                        value={formData.bankAccountNumber}
+                        onChange={handleChange}
+                        placeholder="Last 4 digits only"
+                        maxLength="4"
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-[#003D3B] mb-2 text-sm">
+                        ID Proof Type
+                      </label>
+                      <select
+                        name="idProofType"
+                        value={formData.idProofType}
+                        onChange={handleChange}
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                      >
+                        <option value="">Select ID type</option>
+                        <option value="aadhar">Aadhar Card</option>
+                        <option value="pan">PAN Card</option>
+                        <option value="passport">Passport</option>
+                        <option value="driving_license">Driving License</option>
+                        <option value="voter_id">Voter ID</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-[#003D3B] mb-2 text-sm">
+                        ID Proof Last 4 Digits
+                      </label>
+                      <input
+                        type="text"
+                        name="idProofNumber"
+                        value={formData.idProofNumber}
+                        onChange={handleChange}
+                        placeholder="Last 4 digits only"
+                        maxLength="4"
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    ⚠️ This information is used for verification purposes only and is kept strictly confidential.
+                  </p>
                 </div>
 
                 {/* IMAGE UPLOAD */}
