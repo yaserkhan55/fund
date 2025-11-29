@@ -8,7 +8,8 @@ const contactSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      default: "",
+      required: [true, "Email is required"],
+      lowercase: true,
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,

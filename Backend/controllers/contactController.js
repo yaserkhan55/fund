@@ -312,13 +312,20 @@ export const addAdminReply = async (req, res) => {
 
     await contact.save();
     
-    console.log(`[Contact Reply] ✅ Admin reply added to contact ${id}`);
-    console.log(`[Contact Reply] Contact email: ${contact.email}`);
-    console.log(`[Contact Reply] Contact userId: ${contact.userId}`);
-    console.log(`[Contact Reply] Contact clerkId: ${contact.clerkId}`);
+    // Verify the save worked
+    const savedContact = await Contact.findById(id).lean();
+    const adminMsgCount = savedContact.conversation?.filter(m => m.sender === "admin").length || 0;
+    
+    console.log(`[Contact Reply] ========== ADMIN REPLY SAVED ==========`);
+    console.log(`[Contact Reply] Contact ID: ${id}`);
+    console.log(`[Contact Reply] Contact email: ${savedContact.email}`);
+    console.log(`[Contact Reply] Contact userId: ${savedContact.userId}`);
+    console.log(`[Contact Reply] Contact clerkId: ${savedContact.clerkId}`);
     console.log(`[Contact Reply] Message: "${message.trim().substring(0, 50)}..."`);
-    console.log(`[Contact Reply] Conversation length: ${contact.conversation.length}`);
-    console.log(`[Contact Reply] Admin messages: ${contact.conversation.filter(m => m.sender === "admin").length}`);
+    console.log(`[Contact Reply] Total conversation messages: ${savedContact.conversation?.length || 0}`);
+    console.log(`[Contact Reply] Admin messages in conversation: ${adminMsgCount}`);
+    console.log(`[Contact Reply] Latest admin message createdAt: ${savedContact.conversation?.filter(m => m.sender === "admin").pop()?.createdAt}`);
+    console.log(`[Contact Reply] ======================================`);
 
     const updated = await Contact.findById(id)
       .populate("respondedBy", "name email")
