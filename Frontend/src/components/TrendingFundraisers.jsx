@@ -6,7 +6,7 @@ export default function TrendingFundraisers() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [itemsPerView, setItemsPerView] = useState(1);
+  const [itemsPerView, setItemsPerView] = useState(3);
 
   const resolveImg = (img) => {
     if (!img) return "/no-image.png";
@@ -48,6 +48,8 @@ export default function TrendingFundraisers() {
       } else {
         setItemsPerView(1); // Mobile: 1 item
       }
+      // Reset to first slide when viewport changes
+      setActiveIndex(0);
     };
 
     updateItemsPerView();
@@ -55,36 +57,18 @@ export default function TrendingFundraisers() {
     return () => window.removeEventListener('resize', updateItemsPerView);
   }, []);
 
-  const slides = [];
-  for (let i = 0; i < campaigns.length; i += itemsPerView) {
-    slides.push(campaigns.slice(i, i + itemsPerView));
-  }
-  const slideCount = slides.length;
+  // Calculate total slides
+  const totalSlides = Math.ceil(campaigns.length / itemsPerView);
+  const maxIndex = Math.max(0, totalSlides - 1);
 
-  // Auto-rotate carousel - move one by one through all campaigns
-  useEffect(() => {
-    if (!slideCount) return;
+  // Navigation functions
+  const goToPrevious = () => {
+    setActiveIndex((prev) => (prev === 0 ? maxIndex : prev - 1));
+  };
 
-    const maxIndex = Math.max(0, slideCount - 1);
-
-    setActiveIndex((prev) => {
-      if (prev > maxIndex) {
-        return 0;
-      }
-      return prev;
-    });
-    
-    const timer = setInterval(() => {
-      setActiveIndex((prev) => {
-        if (prev >= maxIndex) {
-          return 0; // Loop back to start
-        }
-        return prev + 1;
-      });
-    }, 4000);
-
-    return () => clearInterval(timer);
-  }, [slideCount]);
+  const goToNext = () => {
+    setActiveIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+  };
 
   if (!campaigns.length && !loading) {
     return (
@@ -128,126 +112,152 @@ export default function TrendingFundraisers() {
         <p className="text-center text-gray-600">Loading fundraisers...</p>
       )}
 
-      {!loading && (
-        <div className="overflow-hidden relative w-full">
-          <div
-            className="flex transition-transform duration-700 ease-out"
-            style={{ 
-              transform: `translateX(-${activeIndex * 100}%)`
-            }}
+      {!loading && campaigns.length > 0 && (
+        <div className="relative">
+          {/* Left Arrow */}
+          <button
+            onClick={goToPrevious}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all duration-200 hover:scale-110 -translate-x-4"
+            aria-label="Previous"
           >
-            {/* Group campaigns into slides */}
-            {slides.map((slideItems, slideIdx) => (
-              <div
-                key={slideIdx}
-                className="flex-shrink-0 w-full"
-              >
-                <div className="flex gap-3 sm:gap-4 w-full">
-                  {slideItems.map((c) => {
-                      const progress =
-                        c.goalAmount > 0
-                          ? Math.min((c.raisedAmount / c.goalAmount) * 100, 100)
-                          : 0;
-                      
-                      // Calculate days remaining if endDate exists
-                      const daysRemaining = c.endDate 
-                        ? Math.ceil((new Date(c.endDate) - new Date()) / (1000 * 60 * 60 * 24))
-                        : null;
+            <svg className="w-6 h-6 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
 
-                      return (
-                        <div
-                          key={c._id}
-                          className="flex-shrink-0 flex-grow-0"
-                          style={{ 
-                            width: `${100 / slideItems.length}%`,
-                            flexBasis: `${100 / slideItems.length}%`
-                          }}
-                        >
-                          <Link
-                            to={`/campaign/${c._id}`}
-                            className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col block border border-[#E0F2F2] relative group w-full h-full"
-                          >
-                            {/* Image Section - Responsive height with proper aspect ratio */}
-                            <div className="relative w-full h-[180px] sm:h-[200px] md:h-[220px] overflow-hidden bg-gray-200">
-                              <img
-                                src={resolveImg(c.image || c.imageUrl)}
-                                alt={c.title}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                onError={(e) => (e.currentTarget.src = "/no-image.png")}
-                              />
-                            </div>
+          {/* Carousel Container */}
+          <div className="overflow-hidden relative w-full px-8">
+            <div
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ 
+                transform: `translateX(-${activeIndex * (100 / itemsPerView)}%)`
+              }}
+            >
+              {campaigns.map((c) => {
+                const progress =
+                  c.goalAmount > 0
+                    ? Math.min((c.raisedAmount / c.goalAmount) * 100, 100)
+                    : 0;
+                
+                // Calculate days remaining if endDate exists
+                const daysRemaining = c.endDate 
+                  ? Math.ceil((new Date(c.endDate) - new Date()) / (1000 * 60 * 60 * 24))
+                  : null;
 
-                            {/* Content Section */}
-                            <div className="p-5 flex flex-col flex-grow">
-                              {/* Category Badge */}
-                              <div className="flex items-center gap-2 mb-3">
-                                {c.category && (
-                                  <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-md">
-                                    {c.category}
-                                  </span>
-                                )}
-                                {c.zakatEligible && (
-                                  <span className="text-xs font-semibold text-[#00897B] bg-[#E6F5F3] px-3 py-1 rounded-md">
-                                    ✓ Zakat Eligible
-                                  </span>
-                                )}
-                              </div>
+                return (
+                  <div
+                    key={c._id}
+                    className="flex-shrink-0 px-2"
+                    style={{ 
+                      width: `${100 / itemsPerView}%`,
+                    }}
+                  >
+                    <Link
+                      to={`/campaign/${c._id}`}
+                      className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col h-full border border-[#E0F2F2] group"
+                    >
+                      {/* Image Section - Fixed height */}
+                      <div className="relative w-full h-[240px] overflow-hidden bg-gray-200">
+                        <img
+                          src={resolveImg(c.image || c.imageUrl)}
+                          alt={c.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => (e.currentTarget.src = "/no-image.png")}
+                        />
+                      </div>
 
-                              {/* Title */}
-                              <h3 className="text-lg font-bold text-[#003d3b] mb-2 line-clamp-2 leading-tight">
-                                {c.title}
-                              </h3>
+                      {/* Content Section - Fixed height with flex-grow */}
+                      <div className="p-5 flex flex-col flex-grow min-h-[320px]">
+                        {/* Category Badge */}
+                        <div className="flex items-center gap-2 mb-3 flex-wrap">
+                          {c.category && (
+                            <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-md">
+                              {c.category}
+                            </span>
+                          )}
+                          {c.zakatEligible && (
+                            <span className="text-xs font-semibold text-[#00897B] bg-[#E6F5F3] px-3 py-1 rounded-md">
+                              ✓ Zakat Eligible
+                            </span>
+                          )}
+                        </div>
 
-                              {/* Description */}
-                              <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed">
-                                {c.shortDescription || "No description available."}
-                              </p>
+                        {/* Title */}
+                        <h3 className="text-lg font-bold text-[#003d3b] mb-2 line-clamp-2 leading-tight min-h-[3.5rem]">
+                          {c.title}
+                        </h3>
 
-                              {/* Progress Section */}
-                              <div className="mt-auto">
-                                {/* Progress Bar */}
-                                <div className="w-full bg-gray-200 h-2 rounded-full mb-3">
-                                  <div
-                                    className="h-2 rounded-full transition-all duration-500"
-                                    style={{
-                                      width: `${progress}%`,
-                                      background: "#F9A826",
-                                    }}
-                                  ></div>
-                                </div>
+                        {/* Description */}
+                        <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed min-h-[2.5rem]">
+                          {c.shortDescription || "No description available."}
+                        </p>
 
-                                {/* Amount Display */}
-                                <div className="flex justify-between items-center text-sm font-semibold text-[#003d3b] mb-4">
-                                  <span>₹{(c.raisedAmount || 0).toLocaleString('en-IN')}</span>
-                                  <span>of ₹{(c.goalAmount || 0).toLocaleString('en-IN')}</span>
-                                </div>
+                        {/* Progress Section - Pushed to bottom */}
+                        <div className="mt-auto">
+                          {/* Progress Bar */}
+                          <div className="w-full bg-gray-200 h-2 rounded-full mb-3">
+                            <div
+                              className="h-2 rounded-full transition-all duration-500"
+                              style={{
+                                width: `${progress}%`,
+                                background: "#F9A826",
+                              }}
+                            ></div>
+                          </div>
 
-                                {/* Campaign Info */}
-                                {(daysRemaining !== null && daysRemaining > 0) || c.contributors ? (
-                                  <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                                    {daysRemaining !== null && daysRemaining > 0 && (
-                                      <span>Campaign ends in {daysRemaining} {daysRemaining === 1 ? 'Day' : 'Days'}</span>
-                                    )}
-                                    {c.contributors && (
-                                      <span>{c.contributors >= 1000 ? `${(c.contributors / 1000).toFixed(1)}k` : c.contributors} {c.contributors === 1 ? 'person' : 'people'} contributed</span>
-                                    )}
-                                  </div>
-                                ) : null}
+                          {/* Amount Display */}
+                          <div className="flex justify-between items-center text-sm font-semibold text-[#003d3b] mb-3">
+                            <span>₹{(c.raisedAmount || 0).toLocaleString('en-IN')}</span>
+                            <span className="text-gray-500">of ₹{(c.goalAmount || 0).toLocaleString('en-IN')}</span>
+                          </div>
 
-                                {/* CTA Button */}
-                                <div className="w-full bg-[#00B5B8] hover:bg-[#009EA1] text-white py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 text-center">
-                                  Contribute Now
-                                </div>
-                              </div>
-                            </div>
-                          </Link>
-                    </div>
-                  );
-                })}
-                </div>
-              </div>
-            ))}
+                          {/* Campaign Info */}
+                          <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                            {daysRemaining !== null && daysRemaining > 0 ? (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {daysRemaining} {daysRemaining === 1 ? 'Day' : 'Days'} Left
+                              </span>
+                            ) : (
+                              <span></span>
+                            )}
+                            {c.contributors ? (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
+                                {c.contributors >= 1000 ? `${(c.contributors / 1000).toFixed(1)}k` : c.contributors} {c.contributors === 1 ? 'Supporter' : 'Supporters'}
+                              </span>
+                            ) : (
+                              <span></span>
+                            )}
+                          </div>
+
+                          {/* CTA Button */}
+                          <div className="w-full bg-[#00B5B8] hover:bg-[#009EA1] text-white py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 text-center">
+                            Contribute Now
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
+          {/* Right Arrow */}
+          <button
+            onClick={goToNext}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all duration-200 hover:scale-110 translate-x-4"
+            aria-label="Next"
+          >
+            <svg className="w-6 h-6 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
       )}
     </section>
