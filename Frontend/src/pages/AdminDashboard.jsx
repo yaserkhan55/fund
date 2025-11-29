@@ -34,6 +34,16 @@ export default function AdminDashboard() {
   const [saving, setSaving] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [newCampaignsCount, setNewCampaignsCount] = useState(0);
+  
+  // New states for enhanced features
+  const [campaignsWithResponses, setCampaignsWithResponses] = useState([]);
+  const [selectedCampaignForResponse, setSelectedCampaignForResponse] = useState(null);
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [contactReplyMessage, setContactReplyMessage] = useState("");
+  const [activityLog, setActivityLog] = useState([]);
+  const [activityPage, setActivityPage] = useState(1);
+  const [activityPagination, setActivityPagination] = useState({ page: 1, limit: 50, total: 0, pages: 1 });
+  const [pendingResponsesCount, setPendingResponsesCount] = useState(0);
 
   const token = localStorage.getItem("adminToken");
 
@@ -115,6 +125,108 @@ export default function AdminDashboard() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load campaigns with pending user responses
+  const loadCampaignsWithResponses = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/campaigns-with-pending-responses`, {
+        headers: authHeaders(false),
+      });
+      if (!res.ok) throw new Error("Failed to load campaigns with responses");
+      const data = await res.json();
+      setCampaignsWithResponses(data.campaigns || []);
+      setPendingResponsesCount(data.campaigns?.length || 0);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load activity log
+  const loadActivityLog = async () => {
+    setLoading(true);
+    try {
+      const url = new URL(`${API_URL}/api/admin/activity-log`);
+      url.searchParams.set("page", activityPage);
+      url.searchParams.set("limit", "50");
+
+      const res = await fetch(url, { headers: authHeaders(false) });
+      if (!res.ok) throw new Error("Failed to load activity log");
+      const data = await res.json();
+      setActivityLog(data.activities || []);
+      setActivityPagination(data.pagination || { page: 1, limit: 50, total: 0, pages: 1 });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get full campaign details with responses
+  const loadCampaignDetails = async (campaignId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/campaigns/${campaignId}/responses`, {
+        headers: authHeaders(false),
+      });
+      if (!res.ok) throw new Error("Failed to load campaign details");
+      const data = await res.json();
+      setSelectedCampaignForResponse(data.campaign);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Admin respond to user's response
+  const respondToUserResponse = async (campaignId, requestId, responseId, message, action) => {
+    try {
+      const res = await fetch(
+        `${API_URL}/api/admin/campaigns/${campaignId}/info-requests/${requestId}/responses/${responseId}/respond`,
+        {
+          method: "POST",
+          headers: authHeaders(true),
+          body: JSON.stringify({ message, action }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to respond");
+      await loadCampaignDetails(campaignId);
+      await loadCampaignsWithResponses();
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // Add admin reply to contact query
+  const addContactReply = async (contactId) => {
+    if (!contactReplyMessage.trim()) {
+      setError("Please enter a message");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/contact/${contactId}/reply`, {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({ message: contactReplyMessage }),
+      });
+      if (!res.ok) throw new Error("Failed to send reply");
+      setContactReplyMessage("");
+      await loadContactQueries();
+      if (selectedContact?._id === contactId) {
+        const updatedRes = await fetch(`${API_URL}/api/contact/${contactId}`, {
+          headers: authHeaders(false),
+        });
+        if (updatedRes.ok) {
+          const data = await updatedRes.json();
+          setSelectedContact(data.contact);
+        }
+      }
+      setError("");
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -219,6 +331,10 @@ export default function AdminDashboard() {
         loadUsers();
       } else if (activeTab === "contacts") {
         loadContactQueries();
+      } else if (activeTab === "user-responses") {
+        loadCampaignsWithResponses();
+      } else if (activeTab === "activity") {
+        loadActivityLog();
       } else {
         load(activeTab);
       }
@@ -828,10 +944,12 @@ export default function AdminDashboard() {
       {[
         { key: "dashboard", label: "Dashboard", icon: "📊" },
         { key: "pending", label: "Pending", icon: "⏳" },
+        { key: "user-responses", label: "User Responses", icon: "💬", badge: true },
         { key: "approved", label: "Approved", icon: "✅" },
         { key: "rejected", label: "Rejected", icon: "❌" },
         { key: "users", label: "Users", icon: "👥" },
         { key: "contacts", label: "Contact Queries", icon: "📧" },
+        { key: "activity", label: "Activity Log", icon: "📋" },
       ].map((t) => (
         <button
           key={t.key}
@@ -932,6 +1050,165 @@ export default function AdminDashboard() {
         {/* Content */}
         {activeTab === "dashboard" && <DashboardOverview />}
         {activeTab === "users" && <UsersManagement />}
+        {activeTab === "user-responses" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+              <h2 className="text-2xl font-bold text-[#003d3b] mb-4 flex items-center gap-2">
+                💬 User Responses to Info Requests
+                {pendingResponsesCount > 0 && (
+                  <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full">
+                    {pendingResponsesCount} New
+                  </span>
+                )}
+              </h2>
+              <p className="text-gray-600 mb-4">
+                View and respond to user responses to your information requests
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-20">
+                <div className="w-16 h-16 border-4 border-[#00B5B8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading user responses...</p>
+              </div>
+            ) : campaignsWithResponses.length > 0 ? (
+              <div className="space-y-4">
+                {campaignsWithResponses.map((campaign) => (
+                  <div
+                    key={campaign._id}
+                    className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2] hover:shadow-xl transition"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-[#003d3b] mb-2">{campaign.title}</h3>
+                        <p className="text-sm text-gray-600 mb-2">
+                          Beneficiary: {campaign.beneficiaryName} • {campaign.city}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Owner: {campaign.owner?.name || "Unknown"} ({campaign.owner?.email || "N/A"})
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedCampaignForResponse(campaign);
+                          loadCampaignDetails(campaign._id);
+                        }}
+                        className="px-4 py-2 bg-[#00B5B8] text-white font-semibold rounded-lg hover:bg-[#009EA1] transition"
+                      >
+                        View Details
+                      </button>
+                    </div>
+
+                    {campaign.pendingRequests?.map((req, idx) => (
+                      <div key={idx} className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-semibold text-amber-700">
+                            Info Request #{idx + 1}
+                          </span>
+                          <span className="text-xs text-amber-600">
+                            {formatDate(req.createdAt)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-3">{req.message}</p>
+                        {req.unviewedResponses?.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            <p className="text-xs font-semibold text-red-600">
+                              {req.unviewedResponses.length} Unviewed Response(s):
+                            </p>
+                            {req.unviewedResponses.map((resp, respIdx) => (
+                              <div key={respIdx} className="bg-white p-3 rounded border border-gray-200">
+                                <p className="text-sm text-gray-700 mb-2">{resp.note || "No note provided"}</p>
+                                {resp.documents?.length > 0 && (
+                                  <div className="flex flex-wrap gap-2">
+                                    {resp.documents.map((doc, docIdx) => (
+                                      <a
+                                        key={docIdx}
+                                        href={`${API_URL}/${doc}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-[#00B5B8] hover:underline"
+                                      >
+                                        📄 Document {docIdx + 1}
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+                                <p className="text-xs text-gray-500 mt-2">
+                                  Uploaded: {formatDate(resp.uploadedAt)}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-[#E0F2F2]">
+                <p className="text-gray-500 text-lg">No pending user responses</p>
+              </div>
+            )}
+          </div>
+        )}
+        {activeTab === "activity" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+              <h2 className="text-2xl font-bold text-[#003d3b] mb-4">📋 Activity Log</h2>
+              <p className="text-gray-600">Comprehensive log of all platform activities</p>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-20">
+                <div className="w-16 h-16 border-4 border-[#00B5B8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading activity log...</p>
+              </div>
+            ) : activityLog.length > 0 ? (
+              <div className="space-y-3">
+                {activityLog.map((activity, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-white rounded-xl shadow p-4 border border-[#E0F2F2] hover:shadow-md transition"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-[#00B5B8]/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-[#00B5B8] text-lg">
+                          {activity.type === "campaign_created" ? "📝" :
+                           activity.type === "campaign_approved" ? "✅" :
+                           activity.type === "campaign_rejected" ? "❌" :
+                           activity.type === "user_response" ? "💬" :
+                           activity.type === "donation_made" ? "💰" :
+                           activity.type === "user_registered" ? "👤" : "📋"}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-[#003d3b]">{activity.details}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(activity.timestamp).toLocaleString()}
+                        </p>
+                        {activity.user && (
+                          <p className="text-xs text-gray-600 mt-1">
+                            User: {activity.user.name || activity.user.email || "Unknown"}
+                          </p>
+                        )}
+                        {activity.campaign && (
+                          <p className="text-xs text-gray-600 mt-1">
+                            Campaign: {activity.campaign.title}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-[#E0F2F2]">
+                <p className="text-gray-500 text-lg">No activity found</p>
+              </div>
+            )}
+          </div>
+        )}
         {activeTab === "contacts" && (
           <div className="space-y-6">
             {/* Search Bar */}
@@ -1033,6 +1310,23 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="flex gap-2 mt-4">
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`${API_URL}/api/contact/${query._id}`, {
+                              headers: authHeaders(false),
+                            });
+                            if (!res.ok) throw new Error("Failed to load contact details");
+                            const data = await res.json();
+                            setSelectedContact(data.contact);
+                          } catch (err) {
+                            setError(err.message);
+                          }
+                        }}
+                        className="px-4 py-2 bg-[#00B5B8] text-white font-semibold rounded-lg hover:bg-[#009EA1] transition text-sm"
+                      >
+                        View Conversation
+                      </button>
                       {query.status !== "resolved" && (
                         <button
                           onClick={async () => {
@@ -1547,6 +1841,235 @@ export default function AdminDashboard() {
                 >
                   {requestingInfo ? "Sending..." : "Send Request"}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Campaign Details with User Responses */}
+        {selectedCampaignForResponse && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-[#E0F2F2] p-6 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-[#003d3b]">
+                  {selectedCampaignForResponse.title}
+                </h2>
+                <button
+                  onClick={() => setSelectedCampaignForResponse(null)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {selectedCampaignForResponse.infoRequests?.map((req, reqIdx) => (
+                  <div key={reqIdx} className="border border-[#E0F2F2] rounded-xl p-4">
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-semibold text-amber-700">Admin Request #{reqIdx + 1}</span>
+                        <span className="text-xs text-gray-500">{formatDate(req.createdAt)}</span>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          req.status === "resolved" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                        }`}>
+                          {req.status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{req.message}</p>
+                    </div>
+
+                    {req.responses?.map((resp, respIdx) => (
+                      <div key={respIdx} className="ml-4 mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-blue-700">User Response #{respIdx + 1}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">{formatDate(resp.uploadedAt)}</span>
+                            {!resp.adminViewed && (
+                              <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">New</span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-2">{resp.note || "No note provided"}</p>
+                        {resp.documents?.length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-xs font-semibold text-gray-600 mb-1">Documents:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {resp.documents.map((doc, docIdx) => (
+                                <a
+                                  key={docIdx}
+                                  href={`${API_URL}/${doc}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-[#00B5B8] hover:underline bg-white px-2 py-1 rounded border"
+                                >
+                                  📄 Document {docIdx + 1}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {!resp.adminViewed && (
+                          <div className="mt-4 p-3 bg-white rounded border border-gray-200">
+                            <textarea
+                              placeholder="Add your response or follow-up message..."
+                              className="w-full p-2 border border-gray-300 rounded text-sm mb-2"
+                              rows="3"
+                              id={`response-${reqIdx}-${respIdx}`}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={async () => {
+                                  const message = document.getElementById(`response-${reqIdx}-${respIdx}`).value;
+                                  await respondToUserResponse(
+                                    selectedCampaignForResponse._id,
+                                    req._id || reqIdx,
+                                    resp._id || respIdx,
+                                    message,
+                                    "approve"
+                                  );
+                                }}
+                                className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                              >
+                                Approve Response
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  const message = document.getElementById(`response-${reqIdx}-${respIdx}`).value;
+                                  await respondToUserResponse(
+                                    selectedCampaignForResponse._id,
+                                    req._id || reqIdx,
+                                    resp._id || respIdx,
+                                    message,
+                                    "request_more"
+                                  );
+                                }}
+                                className="px-4 py-2 bg-amber-600 text-white text-sm rounded hover:bg-amber-700"
+                              >
+                                Request More Info
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {resp.adminFollowUp?.message && (
+                          <div className="mt-3 p-3 bg-green-50 rounded border border-green-200">
+                            <p className="text-xs font-semibold text-green-700 mb-1">Admin Follow-up:</p>
+                            <p className="text-sm text-green-900">{resp.adminFollowUp.message}</p>
+                            <p className="text-xs text-green-600 mt-1">
+                              {formatDate(resp.adminFollowUp.createdAt)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Contact Conversation Thread */}
+        {selectedContact && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-[#E0F2F2] p-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-[#003d3b]">{selectedContact.name}</h2>
+                  <p className="text-sm text-gray-600">{selectedContact.email || "No email"}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedContact(null);
+                    setContactReplyMessage("");
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Original Query */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <p className="text-xs font-semibold text-gray-600 mb-1">Original Query:</p>
+                  <p className="text-sm text-gray-700">{selectedContact.query}</p>
+                  <p className="text-xs text-gray-500 mt-2">{formatDate(selectedContact.createdAt)}</p>
+                </div>
+
+                {/* Conversation Thread */}
+                {selectedContact.conversation?.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-4 rounded-lg ${
+                      msg.sender === "admin"
+                        ? "bg-blue-50 border border-blue-200 ml-8"
+                        : "bg-gray-50 border border-gray-200 mr-8"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold">
+                        {msg.sender === "admin" ? "Admin" : "User"}
+                      </span>
+                      <span className="text-xs text-gray-500">{formatDate(msg.createdAt)}</span>
+                    </div>
+                    <p className="text-sm text-gray-700">{msg.message}</p>
+                    {msg.attachments?.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {msg.attachments.map((att, attIdx) => (
+                          <a
+                            key={attIdx}
+                            href={`${API_URL}/${att}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-[#00B5B8] hover:underline"
+                          >
+                            📎 Attachment {attIdx + 1}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Reply Section */}
+                <div className="border-t border-[#E0F2F2] pt-4">
+                  <textarea
+                    value={contactReplyMessage}
+                    onChange={(e) => setContactReplyMessage(e.target.value)}
+                    placeholder="Type your reply..."
+                    className="w-full p-3 border border-[#E0F2F2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B5B8] mb-3"
+                    rows="4"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => addContactReply(selectedContact._id)}
+                      className="px-6 py-2 bg-[#00B5B8] text-white font-semibold rounded-lg hover:bg-[#009EA1] transition"
+                    >
+                      Send Reply
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`${API_URL}/api/contact/${selectedContact._id}`, {
+                            method: "PUT",
+                            headers: authHeaders(true),
+                            body: JSON.stringify({ status: "resolved" }),
+                          });
+                          if (!res.ok) throw new Error("Failed to resolve");
+                          await loadContactQueries();
+                          setSelectedContact(null);
+                        } catch (err) {
+                          setError(err.message);
+                        }
+                      }}
+                      className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition"
+                    >
+                      Mark Resolved
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
