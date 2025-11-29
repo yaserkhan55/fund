@@ -61,14 +61,30 @@ export default function TrendingFundraisers() {
   }
   const slideCount = slides.length;
 
-  // Navigation functions
-  const goToPrevious = () => {
-    setActiveIndex((prev) => (prev === 0 ? slideCount - 1 : prev - 1));
-  };
+  // Auto-rotate carousel - move one by one through all campaigns
+  useEffect(() => {
+    if (!slideCount) return;
 
-  const goToNext = () => {
-    setActiveIndex((prev) => (prev >= slideCount - 1 ? 0 : prev + 1));
-  };
+    const maxIndex = Math.max(0, slideCount - 1);
+
+    setActiveIndex((prev) => {
+      if (prev > maxIndex) {
+        return 0;
+      }
+      return prev;
+    });
+    
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => {
+        if (prev >= maxIndex) {
+          return 0; // Loop back to start
+        }
+        return prev + 1;
+      });
+    }, 4000); // Auto-rotate every 4 seconds
+
+    return () => clearInterval(timer);
+  }, [slideCount]);
 
   if (!campaigns.length && !loading) {
     return (
@@ -113,26 +129,13 @@ export default function TrendingFundraisers() {
       )}
 
       {!loading && campaigns.length > 0 && (
-        <div className="relative">
-          {/* Left Arrow */}
-          <button
-            onClick={goToPrevious}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all duration-200 hover:scale-110 -translate-x-4"
-            aria-label="Previous"
+        <div className="overflow-hidden relative w-full">
+          <div
+            className="flex transition-transform duration-700 ease-out"
+            style={{ 
+              transform: `translateX(-${activeIndex * 100}%)`
+            }}
           >
-            <svg className="w-6 h-6 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-
-          {/* Carousel Container */}
-          <div className="overflow-hidden relative w-full px-8">
-            <div
-              className="flex transition-transform duration-500 ease-in-out"
-              style={{ 
-                transform: `translateX(-${activeIndex * 100}%)`
-              }}
-            >
               {/* Group campaigns into slides */}
               {slides.map((slideItems, slideIdx) => (
                 <div
@@ -162,9 +165,10 @@ export default function TrendingFundraisers() {
                         >
                           <Link
                             to={`/campaign/${c._id}`}
-                            className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col border border-[#E0F2F2] block h-full"
+                            className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col border border-[#E0F2F2] block"
+                            style={{ height: '580px' }}
                           >
-                            {/* Image Section - Fixed height, no hover effect on image */}
+                            {/* Image Section - Fixed height, no hover effect */}
                             <div className="relative w-full h-[220px] overflow-hidden bg-gray-200 flex-shrink-0">
                               <img
                                 src={resolveImg(c.image || c.imageUrl)}
@@ -175,7 +179,7 @@ export default function TrendingFundraisers() {
                             </div>
 
                             {/* Content Section - Fixed height for consistency */}
-                            <div className="p-5 flex flex-col flex-grow" style={{ minHeight: '360px' }}>
+                            <div className="p-5 flex flex-col flex-grow" style={{ height: '360px' }}>
                               {/* Category Badge */}
                               <div className="flex items-center gap-2 mb-3 flex-wrap">
                                 {c.category && (
@@ -191,12 +195,12 @@ export default function TrendingFundraisers() {
                               </div>
 
                               {/* Title - Fixed height */}
-                              <h3 className="text-lg font-bold text-[#003d3b] mb-2 line-clamp-2 leading-tight" style={{ minHeight: '3.5rem' }}>
+                              <h3 className="text-lg font-bold text-[#003d3b] mb-2 line-clamp-2 leading-tight" style={{ height: '3.5rem' }}>
                                 {c.title}
                               </h3>
 
                               {/* Description - Fixed height */}
-                              <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed" style={{ minHeight: '2.5rem' }}>
+                              <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed" style={{ height: '2.5rem' }}>
                                 {c.shortDescription || "No description available."}
                               </p>
 
@@ -258,18 +262,6 @@ export default function TrendingFundraisers() {
               ))}
             </div>
           </div>
-
-          {/* Right Arrow */}
-          <button
-            onClick={goToNext}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all duration-200 hover:scale-110 translate-x-4"
-            aria-label="Next"
-          >
-            <svg className="w-6 h-6 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
       )}
     </section>
   );
