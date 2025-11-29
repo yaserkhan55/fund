@@ -49,8 +49,7 @@ export default function Hero() {
       {/* Wrapper */}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-14">
 
-        {/* LEFT SIDE */}
-git        <div className="flex-1">
+        {/* LEFT SIDE */}      <div className="flex-1">
           <h1 className="text-4xl md:text-5xl font-bold text-[#003D3B] leading-tight">
             Become a <br /> Changemaker!
           </h1>
