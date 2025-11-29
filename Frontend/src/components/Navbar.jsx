@@ -113,8 +113,8 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="w-full bg-white border-b border-gray-200 shadow-sm fixed top-0 left-0 right-0 z-50 overflow-x-hidden">
-      <div className="max-w-7xl mx-auto h-20 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+    <nav className="w-full bg-white border-b border-gray-200 shadow-sm fixed top-0 left-0 right-0 z-50 overflow-visible">
+      <div className="max-w-7xl mx-auto h-20 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 relative">
 
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 min-w-0">
@@ -198,7 +198,7 @@ export default function Navbar() {
               <FiGrid className="w-5 h-5 lg:w-6 lg:h-6" />
             </Link>
             {/* Notifications Bell */}
-            <div className="relative flex-shrink-0" ref={notificationRef}>
+            <div className="relative flex-shrink-0 z-[100]" ref={notificationRef}>
               <button
                 onClick={handleNotificationsToggle}
                 className="relative p-2 text-gray-700 hover:text-[#00B5B8] transition-colors"
@@ -214,7 +214,7 @@ export default function Navbar() {
 
               {/* Notifications Dropdown */}
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-y-auto" style={{ zIndex: 9999 }}>
                   <div className="p-4 border-b border-gray-200">
                     <h3 className="font-semibold text-[#003d3b]">Notifications</h3>
                     {unreadCount > 0 && (

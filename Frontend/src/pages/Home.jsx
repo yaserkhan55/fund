@@ -145,22 +145,27 @@ function Home() {
 
         const notifications = res.data?.notifications || [];
         if (notifications.length > 0) {
-          const latest = notifications[0]; // Already sorted by newest first
+          // Filter to get only unviewed notifications
+          const unviewedNotifications = notifications.filter(n => !n.viewed);
           
-          // Check if this notification has been shown before
-          const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
-          const notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
-          
-          if (!shownNotifications.includes(notificationKey)) {
-            setLatestNotification(latest);
-            setShowNotificationPopup(true);
-            // Mark as shown
-            shownNotifications.push(notificationKey);
-            // Keep only last 50 shown notifications
-            if (shownNotifications.length > 50) {
-              shownNotifications.shift();
+          if (unviewedNotifications.length > 0) {
+            const latest = unviewedNotifications[0]; // Already sorted by newest first
+            
+            // Check if this notification has been shown before
+            const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
+            const notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
+            
+            if (!shownNotifications.includes(notificationKey)) {
+              setLatestNotification(latest);
+              setShowNotificationPopup(true);
+              // Mark as shown
+              shownNotifications.push(notificationKey);
+              // Keep only last 50 shown notifications
+              if (shownNotifications.length > 50) {
+                shownNotifications.shift();
+              }
+              localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
             }
-            localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
           }
         }
       } catch (err) {
