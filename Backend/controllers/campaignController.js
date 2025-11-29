@@ -425,23 +425,27 @@ export const getUserNotifications = async (req, res) => {
       // Admin actions (approve/reject/delete)
       if (Array.isArray(campaign.adminActions)) {
         campaign.adminActions.forEach((action) => {
-          notifications.push({
-            id: action._id.toString(),
-            type: "admin_action",
-            campaignId: campaign._id.toString(),
-            campaignTitle: campaign.title,
-            action: action.action,
-            message: action.message || `${action.action} by admin`,
-            createdAt: action.createdAt,
-            viewed: action.viewed || false,
-          });
+          // Only include unviewed admin actions
+          if (!action.viewed) {
+            notifications.push({
+              id: action._id.toString(),
+              type: "admin_action",
+              campaignId: campaign._id.toString(),
+              campaignTitle: campaign.title,
+              action: action.action,
+              message: action.message || `${action.action} by admin`,
+              createdAt: action.createdAt,
+              viewed: false,
+            });
+          }
         });
       }
 
       // Admin info requests
       if (Array.isArray(campaign.infoRequests)) {
         campaign.infoRequests.forEach((request) => {
-          if (request.status === "pending") {
+          // Only include pending + unviewed info requests
+          if (request.status === "pending" && !request.viewed) {
             notifications.push({
               id: request._id.toString(),
               type: "info_request",
@@ -459,8 +463,8 @@ export const getUserNotifications = async (req, res) => {
     // Sort by date (newest first)
     notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // Count unread
-    const unreadCount = notifications.filter((n) => !n.viewed).length;
+    // All returned notifications are unread
+    const unreadCount = notifications.length;
 
     return res.json({
       success: true,
@@ -470,6 +474,80 @@ export const getUserNotifications = async (req, res) => {
   } catch (error) {
     console.error("Error fetching notifications:", error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* =====================================================
+   MARK ALL USER NOTIFICATIONS AS VIEWED
+===================================================== */
+export const markAllNotificationsAsViewed = async (req, res) => {
+  try {
+    const clerkUserId = req.auth?.userId;
+
+    if (!clerkUserId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    let mongoUser = req.mongoUser;
+    if (!mongoUser) {
+      mongoUser = await User.findOne({ clerkId: clerkUserId });
+    }
+
+    if (!mongoUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const mongoUserId = mongoUser._id.toString();
+
+    // Find all campaigns owned by user
+    const campaigns = await Campaign.find({
+      $or: [
+        { owner: mongoUserId },
+        { owner: mongoUser._id },
+        { createdBy: mongoUserId }
+      ]
+    });
+
+    let updatedCount = 0;
+
+    for (const campaign of campaigns) {
+      let hasChanges = false;
+
+      // Mark admin actions as viewed
+      if (Array.isArray(campaign.adminActions)) {
+        campaign.adminActions.forEach((action) => {
+          if (!action.viewed) {
+            action.viewed = true;
+            hasChanges = true;
+            updatedCount += 1;
+          }
+        });
+      }
+
+      // Mark info requests as viewed (without changing their status)
+      if (Array.isArray(campaign.infoRequests)) {
+        campaign.infoRequests.forEach((request) => {
+          if (request.status === "pending" && !request.viewed) {
+            request.viewed = true;
+            hasChanges = true;
+            updatedCount += 1;
+          }
+        });
+      }
+
+      if (hasChanges) {
+        await campaign.save();
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: "Notifications marked as viewed",
+      updated: updatedCount,
+    });
+  } catch (error) {
+    console.error("Error marking notifications as viewed:", error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 

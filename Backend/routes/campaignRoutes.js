@@ -16,7 +16,8 @@ import {
   respondToInfoRequest,
   getCampaignForOwner,
   updateCampaignByOwner,
-  getUserNotifications
+  getUserNotifications,
+  markAllNotificationsAsViewed
 } from "../controllers/campaignController.js";
 
 // NEW CONTROLLERS (Ketto-style details)
@@ -79,6 +80,7 @@ router.get("/my", requireAuth(), syncClerkUser, getMyCampaigns);
    GET USER NOTIFICATIONS
 =========================== */
 router.get("/notifications", requireAuth(), syncClerkUser, getUserNotifications);
+router.put("/notifications/mark-read", requireAuth(), syncClerkUser, markAllNotificationsAsViewed);
 
 /* ===========================
    MARK ADMIN ACTION AS VIEWED

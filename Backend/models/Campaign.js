@@ -60,6 +60,7 @@ const campaignSchema = new mongoose.Schema(
     lastInfoRequestAt: { type: Date, default: null },
     infoRequests: [
       {
+        // Notification-style admin info requests to campaign owner
         message: { type: String, required: true },
         createdAt: { type: Date, default: Date.now },
         status: {
@@ -67,6 +68,8 @@ const campaignSchema = new mongoose.Schema(
           enum: ["pending", "submitted", "resolved"],
           default: "pending",
         },
+        // Track whether campaigner has seen this request in the UI
+        viewed: { type: Boolean, default: false },
         requestedBy: { type: String, default: "admin" },
         respondedAt: { type: Date, default: null },
         resolvedAt: { type: Date, default: null },
