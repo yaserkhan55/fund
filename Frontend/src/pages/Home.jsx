@@ -144,7 +144,11 @@ function Home() {
         });
 
         const notifications = res.data?.notifications || [];
-        console.log("Fetched notifications:", notifications.length, notifications);
+        console.log("=== NOTIFICATION FETCH ===");
+        console.log("Total notifications:", notifications.length);
+        console.log("Contact replies:", notifications.filter(n => n.type === "contact_reply").length);
+        console.log("All notifications:", notifications);
+        console.log("==========================");
         
         if (notifications.length > 0) {
           // Prioritize contact_reply notifications, then filter unviewed
