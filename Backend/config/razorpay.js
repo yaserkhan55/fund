@@ -77,7 +77,15 @@ export const createOrder = async (amount, currency = "INR", receipt = null) => {
   }
   
   if (!razorpayInstance) {
-    throw new Error("Razorpay not configured. Please install razorpay package and set credentials.");
+    const errorMsg = !process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET
+      ? "Razorpay credentials not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables."
+      : "Razorpay not initialized. Please check Razorpay package installation.";
+    console.error("❌ Razorpay Error:", errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    throw new Error("Razorpay credentials missing in environment variables");
   }
 
   const options = {
@@ -88,10 +96,17 @@ export const createOrder = async (amount, currency = "INR", receipt = null) => {
   };
 
   try {
+    console.log("[Razorpay] Creating order with options:", { ...options, amount: `${options.amount} paise` });
     const order = await razorpayInstance.orders.create(options);
+    console.log("[Razorpay] Order created successfully:", order.id);
     return order;
   } catch (error) {
-    console.error("Razorpay order creation error:", error);
+    console.error("❌ Razorpay order creation error:", error);
+    console.error("❌ Error details:", {
+      message: error.message,
+      statusCode: error.statusCode,
+      description: error.description,
+    });
     throw error;
   }
 };
