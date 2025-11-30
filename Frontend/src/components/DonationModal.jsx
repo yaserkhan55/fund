@@ -131,7 +131,9 @@ export default function DonationModal({ campaignId, onClose }) {
       console.error("Donation error:", err);
       setLoading(false);
       
-      if (err.response?.status === 401) {
+      if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
+        setError("Network error. Please check your connection and try again.");
+      } else if (err.response?.status === 401) {
         setError("Please login to donate");
         setTimeout(() => {
           navigate("/donor/login", {
@@ -141,10 +143,14 @@ export default function DonationModal({ campaignId, onClose }) {
         }, 1500);
       } else if (err.response?.status === 404) {
         setError("Donation endpoint not found. Please contact support.");
-      } else if (err.response?.status >= 500) {
-        setError("Server error. Please try again later.");
-      } else if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
-        setError("Network error. Please check your connection and try again.");
+      } else if (err.response?.status === 500) {
+        const errorMsg = err.response?.data?.message || "Server error. Please try again later.";
+        const details = err.response?.data?.details;
+        if (details && !details.hasKeyId) {
+          setError("Payment gateway is not configured. Please contact support to enable donations.");
+        } else {
+          setError(errorMsg);
+        }
       } else {
         setError(err.response?.data?.message || err.message || "Failed to create donation. Please try again.");
       }
