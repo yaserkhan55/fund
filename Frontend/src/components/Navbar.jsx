@@ -15,9 +15,16 @@ export default function Navbar() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [isDonorLoggedIn, setIsDonorLoggedIn] = useState(false);
 
   const menuRef = useRef(null);
   const notificationRef = useRef(null);
+
+  // Check if donor is logged in
+  useEffect(() => {
+    const donorToken = localStorage.getItem("donorToken");
+    setIsDonorLoggedIn(!!donorToken);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -172,19 +179,38 @@ export default function Navbar() {
           </Link>
 
           <SignedOut>
+            {/* Campaign Creator Login/Signup */}
             <Link
               to="/sign-in"
               className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
             >
-              Login
+              Create Campaign
             </Link>
 
-            <Link
-              to="/sign-up"
-              className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap"
-            >
-              Sign Up
-            </Link>
+            {/* Donor Login/Register */}
+            {!isDonorLoggedIn ? (
+              <>
+                <Link
+                  to="/donor/login"
+                  className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
+                >
+                  Donor Login
+                </Link>
+                <Link
+                  to="/donor/register"
+                  className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap"
+                >
+                  Donate Now
+                </Link>
+              </>
+            ) : (
+              <Link
+                to="/donor/dashboard"
+                className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap"
+              >
+                Donor Dashboard
+              </Link>
+            )}
           </SignedOut>
 
           <SignedIn>

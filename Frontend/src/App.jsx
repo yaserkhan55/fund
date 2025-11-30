@@ -17,6 +17,11 @@ import CategoryPage from "./pages/CategoryPage";   // ✅ ADDED
 import BrowseFundraisers from "./pages/BrowseFundraisers";   // ✅ ADDED
 import CreatorDashboard from "./pages/CreatorDashboard";
 
+// Donor Pages
+import DonorRegister from "./pages/DonorRegister";
+import DonorLogin from "./pages/DonorLogin";
+import DonorVerifyOTP from "./pages/DonorVerifyOTP";
+
 // Admin
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -86,6 +91,32 @@ export default function App() {
               afterSignUpUrl="/"
               redirectUrl="/"
             />
+          </Layout>
+        }
+      />
+
+      {/* DONOR ROUTES */}
+      <Route
+        path="/donor/register"
+        element={
+          <Layout>
+            <DonorRegister />
+          </Layout>
+        }
+      />
+      <Route
+        path="/donor/login"
+        element={
+          <Layout>
+            <DonorLogin />
+          </Layout>
+        }
+      />
+      <Route
+        path="/donor/verify-otp"
+        element={
+          <Layout>
+            <DonorVerifyOTP />
           </Layout>
         }
       />
