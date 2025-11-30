@@ -248,8 +248,14 @@ export default function TrendingFundraisers() {
                                 </div>
 
                                     {/* CTA Button */}
-                                    <div className="w-full bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 text-center transform hover:scale-[1.02]">
-                                      💝 Donate Now
+                                    <div className="group relative w-full bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 text-center transform hover:scale-[1.02] overflow-hidden cursor-pointer">
+                                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                      <span className="relative z-10 flex items-center justify-center gap-1.5">
+                                        <svg className="w-4 h-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Donate Now
+                                      </span>
                                     </div>
                               </div>
                             </div>

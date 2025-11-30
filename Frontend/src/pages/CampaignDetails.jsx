@@ -368,10 +368,18 @@ export default function CampaignDetails() {
             {/* Donate Button - Only show if campaign is approved */}
             {campaign?.status === "approved" && campaign?.isApproved ? (
               <button
-                className="w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white font-bold text-lg shadow-lg hover:from-[#009EA1] hover:to-[#008B8E] transition-all transform hover:scale-[1.02]"
+                className="group relative w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white font-bold text-lg shadow-lg hover:from-[#009EA1] hover:to-[#008B8E] transition-all transform hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
                 onClick={() => setShowDonation(true)}
               >
-                💝 Donate Now
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+                
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Donate Now
+                </span>
               </button>
             ) : (
               <div className="w-full mt-6 py-4 rounded-2xl bg-gray-200 text-gray-500 font-semibold text-center">

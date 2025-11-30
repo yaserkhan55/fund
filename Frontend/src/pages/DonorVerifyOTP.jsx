@@ -127,6 +127,34 @@ export default function DonorVerifyOTP() {
     }
   };
 
+  const handleSkipOTP = async () => {
+    setLoading(true);
+    setErrors({});
+
+    try {
+      const response = await axios.post(`${API_URL}/api/donors/verify-otp`, {
+        email,
+        skipOTP: true,
+      });
+
+      if (response.data.success) {
+        // Store token
+        localStorage.setItem("donorToken", response.data.token);
+        localStorage.setItem("donorData", JSON.stringify(response.data.donor));
+        localStorage.removeItem("donorEmail");
+
+        // Redirect to dashboard
+        navigate("/donor/dashboard");
+      }
+    } catch (error) {
+      setErrors({
+        submit: error.response?.data?.message || "Failed to skip OTP. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleResendOTP = async () => {
     if (countdown > 0 || resending) return;
 
@@ -247,25 +275,45 @@ export default function DonorVerifyOTP() {
             </button>
           </form>
 
-          {/* Resend OTP */}
-          <div className="mt-6 text-center">
-            <p className="text-gray-600 mb-2">
-              Didn't receive the OTP?
-            </p>
-            <button
-              type="button"
-              onClick={handleResendOTP}
-              disabled={countdown > 0 || resending}
-              className="text-[#00B5B8] font-semibold hover:text-[#009EA1] transition disabled:text-gray-400 disabled:cursor-not-allowed"
-            >
-              {resending ? (
-                "Sending..."
-              ) : countdown > 0 ? (
-                `Resend OTP in ${countdown}s`
-              ) : (
-                "Resend OTP"
-              )}
-            </button>
+          {/* Resend OTP & Skip */}
+          <div className="mt-6 space-y-4">
+            <div className="text-center">
+              <p className="text-gray-600 mb-2">
+                Didn't receive the OTP?
+              </p>
+              <button
+                type="button"
+                onClick={handleResendOTP}
+                disabled={countdown > 0 || resending}
+                className="text-[#00B5B8] font-semibold hover:text-[#009EA1] transition disabled:text-gray-400 disabled:cursor-not-allowed"
+              >
+                {resending ? (
+                  "Sending..."
+                ) : countdown > 0 ? (
+                  `Resend OTP in ${countdown}s`
+                ) : (
+                  "Resend OTP"
+                )}
+              </button>
+            </div>
+
+            {/* Skip OTP Option */}
+            <div className="border-t border-gray-200 pt-4">
+              <p className="text-sm text-gray-500 text-center mb-3">
+                Having trouble with OTP?
+              </p>
+              <button
+                type="button"
+                onClick={handleSkipOTP}
+                disabled={loading}
+                className="w-full py-2.5 border-2 border-dashed border-[#00B5B8] text-[#00B5B8] rounded-xl font-semibold hover:bg-[#E6F7F7] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "Processing..." : "Skip OTP Verification"}
+              </button>
+              <p className="text-xs text-gray-400 text-center mt-2">
+                You can verify your email later from your profile settings
+              </p>
+            </div>
           </div>
         </div>
       </div>
