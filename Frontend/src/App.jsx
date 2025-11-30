@@ -26,6 +26,11 @@ import DonorVerifyOTP from "./pages/DonorVerifyOTP";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 
+// Policy Pages (Razorpay Verification)
+import ShippingPolicy from "./pages/ShippingPolicy";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import RefundPolicy from "./pages/RefundPolicy";
+
 function Layout({ children }) {
   return (
     <div className="overflow-x-hidden">
@@ -181,6 +186,32 @@ export default function App() {
             <ClerkProtectedRoute>
               <CreatorDashboard />
             </ClerkProtectedRoute>
+          </Layout>
+        }
+      />
+
+      {/* POLICY PAGES (Razorpay Verification) */}
+      <Route
+        path="/shipping-policy"
+        element={
+          <Layout>
+            <ShippingPolicy />
+          </Layout>
+        }
+      />
+      <Route
+        path="/terms-and-conditions"
+        element={
+          <Layout>
+            <TermsAndConditions />
+          </Layout>
+        }
+      />
+      <Route
+        path="/refund-policy"
+        element={
+          <Layout>
+            <RefundPolicy />
           </Layout>
         }
       />
