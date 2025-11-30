@@ -63,6 +63,61 @@ app.get("/", (req, res) =>
   res.send("Fund backend running correctly ✔")
 );
 
+/* RAZORPAY VERIFICATION ROUTES - Frontend handles these pages */
+app.get("/shipping-policy", (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Shipping Policy - SEUMP</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+      <h1>Shipping Policy</h1>
+      <p>This page is handled by the frontend. Please visit the frontend URL for the full policy.</p>
+      <p>Frontend URL: ${process.env.FRONTEND_URL || "https://fund-liart.vercel.app"}/shipping-policy</p>
+    </body>
+    </html>
+  `);
+});
+
+app.get("/terms-and-conditions", (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Terms and Conditions - SEUMP</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+      <h1>Terms and Conditions</h1>
+      <p>This page is handled by the frontend. Please visit the frontend URL for the full terms.</p>
+      <p>Frontend URL: ${process.env.FRONTEND_URL || "https://fund-liart.vercel.app"}/terms-and-conditions</p>
+    </body>
+    </html>
+  `);
+});
+
+app.get("/refund-policy", (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Refund Policy - SEUMP</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+      <h1>Refund Policy</h1>
+      <p>This page is handled by the frontend. Please visit the frontend URL for the full policy.</p>
+      <p>Frontend URL: ${process.env.FRONTEND_URL || "https://fund-liart.vercel.app"}/refund-policy</p>
+    </body>
+    </html>
+  `);
+});
+
 app.use("/uploads", express.static("uploads"));
 
 /* PUBLIC ROUTES */
