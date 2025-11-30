@@ -17,6 +17,7 @@ import donationRoutes from "./routes/donationRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import googleAuthRoutes from "./routes/googleAuthRoutes.js";
+import donorRoutes from "./routes/donorRoutes.js";
 
 import User from "./models/User.js";
 
@@ -69,6 +70,7 @@ app.use("/api", authRoutes);
 app.use("/api/google", googleAuthRoutes);
 app.use("/api/campaigns", campaignRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/donors", donorRoutes);
 
 /* PROTECTED ROUTES */
 app.use("/api/profile", requireAuth(), syncClerkUser, profileRoutes);
