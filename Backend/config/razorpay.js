@@ -72,20 +72,26 @@ export const verifyPaymentSignature = (orderId, paymentId, signature) => {
 
 // Create order
 export const createOrder = async (amount, currency = "INR", receipt = null) => {
-  if (!razorpayInstance) {
-    await initializeRazorpay();
-  }
+  console.log("[Razorpay createOrder] Starting...");
+  console.log("[Razorpay createOrder] Amount:", amount, "Currency:", currency);
   
-  if (!razorpayInstance) {
-    const errorMsg = !process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET
-      ? "Razorpay credentials not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables."
-      : "Razorpay not initialized. Please check Razorpay package installation.";
+  // Check credentials first
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    const errorMsg = "Razorpay credentials not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.";
     console.error("❌ Razorpay Error:", errorMsg);
     throw new Error(errorMsg);
   }
 
-  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-    throw new Error("Razorpay credentials missing in environment variables");
+  // Initialize if needed
+  if (!razorpayInstance) {
+    console.log("[Razorpay createOrder] Initializing Razorpay...");
+    await initializeRazorpay();
+  }
+  
+  if (!razorpayInstance) {
+    const errorMsg = "Razorpay not initialized. Please check Razorpay package installation.";
+    console.error("❌ Razorpay Error:", errorMsg);
+    throw new Error(errorMsg);
   }
 
   const options = {
@@ -96,7 +102,11 @@ export const createOrder = async (amount, currency = "INR", receipt = null) => {
   };
 
   try {
-    console.log("[Razorpay] Creating order with options:", { ...options, amount: `${options.amount} paise` });
+    console.log("[Razorpay] Creating order with options:", { 
+      amount: `${options.amount} paise (₹${amount})`,
+      currency: options.currency,
+      receipt: options.receipt 
+    });
     const order = await razorpayInstance.orders.create(options);
     console.log("[Razorpay] Order created successfully:", order.id);
     return order;
@@ -106,6 +116,7 @@ export const createOrder = async (amount, currency = "INR", receipt = null) => {
       message: error.message,
       statusCode: error.statusCode,
       description: error.description,
+      error: error.error || "No error details",
     });
     throw error;
   }

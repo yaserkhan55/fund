@@ -112,6 +112,9 @@ export const createPaymentOrder = async (req, res) => {
     // Create Razorpay order
     try {
       console.log("[Create Order] Creating Razorpay order...");
+      console.log("[Create Order] Razorpay Key ID exists:", !!process.env.RAZORPAY_KEY_ID);
+      console.log("[Create Order] Razorpay Key Secret exists:", !!process.env.RAZORPAY_KEY_SECRET);
+      
       const order = await createOrder(amount, "INR", donation.receiptNumber);
       console.log("[Create Order] Razorpay order created:", order.id);
 
@@ -139,14 +142,34 @@ export const createPaymentOrder = async (req, res) => {
       });
     } catch (razorpayError) {
       console.error("[Create Order] Razorpay error:", razorpayError);
-      donation.paymentStatus = "failed";
-      await donation.save();
+      console.error("[Create Order] Error stack:", razorpayError.stack);
+      
+      // Clean up donation record if Razorpay fails
+      try {
+        await Donation.findByIdAndDelete(donation._id);
+        console.log("[Create Order] Cleaned up donation record:", donation._id);
+      } catch (cleanupError) {
+        console.error("[Create Order] Cleanup error:", cleanupError);
+      }
 
+      // Return detailed error
+      const errorMessage = razorpayError.message || "Failed to create payment order";
+      const hasCredentials = !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+      
       return res.status(500).json({
         success: false,
-        message: "Failed to create payment order",
-        error: razorpayError.message || "Razorpay configuration error",
-        details: process.env.RAZORPAY_KEY_ID ? "Razorpay credentials found" : "Razorpay credentials missing",
+        message: hasCredentials 
+          ? errorMessage 
+          : "Payment gateway not configured. Please contact support.",
+        error: razorpayError.toString(),
+        details: {
+          hasKeyId: !!process.env.RAZORPAY_KEY_ID,
+          hasKeySecret: !!process.env.RAZORPAY_KEY_SECRET,
+          errorType: razorpayError.name || "Unknown",
+          suggestion: !hasCredentials 
+            ? "Please configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables"
+            : "Check Razorpay dashboard and credentials",
+        },
       });
     }
   } catch (error) {
