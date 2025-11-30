@@ -62,6 +62,8 @@ function Home() {
   // Use refs to track if we've already processed notifications (prevents infinite loops)
   const processedRequestsRef = useRef(new Set());
   const processedActionsRef = useRef(new Set());
+  const requestsEffectRanRef = useRef(false);
+  const actionsEffectRanRef = useRef(false);
 
   // Fetch user's campaigns to check for admin requests
   useEffect(() => {
@@ -119,10 +121,9 @@ function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn]); // Only depend on isSignedIn, not getToken
 
-  // Extract admin requests from campaigns
+  // Extract admin requests from campaigns - Memoized to prevent recalculation
   const adminRequests = useMemo(() => {
-    if (!Array.isArray(myCampaigns)) {
-      console.log("myCampaigns is not an array:", myCampaigns);
+    if (!Array.isArray(myCampaigns) || myCampaigns.length === 0) {
       return [];
     }
 
@@ -140,13 +141,12 @@ function Home() {
         }));
     });
     
-    console.log("Found admin requests:", requests.length);
     return requests;
   }, [myCampaigns]);
 
-  // Extract admin actions (approve/reject/delete) from campaigns
+  // Extract admin actions (approve/reject/delete) from campaigns - Memoized
   const adminActions = useMemo(() => {
-    if (!Array.isArray(myCampaigns)) {
+    if (!Array.isArray(myCampaigns) || myCampaigns.length === 0) {
       return [];
     }
 
@@ -165,14 +165,24 @@ function Home() {
         }));
     });
     
-    console.log("Found admin actions:", actions.length);
     return actions;
   }, [myCampaigns]);
 
-  // Fetch latest notification from API
+  // Fetch latest notification from API - Only run once when signed in
+  const notificationFetchedRef = useRef(false);
+  
   useEffect(() => {
-    if (!isSignedIn) return;
+    if (!isSignedIn) {
+      notificationFetchedRef.current = false;
+      return;
+    }
 
+    // Only fetch once per sign-in session
+    if (notificationFetchedRef.current) {
+      return;
+    }
+
+    notificationFetchedRef.current = true;
     let isMounted = true;
 
     const fetchLatestNotification = async () => {
@@ -198,7 +208,7 @@ function Home() {
 
         const notifications = res.data?.notifications || [];
         
-        if (notifications.length > 0) {
+        if (notifications.length > 0 && isMounted) {
           // Prioritize contact_reply notifications, then filter unviewed
           const contactReplies = notifications.filter(n => n.type === "contact_reply" && !n.viewed);
           const otherNotifications = notifications.filter(n => n.type !== "contact_reply" && !n.viewed);
@@ -206,13 +216,13 @@ function Home() {
           // Combine: contact replies first, then others
           const unviewedNotifications = [...contactReplies, ...otherNotifications];
           
-          if (unviewedNotifications.length > 0 && isMounted) {
-            const latest = unviewedNotifications[0]; // Already sorted by newest first
+          if (unviewedNotifications.length > 0 && isMounted && !showNotificationPopup) {
+            const latest = unviewedNotifications[0];
             
             // Check if this notification has been shown before
             const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
             
-            // Simplified key generation - use contactId + createdAt for contact replies
+            // Simplified key generation
             let notificationKey;
             if (latest.type === "contact_reply") {
               notificationKey = `contact_reply_${latest.contactId}_${latest.createdAt}`;
@@ -226,7 +236,6 @@ function Home() {
               playNotificationSound();
               // Mark as shown
               shownNotifications.push(notificationKey);
-              // Keep only last 50 shown notifications
               if (shownNotifications.length > 50) {
                 shownNotifications.shift();
               }
@@ -239,97 +248,94 @@ function Home() {
       }
     };
 
+    // Fetch once, no interval to prevent loops
     fetchLatestNotification();
-    
-    // Refresh notifications every 30 seconds
-    const interval = setInterval(() => {
-      if (isMounted) {
-        fetchLatestNotification();
-      }
-    }, 30000);
     
     return () => {
       isMounted = false;
-      clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSignedIn]); // Only depend on isSignedIn, not getToken
+  }, [isSignedIn]); // Only depend on isSignedIn
 
   // Auto-show popup when admin requests are found (only if not already shown)
-  useEffect(() => {
-    // Only run if conditions are met and we haven't already shown a popup
-    if (loading || adminRequests.length === 0 || !isSignedIn || showNotificationPopup || showRequestPopup) {
-      return;
-    }
+  // DISABLED - This was causing infinite loops. Use notification system instead.
+  // useEffect(() => {
+  //   // Only run once per session
+  //   if (requestsEffectRanRef.current || loading || adminRequests.length === 0 || !isSignedIn || showNotificationPopup || showRequestPopup) {
+  //     return;
+  //   }
 
-    const mostRecent = [...adminRequests].sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0);
-      const dateB = new Date(b.createdAt || 0);
-      return dateB - dateA;
-    })[0];
+  //   requestsEffectRanRef.current = true;
+
+  //   const mostRecent = [...adminRequests].sort((a, b) => {
+  //     const dateA = new Date(a.createdAt || 0);
+  //     const dateB = new Date(b.createdAt || 0);
+  //     return dateB - dateA;
+  //   })[0];
     
-    if (!mostRecent) return;
+  //   if (!mostRecent) return;
     
-    const requestKey = `info_request_${mostRecent._id || mostRecent.id}_${mostRecent.createdAt}`;
+  //   const requestKey = `info_request_${mostRecent._id || mostRecent.id}_${mostRecent.createdAt}`;
     
-    // Check if we've already processed this request in this session
-    if (processedRequestsRef.current.has(requestKey)) {
-      return;
-    }
+  //   // Check if we've already processed this request in this session
+  //   if (processedRequestsRef.current.has(requestKey)) {
+  //     return;
+  //   }
     
-    // Check if this request has been shown (persistent check)
-    const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
+  //   // Check if this request has been shown (persistent check)
+  //   const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
     
-    if (!shownNotifications.includes(requestKey)) {
-      processedRequestsRef.current.add(requestKey);
-      setActiveRequest(mostRecent);
-      setShowRequestPopup(true);
-      shownNotifications.push(requestKey);
-      if (shownNotifications.length > 50) {
-        shownNotifications.shift();
-      }
-      localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, adminRequests.length, isSignedIn, showNotificationPopup, showRequestPopup]);
+  //   if (!shownNotifications.includes(requestKey)) {
+  //     processedRequestsRef.current.add(requestKey);
+  //     setActiveRequest(mostRecent);
+  //     setShowRequestPopup(true);
+  //     shownNotifications.push(requestKey);
+  //     if (shownNotifications.length > 50) {
+  //       shownNotifications.shift();
+  //     }
+  //     localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
+  //   }
+  // }, [loading, adminRequests.length, isSignedIn, showNotificationPopup, showRequestPopup]);
 
   // Auto-show popup when admin actions are found (only if not already shown)
-  useEffect(() => {
-    // Only run if conditions are met and we haven't already shown a popup
-    if (loading || adminActions.length === 0 || !isSignedIn || showNotificationPopup || showRequestPopup || showActionPopup) {
-      return;
-    }
+  // DISABLED - This was causing infinite loops. Use notification system instead.
+  // useEffect(() => {
+  //   // Only run once per session
+  //   if (actionsEffectRanRef.current || loading || adminActions.length === 0 || !isSignedIn || showNotificationPopup || showRequestPopup || showActionPopup) {
+  //     return;
+  //   }
 
-    const mostRecent = [...adminActions].sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0);
-      const dateB = new Date(b.createdAt || 0);
-      return dateB - dateA;
-    })[0];
+  //   actionsEffectRanRef.current = true;
+
+  //   const mostRecent = [...adminActions].sort((a, b) => {
+  //     const dateA = new Date(a.createdAt || 0);
+  //     const dateB = new Date(b.createdAt || 0);
+  //     return dateB - dateA;
+  //   })[0];
     
-    if (!mostRecent) return;
+  //   if (!mostRecent) return;
     
-    const actionKey = `admin_action_${mostRecent._id || mostRecent.id}_${mostRecent.createdAt}`;
+  //   const actionKey = `admin_action_${mostRecent._id || mostRecent.id}_${mostRecent.createdAt}`;
     
-    // Check if we've already processed this action in this session
-    if (processedActionsRef.current.has(actionKey)) {
-      return;
-    }
+  //   // Check if we've already processed this action in this session
+  //   if (processedActionsRef.current.has(actionKey)) {
+  //     return;
+  //   }
     
-    // Check if this action has been shown (persistent check)
-    const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
+  //   // Check if this action has been shown (persistent check)
+  //   const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
     
-    if (!shownNotifications.includes(actionKey)) {
-      processedActionsRef.current.add(actionKey);
-      setActiveAction(mostRecent);
-      setShowActionPopup(true);
-      shownNotifications.push(actionKey);
-      if (shownNotifications.length > 50) {
-        shownNotifications.shift();
-      }
-      localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, adminActions.length, isSignedIn, showNotificationPopup, showRequestPopup, showActionPopup]);
+  //   if (!shownNotifications.includes(actionKey)) {
+  //     processedActionsRef.current.add(actionKey);
+  //     setActiveAction(mostRecent);
+  //     setShowActionPopup(true);
+  //     shownNotifications.push(actionKey);
+  //     if (shownNotifications.length > 50) {
+  //       shownNotifications.shift();
+  //     }
+  //     localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
+  //   }
+  // }, [loading, adminActions.length, isSignedIn, showNotificationPopup, showRequestPopup, showActionPopup]);
 
   // Memoize the dismiss handler to prevent infinite loops
   const handleNotificationDismiss = useCallback(() => {

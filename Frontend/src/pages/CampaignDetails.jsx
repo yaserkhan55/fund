@@ -250,16 +250,7 @@ export default function CampaignDetails() {
     ? patientImages
     : [campaign.imageUrl || campaign.image].filter(Boolean);
 
-  // Debug: Log campaign status and showDonation state
-  useEffect(() => {
-    if (campaign) {
-      console.log("Campaign status:", campaign.status, "isApproved:", campaign.isApproved, "campaignId:", campaign._id);
-    }
-  }, [campaign]);
-
-  useEffect(() => {
-    console.log("showDonation state:", showDonation);
-  }, [showDonation]);
+  // Removed debug useEffects that might cause issues
 
   if (loading) {
     return (

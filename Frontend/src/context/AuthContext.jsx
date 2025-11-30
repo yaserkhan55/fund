@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
 
@@ -52,9 +52,16 @@ export function AuthProvider({ children }) {
   // -----------------------
   // AUTO SYNC CLERK USERS TO MONGODB
   // -----------------------
+  const syncedRef = useRef(false);
+  
   useEffect(() => {
+    // Only sync once per sign-in session
+    if (!isSignedIn || !clerkUser || syncedRef.current) return;
+
+    let isMounted = true;
+
     const syncClerkUser = async () => {
-      if (!isSignedIn || !clerkUser) return;
+      if (!isMounted) return;
 
       const email = clerkUser.primaryEmailAddress?.emailAddress;
       const name = clerkUser.fullName || clerkUser.firstName || "User";
@@ -72,21 +79,30 @@ export function AuthProvider({ children }) {
           clerkId, // Pass Clerk ID to backend
         });
 
-        if (res.data?.success) {
+        if (isMounted && res.data?.success) {
+          syncedRef.current = true; // Mark as synced
           setUser(res.data.user);
           localStorage.setItem("token", res.data.token);
-          console.log("✅ Clerk user synced to MongoDB:", email, "Clerk ID:", clerkId);
-        } else {
-          console.error("Failed to sync user:", res.data);
         }
       } catch (err) {
         console.error("Error syncing Clerk user:", err);
-        console.error("Error details:", err.response?.data || err.message);
       }
     };
 
     syncClerkUser();
-  }, [isSignedIn, clerkUser]);
+    
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn]); // Only depend on isSignedIn, not clerkUser object
+
+  // Reset sync flag when user signs out
+  useEffect(() => {
+    if (!isSignedIn) {
+      syncedRef.current = false;
+    }
+  }, [isSignedIn]);
 
   // -----------------------
   // Logout
