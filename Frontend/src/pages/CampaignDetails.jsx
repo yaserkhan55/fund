@@ -250,6 +250,41 @@ export default function CampaignDetails() {
     ? patientImages
     : [campaign.imageUrl || campaign.image].filter(Boolean);
 
+  // Debug: Log campaign status and showDonation state
+  useEffect(() => {
+    if (campaign) {
+      console.log("Campaign status:", campaign.status, "isApproved:", campaign.isApproved, "campaignId:", campaign._id);
+    }
+  }, [campaign]);
+
+  useEffect(() => {
+    console.log("showDonation state:", showDonation);
+  }, [showDonation]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F1FAFA] flex items-center justify-center">
+        <div className="text-center">
+          <svg className="animate-spin h-12 w-12 text-[#00B5B8] mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <p className="text-gray-600">Loading campaign...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!campaign) {
+    return (
+      <div className="min-h-screen bg-[#F1FAFA] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Campaign not found</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#F1FAFA] min-h-screen pb-8">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
@@ -365,11 +400,16 @@ export default function CampaignDetails() {
               </div>
             </div>
 
-            {/* Donate Button - Only show if campaign is approved */}
-            {campaign?.status === "approved" && campaign?.isApproved ? (
+            {/* Donate Button - Always show for now, can restrict later */}
+            {campaign ? (
               <button
                 className="group relative w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white font-bold text-lg shadow-lg hover:from-[#009EA1] hover:to-[#008B8E] transition-all transform hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
-                onClick={() => setShowDonation(true)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log("Donate button clicked, opening modal");
+                  setShowDonation(true);
+                }}
               >
                 {/* Shimmer effect */}
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
@@ -504,10 +544,13 @@ export default function CampaignDetails() {
         )}
       </div>
 
-      {showDonation && (
+      {showDonation && campaign && (
         <DonationModal
           campaignId={campaign._id}
-          onClose={() => setShowDonation(false)}
+          onClose={() => {
+            console.log("Closing donation modal");
+            setShowDonation(false);
+          }}
         />
       )}
     </div>
