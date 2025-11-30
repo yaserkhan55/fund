@@ -14,52 +14,39 @@ export default function DonorLogin() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // Check if already logged in (only once on mount)
+  // Check if already logged in (non-blocking, in background)
+  // This runs in the background and doesn't prevent the login form from showing
   useEffect(() => {
-    let isMounted = true;
-    
-    const checkAuth = async () => {
-      const token = localStorage.getItem("donorToken");
+    const token = localStorage.getItem("donorToken");
       
-      if (!token) {
-        // No token, allow login page to show
-        if (isMounted) {
-          setCheckingAuth(false);
-        }
-        return;
-      }
+    // If no token, nothing to check - login form is already showing
+    if (!token) {
+      return;
+    }
 
+    // If token exists, verify it in background (don't block UI)
+    const checkAuth = async () => {
       try {
-        // Verify token is valid by checking donor profile
         const response = await axios.get(`${API_URL}/api/donors/profile`, {
           headers: { Authorization: `Bearer ${token}` },
+          timeout: 2000, // 2 second timeout
         });
         
-        // Only redirect if component is still mounted and token is valid
-        if (isMounted && response.data) {
-          // Token is valid, redirect to dashboard
+        // If token is valid and we got donor data, redirect
+        if (response?.data?.donor) {
           const redirectTo = location.state?.from || "/donor/dashboard";
           navigate(redirectTo, { replace: true });
         }
       } catch (error) {
-        // Token invalid, remove it and allow login
-        console.log("Invalid token, allowing login:", error);
-        if (isMounted) {
-          localStorage.removeItem("donorToken");
-          localStorage.removeItem("donorData");
-          setCheckingAuth(false);
-        }
+        // Any error means token is invalid, remove it silently
+        localStorage.removeItem("donorToken");
+        localStorage.removeItem("donorData");
       }
     };
 
+    // Check auth in background, don't block the UI
     checkAuth();
-    
-    // Cleanup function
-    return () => {
-      isMounted = false;
-    };
   }, [navigate, location]);
 
   const handleChange = (e) => {
@@ -121,36 +108,6 @@ export default function DonorLogin() {
       setLoading(false);
     }
   };
-
-  // Show loading while checking authentication
-  if (checkingAuth) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#E6F8F8] to-white flex items-center justify-center">
-        <div className="text-center">
-          <svg
-            className="animate-spin h-12 w-12 text-[#00B5B8] mx-auto mb-4"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E6F8F8] to-white py-12 px-4 sm:px-6 lg:px-8">
