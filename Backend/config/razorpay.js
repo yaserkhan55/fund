@@ -1,23 +1,62 @@
 // config/razorpay.js
-import Razorpay from "razorpay";
 import crypto from "crypto";
 
-// Initialize Razorpay
+// Lazy load Razorpay to handle missing package gracefully
+let Razorpay = null;
+let razorpayAvailable = false;
+
+// Function to load Razorpay
+async function loadRazorpay() {
+  if (razorpayAvailable) return Razorpay;
+  
+  try {
+    const razorpayModule = await import("razorpay");
+    Razorpay = razorpayModule.default || razorpayModule;
+    razorpayAvailable = true;
+    return Razorpay;
+  } catch (error) {
+    console.error("❌ Razorpay package not installed.");
+    console.error("Please run: npm install razorpay");
+    razorpayAvailable = false;
+    return null;
+  }
+}
+
+// Initialize Razorpay instance
 let razorpayInstance = null;
 
-if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
-  razorpayInstance = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-  });
-  console.log("✅ Razorpay initialized successfully");
-} else {
-  console.log("⚠️ Razorpay credentials not found. Payment gateway will not work.");
+// Initialize function
+export async function initializeRazorpay() {
+  if (razorpayInstance) return razorpayInstance;
+  
+  const RazorpayClass = await loadRazorpay();
+  
+  if (!RazorpayClass) {
+    console.log("⚠️ Razorpay package not installed. Payment gateway will not work.");
+    return null;
+  }
+  
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    console.log("⚠️ Razorpay credentials not found. Payment gateway will not work.");
+    return null;
+  }
+  
+  try {
+    razorpayInstance = new RazorpayClass({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+    console.log("✅ Razorpay initialized successfully");
+    return razorpayInstance;
+  } catch (error) {
+    console.error("❌ Failed to initialize Razorpay:", error.message);
+    return null;
+  }
 }
 
 // Verify payment signature
 export const verifyPaymentSignature = (orderId, paymentId, signature) => {
-  if (!razorpayInstance) {
+  if (!process.env.RAZORPAY_KEY_SECRET) {
     throw new Error("Razorpay not configured");
   }
 
@@ -34,7 +73,11 @@ export const verifyPaymentSignature = (orderId, paymentId, signature) => {
 // Create order
 export const createOrder = async (amount, currency = "INR", receipt = null) => {
   if (!razorpayInstance) {
-    throw new Error("Razorpay not configured");
+    await initializeRazorpay();
+  }
+  
+  if (!razorpayInstance) {
+    throw new Error("Razorpay not configured. Please install razorpay package and set credentials.");
   }
 
   const options = {
@@ -56,7 +99,11 @@ export const createOrder = async (amount, currency = "INR", receipt = null) => {
 // Get payment details
 export const getPaymentDetails = async (paymentId) => {
   if (!razorpayInstance) {
-    throw new Error("Razorpay not configured");
+    await initializeRazorpay();
+  }
+  
+  if (!razorpayInstance) {
+    throw new Error("Razorpay not configured. Please install razorpay package and set credentials.");
   }
 
   try {
@@ -71,7 +118,11 @@ export const getPaymentDetails = async (paymentId) => {
 // Refund payment
 export const refundPayment = async (paymentId, amount = null) => {
   if (!razorpayInstance) {
-    throw new Error("Razorpay not configured");
+    await initializeRazorpay();
+  }
+  
+  if (!razorpayInstance) {
+    throw new Error("Razorpay not configured. Please install razorpay package and set credentials.");
   }
 
   try {
@@ -91,5 +142,9 @@ export const refundPayment = async (paymentId, amount = null) => {
   }
 };
 
-export default razorpayInstance;
+// Initialize on module load (non-blocking)
+initializeRazorpay().catch(err => {
+  console.error("Failed to initialize Razorpay:", err.message);
+});
 
+export default razorpayInstance;
