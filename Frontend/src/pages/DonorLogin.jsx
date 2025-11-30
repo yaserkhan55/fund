@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 
@@ -14,16 +14,25 @@ export default function DonorLogin() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const authCheckedRef = useRef(false); // Track if we've already checked auth
 
-  // Check if already logged in (non-blocking, in background)
-  // This runs in the background and doesn't prevent the login form from showing
+  // Check if already logged in (only once on mount)
   useEffect(() => {
+    // Prevent multiple checks
+    if (authCheckedRef.current) {
+      return;
+    }
+    
     const token = localStorage.getItem("donorToken");
       
     // If no token, nothing to check - login form is already showing
     if (!token) {
+      authCheckedRef.current = true;
       return;
     }
+
+    authCheckedRef.current = true;
+    let isMounted = true;
 
     // If token exists, verify it in background (don't block UI)
     const checkAuth = async () => {
@@ -34,20 +43,27 @@ export default function DonorLogin() {
         });
         
         // If token is valid and we got donor data, redirect
-        if (response?.data?.donor) {
+        if (isMounted && response?.data?.donor) {
           const redirectTo = location.state?.from || "/donor/dashboard";
           navigate(redirectTo, { replace: true });
         }
       } catch (error) {
         // Any error means token is invalid, remove it silently
-        localStorage.removeItem("donorToken");
-        localStorage.removeItem("donorData");
+        if (isMounted) {
+          localStorage.removeItem("donorToken");
+          localStorage.removeItem("donorData");
+        }
       }
     };
 
     // Check auth in background, don't block the UI
     checkAuth();
-  }, [navigate, location]);
+    
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount - don't depend on location or navigate
 
   const handleChange = (e) => {
     const { name, value } = e.target;

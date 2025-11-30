@@ -257,58 +257,78 @@ function Home() {
 
   // Auto-show popup when admin requests are found (only if not already shown)
   useEffect(() => {
-    if (!loading && adminRequests.length > 0 && isSignedIn && !showNotificationPopup && !showRequestPopup) {
-      const mostRecent = [...adminRequests].sort((a, b) => {
-        const dateA = new Date(a.createdAt || 0);
-        const dateB = new Date(b.createdAt || 0);
-        return dateB - dateA;
-      })[0];
-      
-      const requestKey = `info_request_${mostRecent._id || mostRecent.id}_${mostRecent.createdAt}`;
-      
-      // Check if we've already processed this request in this session
-      if (!processedRequestsRef.current.has(requestKey)) {
-        // Check if this request has been shown (persistent check)
-        const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
-        
-        if (!shownNotifications.includes(requestKey)) {
-          processedRequestsRef.current.add(requestKey);
-          setActiveRequest(mostRecent);
-          setShowRequestPopup(true);
-          shownNotifications.push(requestKey);
-          if (shownNotifications.length > 50) shownNotifications.shift();
-          localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
-        }
-      }
+    // Only run if conditions are met and we haven't already shown a popup
+    if (loading || adminRequests.length === 0 || !isSignedIn || showNotificationPopup || showRequestPopup) {
+      return;
     }
+
+    const mostRecent = [...adminRequests].sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA;
+    })[0];
+    
+    if (!mostRecent) return;
+    
+    const requestKey = `info_request_${mostRecent._id || mostRecent.id}_${mostRecent.createdAt}`;
+    
+    // Check if we've already processed this request in this session
+    if (processedRequestsRef.current.has(requestKey)) {
+      return;
+    }
+    
+    // Check if this request has been shown (persistent check)
+    const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
+    
+    if (!shownNotifications.includes(requestKey)) {
+      processedRequestsRef.current.add(requestKey);
+      setActiveRequest(mostRecent);
+      setShowRequestPopup(true);
+      shownNotifications.push(requestKey);
+      if (shownNotifications.length > 50) {
+        shownNotifications.shift();
+      }
+      localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, adminRequests.length, isSignedIn, showNotificationPopup, showRequestPopup]);
 
   // Auto-show popup when admin actions are found (only if not already shown)
   useEffect(() => {
-    if (!loading && adminActions.length > 0 && isSignedIn && !showNotificationPopup && !showRequestPopup && !showActionPopup) {
-      const mostRecent = [...adminActions].sort((a, b) => {
-        const dateA = new Date(a.createdAt || 0);
-        const dateB = new Date(b.createdAt || 0);
-        return dateB - dateA;
-      })[0];
-      
-      const actionKey = `admin_action_${mostRecent._id || mostRecent.id}_${mostRecent.createdAt}`;
-      
-      // Check if we've already processed this action in this session
-      if (!processedActionsRef.current.has(actionKey)) {
-        // Check if this action has been shown (persistent check)
-        const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
-        
-        if (!shownNotifications.includes(actionKey)) {
-          processedActionsRef.current.add(actionKey);
-          setActiveAction(mostRecent);
-          setShowActionPopup(true);
-          shownNotifications.push(actionKey);
-          if (shownNotifications.length > 50) shownNotifications.shift();
-          localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
-        }
-      }
+    // Only run if conditions are met and we haven't already shown a popup
+    if (loading || adminActions.length === 0 || !isSignedIn || showNotificationPopup || showRequestPopup || showActionPopup) {
+      return;
     }
+
+    const mostRecent = [...adminActions].sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA;
+    })[0];
+    
+    if (!mostRecent) return;
+    
+    const actionKey = `admin_action_${mostRecent._id || mostRecent.id}_${mostRecent.createdAt}`;
+    
+    // Check if we've already processed this action in this session
+    if (processedActionsRef.current.has(actionKey)) {
+      return;
+    }
+    
+    // Check if this action has been shown (persistent check)
+    const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
+    
+    if (!shownNotifications.includes(actionKey)) {
+      processedActionsRef.current.add(actionKey);
+      setActiveAction(mostRecent);
+      setShowActionPopup(true);
+      shownNotifications.push(actionKey);
+      if (shownNotifications.length > 50) {
+        shownNotifications.shift();
+      }
+      localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, adminActions.length, isSignedIn, showNotificationPopup, showRequestPopup, showActionPopup]);
 
   // Memoize the dismiss handler to prevent infinite loops
