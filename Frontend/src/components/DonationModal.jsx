@@ -101,10 +101,20 @@ export default function DonationModal({ campaignId, onClose }) {
                 onClose();
                 // Reload page to update campaign stats
                 window.location.reload();
+              } else {
+                setError("Payment verification failed. Please contact support with your receipt number.");
+                setLoading(false);
               }
             } catch (error) {
               console.error("Payment verification error:", error);
-              setError("Payment verification failed. Please contact support.");
+              const errorMsg = error.response?.data?.message || "Payment verification failed. Please contact support.";
+              setError(errorMsg);
+              setLoading(false);
+              
+              // If verification fails but payment was successful, show warning
+              if (error.response?.status === 400) {
+                setError("Payment may have been processed but verification failed. Please check your email or contact support.");
+              }
             }
           },
           prefill: {
@@ -122,9 +132,17 @@ export default function DonationModal({ campaignId, onClose }) {
 
         const razorpay = new window.Razorpay(options);
         razorpay.open();
+        
         razorpay.on("payment.failed", function (response) {
-          setError("Payment failed. Please try again.");
+          console.error("Razorpay payment failed:", response);
+          const errorDescription = response.error?.description || "Payment failed";
+          setError(`Payment failed: ${errorDescription}. Please try again or use a different payment method.`);
           setLoading(false);
+        });
+        
+        razorpay.on("payment.authorized", function (response) {
+          // Payment authorized but not yet captured
+          console.log("Payment authorized:", response);
         });
       }
     } catch (err) {

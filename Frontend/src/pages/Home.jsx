@@ -200,31 +200,66 @@ function Home() {
 
         const notifications = res.data?.notifications || [];
         
-        if (notifications.length > 0 && isMounted) {
-          // Prioritize contact_reply notifications, then filter unviewed
-          const contactReplies = notifications.filter(n => n.type === "contact_reply" && !n.viewed);
-          const otherNotifications = notifications.filter(n => n.type !== "contact_reply" && !n.viewed);
+        // Also check for admin actions from campaigns
+        const adminActionsFromCampaigns = myCampaigns.flatMap((campaign) => {
+          if (!Array.isArray(campaign.adminActions)) return [];
+          return campaign.adminActions
+            .filter((action) => !action.viewed)
+            .map((action) => ({
+              type: "admin_action",
+              id: action._id || action.id,
+              action: action.action,
+              message: action.message || (action.action === "approved" 
+                ? "Your campaign has been approved and is now live!" 
+                : action.action === "rejected"
+                ? "Your campaign has been rejected. Please review the requirements."
+                : "Your campaign has been deleted."),
+              campaignId: campaign._id,
+              campaignTitle: campaign.title,
+              createdAt: action.createdAt || new Date(),
+              viewed: action.viewed || false,
+            }));
+        });
+
+        // Combine API notifications with admin actions
+        const allNotifications = [...notifications, ...adminActionsFromCampaigns];
+        
+        if (allNotifications.length > 0 && isMounted) {
+          // Prioritize admin actions (approve/reject), then contact_reply, then others
+          const adminActions = allNotifications.filter(n => n.type === "admin_action" && !n.viewed);
+          const contactReplies = allNotifications.filter(n => n.type === "contact_reply" && !n.viewed);
+          const otherNotifications = allNotifications.filter(n => n.type !== "contact_reply" && n.type !== "admin_action" && !n.viewed);
           
-          // Combine: contact replies first, then others
-          const unviewedNotifications = [...contactReplies, ...otherNotifications];
+          // Combine: admin actions first, contact replies second, then others
+          const unviewedNotifications = [...adminActions, ...contactReplies, ...otherNotifications];
           
-          if (unviewedNotifications.length > 0 && isMounted && !showNotificationPopup) {
+          if (unviewedNotifications.length > 0 && isMounted && !showNotificationPopup && !showActionPopup) {
             const latest = unviewedNotifications[0];
             
             // Check if this notification has been shown before
             const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
             
-            // Simplified key generation
+            // Generate notification key
             let notificationKey;
-            if (latest.type === "contact_reply") {
+            if (latest.type === "admin_action") {
+              notificationKey = `admin_action_${latest.action}_${latest.campaignId}_${latest.id}_${latest.createdAt}`;
+              // Show admin action popup
+              setActiveAction({
+                ...latest,
+                _id: latest.id,
+              });
+              setShowActionPopup(true);
+            } else if (latest.type === "contact_reply") {
               notificationKey = `contact_reply_${latest.contactId}_${latest.createdAt}`;
+              setLatestNotification(latest);
+              setShowNotificationPopup(true);
             } else {
               notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
+              setLatestNotification(latest);
+              setShowNotificationPopup(true);
             }
             
             if (notificationKey && !shownNotifications.includes(notificationKey) && isMounted) {
-              setLatestNotification(latest);
-              setShowNotificationPopup(true);
               playNotificationSound();
               // Mark as shown
               shownNotifications.push(notificationKey);
@@ -243,16 +278,16 @@ function Home() {
     // Fetch immediately
     fetchLatestNotification();
     
-    // Poll every 30 seconds to catch new admin actions (delete/reject)
+    // Poll every 15 seconds to catch new admin actions (delete/reject/approve)
     intervalId = setInterval(() => {
-      if (isMounted && !showNotificationPopup) {
+      if (isMounted && !showNotificationPopup && !showActionPopup) {
         fetchLatestNotification();
       }
-    }, 30000); // 30 seconds
+    }, 15000); // 15 seconds for faster response
     
     // Also fetch when page becomes visible (user switches back to tab)
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && isMounted && !showNotificationPopup) {
+      if (document.visibilityState === 'visible' && isMounted && !showNotificationPopup && !showActionPopup) {
         fetchLatestNotification();
       }
     };
@@ -267,7 +302,7 @@ function Home() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSignedIn]); // Only depend on isSignedIn
+  }, [isSignedIn, myCampaigns]); // Depend on myCampaigns to catch admin actions
 
   // Auto-show popup when admin requests are found (only if not already shown)
   // DISABLED - This was causing infinite loops. Use notification system instead.
