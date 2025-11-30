@@ -143,11 +143,17 @@ export default function DonationModal({ campaignId, onClose }) {
         }, 1500);
       } else if (err.response?.status === 404) {
         setError("Donation endpoint not found. Please contact support.");
-      } else if (err.response?.status === 500) {
+      } else if (err.response?.status === 400 || err.response?.status === 500) {
         const errorMsg = err.response?.data?.message || "Server error. Please try again later.";
         const details = err.response?.data?.details;
-        if (details && !details.hasKeyId) {
-          setError("Payment gateway is not configured. Please contact support to enable donations.");
+        
+        // Check if it's a configuration error
+        if (details && (!details.hasKeyId || !details.hasKeySecret)) {
+          setError(
+            "Payment gateway is not configured. " +
+            "Please configure Razorpay credentials (RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET) " +
+            "in your backend environment variables to enable donations."
+          );
         } else {
           setError(errorMsg);
         }
