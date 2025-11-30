@@ -14,26 +14,52 @@ export default function DonorLogin() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // Check if already logged in
+  // Check if already logged in (only once on mount)
   useEffect(() => {
-    const token = localStorage.getItem("donorToken");
-    if (token) {
-      // Verify token is valid by checking donor profile
-      axios
-        .get(`${API_URL}/api/donors/profile`, {
+    let isMounted = true;
+    
+    const checkAuth = async () => {
+      const token = localStorage.getItem("donorToken");
+      
+      if (!token) {
+        // No token, allow login page to show
+        if (isMounted) {
+          setCheckingAuth(false);
+        }
+        return;
+      }
+
+      try {
+        // Verify token is valid by checking donor profile
+        const response = await axios.get(`${API_URL}/api/donors/profile`, {
           headers: { Authorization: `Bearer ${token}` },
-        })
-        .then(() => {
+        });
+        
+        // Only redirect if component is still mounted and token is valid
+        if (isMounted && response.data) {
           // Token is valid, redirect to dashboard
           const redirectTo = location.state?.from || "/donor/dashboard";
-          navigate(redirectTo);
-        })
-        .catch(() => {
-          // Token invalid, remove it
+          navigate(redirectTo, { replace: true });
+        }
+      } catch (error) {
+        // Token invalid, remove it and allow login
+        console.log("Invalid token, allowing login:", error);
+        if (isMounted) {
           localStorage.removeItem("donorToken");
-        });
-    }
+          localStorage.removeItem("donorData");
+          setCheckingAuth(false);
+        }
+      }
+    };
+
+    checkAuth();
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, [navigate, location]);
 
   const handleChange = (e) => {
@@ -95,6 +121,36 @@ export default function DonorLogin() {
       setLoading(false);
     }
   };
+
+  // Show loading while checking authentication
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#E6F8F8] to-white flex items-center justify-center">
+        <div className="text-center">
+          <svg
+            className="animate-spin h-12 w-12 text-[#00B5B8] mx-auto mb-4"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E6F8F8] to-white py-12 px-4 sm:px-6 lg:px-8">
