@@ -143,8 +143,10 @@ export default function DonationModal({ campaignId, onClose }) {
         setError("Donation endpoint not found. Please contact support.");
       } else if (err.response?.status >= 500) {
         setError("Server error. Please try again later.");
+      } else if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
+        setError("Network error. Please check your connection and try again.");
       } else {
-        setError(err.response?.data?.message || err.message || "Something went wrong. Please try again.");
+        setError(err.response?.data?.message || err.message || "Failed to create donation. Please try again.");
       }
     }
   };
