@@ -1,6 +1,7 @@
 import Donor from "../models/Donor.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { sendOTPEmail } from "../utils/sendOTPEmail.js";
 
 // Generate JWT Token
 const generateToken = (donorId) => {
@@ -53,15 +54,20 @@ export const registerDonor = async (req, res) => {
     const otp = donor.generateOTP();
     await donor.save();
 
-    // TODO: Send OTP via email/SMS
-    console.log(`OTP for ${donor.email}: ${otp}`);
+    // Send OTP via email
+    const emailResult = await sendOTPEmail(donor.email, otp, donor.name);
+    
+    // In development, also log OTP if email fails
+    if (!emailResult.success) {
+      console.log(`⚠️ Email sending failed. OTP for ${donor.email}: ${otp}`);
+    }
 
     // Generate token
     const token = generateToken(donor._id);
 
     res.status(201).json({
       success: true,
-      message: "Donor registered successfully. Please verify your email with OTP.",
+      message: "Donor registered successfully. Please check your email for OTP verification.",
       donor: {
         id: donor._id,
         name: donor.name,
@@ -70,7 +76,9 @@ export const registerDonor = async (req, res) => {
         isEmailVerified: donor.isEmailVerified,
       },
       token,
-      otpSent: true, // In production, don't send OTP in response
+      otpSent: emailResult.success,
+      // In development mode, return OTP if email failed (remove in production)
+      ...(process.env.NODE_ENV === "development" && !emailResult.success && { devOtp: otp }),
     });
   } catch (error) {
     console.error("Donor registration error:", error);
@@ -102,6 +110,32 @@ export const verifyOTP = async (req, res) => {
       });
     }
 
+    // Allow skipping OTP verification (for convenience)
+    const skipOTP = req.body.skipOTP === true || req.body.skipOTP === "true";
+    
+    if (skipOTP) {
+      // Skip OTP verification - mark as verified
+      donor.isEmailVerified = true;
+      donor.otp = null;
+      donor.otpExpires = null;
+      await donor.save();
+
+      const token = generateToken(donor._id);
+
+      return res.json({
+        success: true,
+        message: "Account activated successfully (OTP skipped)",
+        donor: {
+          id: donor._id,
+          name: donor.name,
+          email: donor.email,
+          isEmailVerified: donor.isEmailVerified,
+        },
+        token,
+      });
+    }
+
+    // Verify OTP
     if (donor.verifyOTP(otp)) {
       donor.isEmailVerified = true;
       donor.otp = null;
@@ -124,7 +158,7 @@ export const verifyOTP = async (req, res) => {
     } else {
       return res.status(400).json({
         success: false,
-        message: "Invalid or expired OTP",
+        message: "Invalid or expired OTP. You can skip OTP verification if needed.",
       });
     }
   } catch (error) {
@@ -160,13 +194,20 @@ export const resendOTP = async (req, res) => {
     const otp = donor.generateOTP();
     await donor.save();
 
-    // TODO: Send OTP via email/SMS
-    console.log(`Resent OTP for ${donor.email}: ${otp}`);
+    // Send OTP via email
+    const emailResult = await sendOTPEmail(donor.email, otp, donor.name);
+    
+    // In development, also log OTP if email fails
+    if (!emailResult.success) {
+      console.log(`⚠️ Email sending failed. Resent OTP for ${donor.email}: ${otp}`);
+    }
 
     res.json({
       success: true,
-      message: "OTP sent successfully",
-      otpSent: true,
+      message: emailResult.success ? "OTP sent successfully to your email" : "OTP generated. Please check your email.",
+      otpSent: emailResult.success,
+      // In development mode, return OTP if email failed (remove in production)
+      ...(process.env.NODE_ENV === "development" && !emailResult.success && { devOtp: otp }),
     });
   } catch (error) {
     console.error("Resend OTP error:", error);
