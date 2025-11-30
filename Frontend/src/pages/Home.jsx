@@ -168,22 +168,14 @@ function Home() {
     return actions;
   }, [myCampaigns]);
 
-  // Fetch latest notification from API - Only run once when signed in
-  const notificationFetchedRef = useRef(false);
-  
+  // Fetch latest notification from API - Poll periodically to catch new admin actions
   useEffect(() => {
     if (!isSignedIn) {
-      notificationFetchedRef.current = false;
       return;
     }
 
-    // Only fetch once per sign-in session
-    if (notificationFetchedRef.current) {
-      return;
-    }
-
-    notificationFetchedRef.current = true;
     let isMounted = true;
+    let intervalId = null;
 
     const fetchLatestNotification = async () => {
       if (!isMounted) return;
@@ -248,11 +240,31 @@ function Home() {
       }
     };
 
-    // Fetch once, no interval to prevent loops
+    // Fetch immediately
     fetchLatestNotification();
+    
+    // Poll every 30 seconds to catch new admin actions (delete/reject)
+    intervalId = setInterval(() => {
+      if (isMounted && !showNotificationPopup) {
+        fetchLatestNotification();
+      }
+    }, 30000); // 30 seconds
+    
+    // Also fetch when page becomes visible (user switches back to tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isMounted && !showNotificationPopup) {
+        fetchLatestNotification();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       isMounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn]); // Only depend on isSignedIn

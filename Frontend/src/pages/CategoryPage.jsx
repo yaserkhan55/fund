@@ -176,12 +176,13 @@ export default function CategoryPage() {
             <Link
               key={c._id}
               to={`/campaign/${c._id}`}
-              className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col h-[500px] block border border-[#E0F2F2] relative group"
+              className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col block border border-[#E0F2F2] relative group h-full"
+              style={{ minHeight: "480px", maxHeight: "480px" }}
             >
               {/* Subtle light effect on hover */}
               <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
               
-              <div className="h-[200px] w-full overflow-hidden bg-gray-200">
+              <div className="h-40 w-full overflow-hidden bg-gray-200 flex-shrink-0">
                 <img
                   src={resolveImg(c.image || c.imageUrl)}
                   alt={c.title}
@@ -190,8 +191,8 @@ export default function CategoryPage() {
                 />
               </div>
 
-              <div className="p-5 flex flex-col flex-grow">
-                <div className="flex items-center justify-between mb-2">
+              <div className="p-5 flex flex-col flex-grow" style={{ minHeight: "340px" }}>
+                <div className="flex items-center justify-between mb-2 flex-shrink-0">
                   {c.category && (
                     <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-full">
                       {c.category}
@@ -204,15 +205,15 @@ export default function CategoryPage() {
                   )}
                 </div>
 
-                <h3 className="text-lg font-bold text-[#003d3b] mb-2 line-clamp-2">
+                <h3 className="text-lg font-bold text-[#003d3b] mb-2 line-clamp-2 flex-shrink-0" style={{ minHeight: "3.5rem" }}>
                   {c.title}
                 </h3>
 
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow" style={{ minHeight: "2.5rem" }}>
                   {c.shortDescription || "No description available."}
                 </p>
 
-                <div className="mt-auto">
+                <div className="mt-auto flex-shrink-0">
                   <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
                     <div
                       className="h-2 rounded-full transition-all"

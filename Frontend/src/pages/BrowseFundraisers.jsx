@@ -140,9 +140,10 @@ export default function BrowseFundraisers() {
                   <Link
                     key={campaign._id}
                     to={`/campaign/${campaign._id}`}
-                    className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#E0F2F2] hover:shadow-xl transition-all duration-300 flex flex-col"
+                    className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#E0F2F2] hover:shadow-xl transition-all duration-300 flex flex-col h-full"
+                    style={{ minHeight: "480px", maxHeight: "480px" }}
                   >
-                    <div className="h-48 w-full overflow-hidden bg-gray-200 relative">
+                    <div className="h-40 w-full overflow-hidden bg-gray-200 relative flex-shrink-0">
                       <img
                         src={resolveImg(campaign.image)}
                         alt={campaign.title}
@@ -155,8 +156,8 @@ export default function BrowseFundraisers() {
                         </span>
                       </div>
                     </div>
-                    <div className="p-5 flex-grow flex flex-col">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div className="p-5 flex-grow flex flex-col" style={{ minHeight: "340px" }}>
+                      <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                         {campaign.category && (
                           <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-full">
                             {campaign.category}
@@ -168,13 +169,13 @@ export default function BrowseFundraisers() {
                           </span>
                         )}
                       </div>
-                      <h3 className="font-bold text-lg text-[#003d3b] mb-2 line-clamp-2">
+                      <h3 className="font-bold text-lg text-[#003d3b] mb-2 line-clamp-2 flex-shrink-0" style={{ minHeight: "3.5rem" }}>
                         {campaign.title}
                       </h3>
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow">
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow" style={{ minHeight: "2.5rem" }}>
                         {campaign.shortDescription || "No description available."}
                       </p>
-                      <div className="mt-auto">
+                      <div className="mt-auto flex-shrink-0">
                         <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
                           <div
                             className="h-2 rounded-full bg-[#00B5B8] transition-all"
@@ -304,9 +305,10 @@ export default function BrowseFundraisers() {
                 <Link
                   key={campaign._id}
                   to={`/campaign/${campaign._id}`}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#E0F2F2] hover:shadow-xl transition-all duration-300 flex flex-col"
+                  className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#E0F2F2] hover:shadow-xl transition-all duration-300 flex flex-col h-full"
+                  style={{ minHeight: "480px", maxHeight: "480px" }}
                 >
-                  <div className="h-48 w-full overflow-hidden bg-gray-200 relative">
+                  <div className="h-40 w-full overflow-hidden bg-gray-200 relative flex-shrink-0">
                     <img
                       src={resolveImg(campaign.image)}
                       alt={campaign.title}
@@ -314,8 +316,8 @@ export default function BrowseFundraisers() {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="p-5 flex-grow flex flex-col">
-                    <div className="flex items-center gap-2 mb-2">
+                  <div className="p-5 flex-grow flex flex-col" style={{ minHeight: "340px" }}>
+                    <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                       {campaign.category && (
                         <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-full">
                           {campaign.category}
@@ -327,13 +329,13 @@ export default function BrowseFundraisers() {
                         </span>
                       )}
                     </div>
-                    <h3 className="font-bold text-lg text-[#003d3b] mb-2 line-clamp-2">
+                    <h3 className="font-bold text-lg text-[#003d3b] mb-2 line-clamp-2 flex-shrink-0" style={{ minHeight: "3.5rem" }}>
                       {campaign.title}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow">
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow" style={{ minHeight: "2.5rem" }}>
                       {campaign.shortDescription || "No description available."}
                     </p>
-                    <div className="mt-auto">
+                    <div className="mt-auto flex-shrink-0">
                       <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
                         <div
                           className="h-2 rounded-full bg-[#00B5B8] transition-all"
