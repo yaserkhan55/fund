@@ -75,7 +75,8 @@ app.use("/api/donors", donorRoutes);
 /* PROTECTED ROUTES */
 app.use("/api/profile", requireAuth(), syncClerkUser, profileRoutes);
 app.use("/api/fundraisers", requireAuth(), syncClerkUser, fundraiserRoutes);
-app.use("/api/donations", requireAuth(), syncClerkUser, donationRoutes);
+// Donations routes - public for viewing, protected for creating (donor JWT auth handled in routes)
+app.use("/api/donations", donationRoutes);
 
 /* ADMIN ROUTES */
 app.use("/api/admin", adminRoutes);
