@@ -20,10 +20,26 @@ export default function Navbar() {
   const menuRef = useRef(null);
   const notificationRef = useRef(null);
 
-  // Check if donor is logged in
+  // Check if donor is logged in and listen for changes
   useEffect(() => {
-    const donorToken = localStorage.getItem("donorToken");
-    setIsDonorLoggedIn(!!donorToken);
+    const checkDonorLogin = () => {
+      const donorToken = localStorage.getItem("donorToken");
+      setIsDonorLoggedIn(!!donorToken);
+    };
+
+    // Check on mount
+    checkDonorLogin();
+
+    // Listen for storage changes (when donor logs in/out in another tab)
+    window.addEventListener("storage", checkDonorLogin);
+
+    // Check periodically (for same-tab login)
+    const interval = setInterval(checkDonorLogin, 1000);
+
+    return () => {
+      window.removeEventListener("storage", checkDonorLogin);
+      clearInterval(interval);
+    };
   }, []);
 
   // Close dropdown when clicking outside

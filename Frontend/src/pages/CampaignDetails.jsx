@@ -365,12 +365,19 @@ export default function CampaignDetails() {
               </div>
             </div>
 
-            <button
-              className="w-full mt-6 py-3 rounded-2xl bg-[#00B5B8] text-white font-semibold shadow-md hover:bg-[#009EA1] transition"
-              onClick={() => setShowDonation(true)}
-            >
-              Contribute Now
-            </button>
+            {/* Donate Button - Only show if campaign is approved */}
+            {campaign?.status === "approved" && campaign?.isApproved ? (
+              <button
+                className="w-full mt-6 py-4 rounded-2xl bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white font-bold text-lg shadow-lg hover:from-[#009EA1] hover:to-[#008B8E] transition-all transform hover:scale-[1.02]"
+                onClick={() => setShowDonation(true)}
+              >
+                💝 Donate Now
+              </button>
+            ) : (
+              <div className="w-full mt-6 py-4 rounded-2xl bg-gray-200 text-gray-500 font-semibold text-center">
+                Campaign Pending Approval
+              </div>
+            )}
 
             <div className="mt-4">
               <button

@@ -58,12 +58,20 @@ export default function Hero() {
             Start your journey with your first contribution.
           </p>
 
-          <Link
-            to="/browse"
-            className="inline-block mt-6 bg-[#00B5B8] hover:bg-[#009a9c] text-white font-semibold px-7 py-3 rounded-lg shadow-md transition"
-          >
-            Start Helping →
-          </Link>
+          <div className="flex flex-wrap gap-4 mt-6">
+            <Link
+              to="/browse"
+              className="inline-block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white font-bold px-8 py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+            >
+              💝 Donate Now →
+            </Link>
+            <Link
+              to="/donor/register"
+              className="inline-block border-2 border-[#00B5B8] text-[#00B5B8] hover:bg-[#E6F7F7] font-semibold px-8 py-3.5 rounded-xl transition"
+            >
+              Become a Donor
+            </Link>
+          </div>
 
           {/* STATS */}
           <div className="flex flex-wrap gap-10 mt-12">

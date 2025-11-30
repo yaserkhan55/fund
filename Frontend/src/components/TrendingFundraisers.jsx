@@ -247,10 +247,10 @@ export default function TrendingFundraisers() {
                                   )}
                                 </div>
 
-                                {/* CTA Button */}
-                                <div className="w-full bg-[#00B5B8] hover:bg-[#009EA1] text-white py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 text-center">
-                                  Contribute Now
-                                </div>
+                                    {/* CTA Button */}
+                                    <div className="w-full bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 text-center transform hover:scale-[1.02]">
+                                      💝 Donate Now
+                                    </div>
                               </div>
                             </div>
                           </Link>
