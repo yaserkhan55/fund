@@ -27,6 +27,7 @@ export const adminGetAllCampaigns = async (req, res) => {
 export const getApprovedCampaigns = async (req, res) => {
   try {
     const campaigns = await Campaign.find({ status: "approved" })
+      .populate("owner", "name email")
       .sort({ createdAt: -1 });
 
     res.json({ success: true, campaigns });

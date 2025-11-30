@@ -52,11 +52,21 @@ export const createPaymentOrder = async (req, res) => {
     //   });
     // }
 
-    // Check if campaign goal is reached
-    if (campaign.raisedAmount >= campaign.goalAmount) {
+    // Check if campaign goal is reached (allow donations up to 5% over goal)
+    const maxAllowedAmount = campaign.goalAmount * 1.05;
+    if (campaign.raisedAmount >= maxAllowedAmount) {
       return res.status(400).json({
         success: false,
-        message: "Campaign goal has been reached",
+        message: "Campaign goal has been reached. Thank you for your support!",
+      });
+    }
+
+    // Validate amount doesn't exceed remaining goal significantly
+    const remainingAmount = maxAllowedAmount - campaign.raisedAmount;
+    if (amount > remainingAmount * 1.1) {
+      return res.status(400).json({
+        success: false,
+        message: `Donation amount exceeds the remaining goal. Maximum donation allowed: ₹${Math.floor(remainingAmount).toLocaleString('en-IN')}`,
       });
     }
 
@@ -262,12 +272,16 @@ export const verifyPayment = async (req, res) => {
     donation.paymentMethod = paymentDetails.method || "razorpay";
     await donation.save();
 
-    // Update campaign raised amount
+    // Update campaign raised amount (atomic operation to prevent race conditions)
     const campaign = await Campaign.findById(donation.campaignId);
     if (campaign) {
-      campaign.raisedAmount += donation.amount;
-      campaign.contributors = (campaign.contributors || 0) + 1;
-      await campaign.save();
+      // Use atomic increment to prevent race conditions
+      await Campaign.findByIdAndUpdate(
+        donation.campaignId,
+        {
+          $inc: { raisedAmount: donation.amount, contributors: 1 }
+        }
+      );
     }
 
     // Update or create campaign wallet
@@ -318,6 +332,54 @@ export const verifyPayment = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to verify payment",
+    });
+  }
+};
+
+// ✅ GET DONATION STATUS
+export const getDonationStatus = async (req, res) => {
+  try {
+    const { donationId } = req.params;
+    const donorId = req.donorId;
+
+    if (!donationId) {
+      return res.status(400).json({
+        success: false,
+        message: "Donation ID is required",
+      });
+    }
+
+    const donation = await Donation.findOne({
+      _id: donationId,
+      donorId: donorId,
+    });
+
+    if (!donation) {
+      return res.status(404).json({
+        success: false,
+        message: "Donation not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      donation: {
+        id: donation._id,
+        receiptNumber: donation.receiptNumber,
+        amount: donation.amount,
+        netAmount: donation.netAmount,
+        paymentStatus: donation.paymentStatus,
+        paymentMethod: donation.paymentMethod,
+        createdAt: donation.createdAt,
+        razorpayOrderId: donation.razorpayOrderId,
+        razorpayPaymentId: donation.razorpayPaymentId,
+      },
+    });
+  } catch (error) {
+    console.error("Get donation status error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to get donation status",
     });
   }
 };
