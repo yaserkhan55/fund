@@ -17,14 +17,21 @@ export default function ContactForm({ compact = false }) {
     if (isSignedIn && user) {
       // Only auto-fill if name is empty (don't override user input)
       if (!name) {
-        setName(user.fullName || user.firstName || user.emailAddresses?.[0]?.emailAddress || "");
+        const userName = user.fullName || user.firstName || user.emailAddresses?.[0]?.emailAddress || "";
+        if (userName) {
+          setName(userName);
+        }
       }
       // Auto-fill email if empty
       if (!email) {
-        setEmail(user.emailAddresses?.[0]?.emailAddress || "");
+        const userEmail = user.emailAddresses?.[0]?.emailAddress || "";
+        if (userEmail) {
+          setEmail(userEmail);
+        }
       }
     }
-  }, [isSignedIn, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn]); // Only depend on isSignedIn, not user object
 
   const handleNameInputClick = () => {
     // Auto-fill name when input is clicked if user is logged in

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "../lib/api";
 
@@ -7,6 +7,7 @@ export default function TrendingFundraisers() {
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [itemsPerView, setItemsPerView] = useState(1);
+  const carouselIntervalRef = useRef(null);
 
   const resolveImg = (img) => {
     if (!img) return "/no-image.png";
@@ -55,18 +56,32 @@ export default function TrendingFundraisers() {
     return () => window.removeEventListener('resize', updateItemsPerView);
   }, []);
 
-  const slides = [];
-  for (let i = 0; i < campaigns.length; i += itemsPerView) {
-    slides.push(campaigns.slice(i, i + itemsPerView));
-  }
+  // Memoize slides calculation to prevent recalculation on every render
+  const slides = useMemo(() => {
+    const result = [];
+    for (let i = 0; i < campaigns.length; i += itemsPerView) {
+      result.push(campaigns.slice(i, i + itemsPerView));
+    }
+    return result;
+  }, [campaigns, itemsPerView]);
+
   const slideCount = slides.length;
 
   // Auto-rotate carousel - move one by one through all campaigns
   useEffect(() => {
-    if (!slideCount) return;
+    // Clear any existing interval
+    if (carouselIntervalRef.current) {
+      clearInterval(carouselIntervalRef.current);
+      carouselIntervalRef.current = null;
+    }
+
+    if (!slideCount || slideCount === 0) {
+      return;
+    }
 
     const maxIndex = Math.max(0, slideCount - 1);
 
+    // Ensure activeIndex is within bounds
     setActiveIndex((prev) => {
       if (prev > maxIndex) {
         return 0;
@@ -74,7 +89,8 @@ export default function TrendingFundraisers() {
       return prev;
     });
     
-    const timer = setInterval(() => {
+    // Set up auto-rotate interval
+    carouselIntervalRef.current = setInterval(() => {
       setActiveIndex((prev) => {
         if (prev >= maxIndex) {
           return 0; // Loop back to start
@@ -83,8 +99,13 @@ export default function TrendingFundraisers() {
       });
     }, 4000); // Auto-rotate every 4 seconds
 
-    return () => clearInterval(timer);
-  }, [slideCount]);
+    return () => {
+      if (carouselIntervalRef.current) {
+        clearInterval(carouselIntervalRef.current);
+        carouselIntervalRef.current = null;
+      }
+    };
+  }, [slideCount]); // Only depend on slideCount, not slides array
 
   if (!campaigns.length && !loading) {
     return (

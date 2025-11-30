@@ -64,9 +64,13 @@ export default function Navbar() {
       return;
     }
 
+    let isMounted = true;
+
     const fetchNotifications = async () => {
+      if (!isMounted) return;
+      
       try {
-        setLoadingNotifications(true);
+        if (isMounted) setLoadingNotifications(true);
         let token = null;
         try {
           token = await getToken();
@@ -74,28 +78,39 @@ export default function Navbar() {
           token = localStorage.getItem("token");
         }
 
-        if (!token) return;
+        if (!token || !isMounted) return;
 
         const res = await axios.get(`${API_URL}/api/campaigns/notifications`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (res.data.success) {
+        if (isMounted && res.data.success) {
           setNotifications(res.data.notifications || []);
           setUnreadCount(res.data.unreadCount || 0);
         }
       } catch (error) {
         console.error("Error fetching notifications:", error);
       } finally {
-        setLoadingNotifications(false);
+        if (isMounted) {
+          setLoadingNotifications(false);
+        }
       }
     };
 
     fetchNotifications();
     // Refresh notifications every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [isSignedIn, getToken]);
+    const interval = setInterval(() => {
+      if (isMounted) {
+        fetchNotifications();
+      }
+    }, 30000);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn]); // Only depend on isSignedIn, not getToken
 
   const handleNotificationsToggle = async () => {
     const willOpen = !notificationsOpen;
