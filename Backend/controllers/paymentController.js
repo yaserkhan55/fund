@@ -115,6 +115,30 @@ export const createPaymentOrder = async (req, res) => {
       console.log("[Create Order] Razorpay Key ID exists:", !!process.env.RAZORPAY_KEY_ID);
       console.log("[Create Order] Razorpay Key Secret exists:", !!process.env.RAZORPAY_KEY_SECRET);
       
+      // Check if Razorpay is configured
+      const hasCredentials = !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+      
+      if (!hasCredentials) {
+        // Clean up donation record
+        try {
+          await Donation.findByIdAndDelete(donation._id);
+          console.log("[Create Order] Cleaned up donation record:", donation._id);
+        } catch (cleanupError) {
+          console.error("[Create Order] Cleanup error:", cleanupError);
+        }
+        
+        return res.status(400).json({
+          success: false,
+          message: "Payment gateway is not configured. Please configure Razorpay credentials to enable donations.",
+          error: "RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are required",
+          details: {
+            hasKeyId: !!process.env.RAZORPAY_KEY_ID,
+            hasKeySecret: !!process.env.RAZORPAY_KEY_SECRET,
+            instruction: "Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to your environment variables",
+          },
+        });
+      }
+      
       const order = await createOrder(amount, "INR", donation.receiptNumber);
       console.log("[Create Order] Razorpay order created:", order.id);
 
@@ -154,21 +178,16 @@ export const createPaymentOrder = async (req, res) => {
 
       // Return detailed error
       const errorMessage = razorpayError.message || "Failed to create payment order";
-      const hasCredentials = !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
       
       return res.status(500).json({
         success: false,
-        message: hasCredentials 
-          ? errorMessage 
-          : "Payment gateway not configured. Please contact support.",
+        message: errorMessage,
         error: razorpayError.toString(),
         details: {
           hasKeyId: !!process.env.RAZORPAY_KEY_ID,
           hasKeySecret: !!process.env.RAZORPAY_KEY_SECRET,
           errorType: razorpayError.name || "Unknown",
-          suggestion: !hasCredentials 
-            ? "Please configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables"
-            : "Check Razorpay dashboard and credentials",
+          suggestion: "Check Razorpay dashboard and verify credentials are correct",
         },
       });
     }
