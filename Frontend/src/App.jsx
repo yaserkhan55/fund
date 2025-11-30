@@ -30,6 +30,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ShippingPolicy from "./pages/ShippingPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import RefundPolicy from "./pages/RefundPolicy";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 function Layout({ children }) {
   return (
@@ -212,6 +213,14 @@ export default function App() {
         element={
           <Layout>
             <RefundPolicy />
+          </Layout>
+        }
+      />
+      <Route
+        path="/privacy-policy"
+        element={
+          <Layout>
+            <PrivacyPolicy />
           </Layout>
         }
       />
