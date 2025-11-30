@@ -1,6 +1,6 @@
 // src/pages/Home.jsx
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import Hero from "../components/Hero";
@@ -12,10 +12,13 @@ import FAQ from "../components/FAQ";
 function NotificationAutoDismiss({ onDismiss }) {
   useEffect(() => {
     const timer = setTimeout(() => {
-      onDismiss();
+      if (onDismiss) {
+        onDismiss();
+      }
     }, 5000); // Auto-dismiss after 5 seconds
     return () => clearTimeout(timer);
-  }, [onDismiss]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Intentionally empty - only run once when component mounts
   return null;
 }
 
@@ -152,7 +155,11 @@ function Home() {
   useEffect(() => {
     if (!isSignedIn) return;
 
+    let isMounted = true;
+
     const fetchLatestNotification = async () => {
+      if (!isMounted) return;
+      
       try {
         let token = null;
         try {
@@ -161,60 +168,43 @@ function Home() {
           token = localStorage.getItem("token");
         }
         
-        if (!token) {
-          console.log("[Home Notifications] No token available");
+        if (!token || !isMounted) {
           return;
         }
 
-        console.log("[Home Notifications] Fetching notifications...");
         const res = await axios.get(`${API_URL}/api/campaigns/notifications`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        if (!isMounted) return;
+
         const notifications = res.data?.notifications || [];
-        console.log("=== NOTIFICATION FETCH (HOME PAGE) ===");
-        console.log("Total notifications:", notifications.length);
-        console.log("Contact replies:", notifications.filter(n => n.type === "contact_reply").length);
-        notifications.filter(n => n.type === "contact_reply").forEach(n => {
-          console.log(`  - Contact reply: "${n.message?.substring(0, 50)}..." (ID: ${n.id}, createdAt: ${n.createdAt})`);
-        });
-        console.log("All notifications:", notifications);
-        console.log("=====================================");
         
         if (notifications.length > 0) {
           // Prioritize contact_reply notifications, then filter unviewed
           const contactReplies = notifications.filter(n => n.type === "contact_reply" && !n.viewed);
           const otherNotifications = notifications.filter(n => n.type !== "contact_reply" && !n.viewed);
           
-          console.log(`[Home Notifications] Unviewed contact replies: ${contactReplies.length}`);
-          console.log(`[Home Notifications] Unviewed other notifications: ${otherNotifications.length}`);
-          
           // Combine: contact replies first, then others
           const unviewedNotifications = [...contactReplies, ...otherNotifications];
           
-          if (unviewedNotifications.length > 0) {
+          if (unviewedNotifications.length > 0 && isMounted) {
             const latest = unviewedNotifications[0]; // Already sorted by newest first
-            console.log("Latest notification to show:", latest);
             
             // Check if this notification has been shown before
             const shownNotifications = JSON.parse(localStorage.getItem("shownNotifications") || "[]");
             
             // Simplified key generation - use contactId + createdAt for contact replies
-            // This allows new admin replies to the same contact to show
             let notificationKey;
             if (latest.type === "contact_reply") {
-              // Simple key: contact_reply_contactId_createdAt
               notificationKey = `contact_reply_${latest.contactId}_${latest.createdAt}`;
             } else {
-              // For other notification types, use the standard key
               notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
             }
             
-            if (notificationKey && !shownNotifications.includes(notificationKey)) {
-              console.log("[Home Notifications] ✅✅✅ SHOWING NOTIFICATION POPUP:", latest.type, latest.message);
+            if (notificationKey && !shownNotifications.includes(notificationKey) && isMounted) {
               setLatestNotification(latest);
               setShowNotificationPopup(true);
-              // Play minimal sound effect
               playNotificationSound();
               // Mark as shown
               shownNotifications.push(notificationKey);
@@ -223,29 +213,29 @@ function Home() {
                 shownNotifications.shift();
               }
               localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
-            } else if (notificationKey === null) {
-              console.log("[Home Notifications] Contact reply already shown (newer notification exists)");
-            } else {
-              console.log("[Home Notifications] Notification already shown:", notificationKey);
             }
-          } else {
-            console.log("[Home Notifications] No unviewed notifications found");
           }
-        } else {
-          console.log("[Home Notifications] No notifications returned from API");
         }
       } catch (err) {
         console.error("[Home Notifications] Error fetching notifications:", err);
-        console.error("[Home Notifications] Error details:", err.response?.data);
       }
     };
 
     fetchLatestNotification();
     
     // Refresh notifications every 30 seconds
-    const interval = setInterval(fetchLatestNotification, 30000);
-    return () => clearInterval(interval);
-  }, [isSignedIn, getToken]);
+    const interval = setInterval(() => {
+      if (isMounted) {
+        fetchLatestNotification();
+      }
+    }, 30000);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn]); // Only depend on isSignedIn, not getToken
 
   // Auto-show popup when admin requests are found (only if not already shown)
   useEffect(() => {
@@ -292,6 +282,12 @@ function Home() {
       }
     }
   }, [loading, adminActions, isSignedIn, showNotificationPopup, showRequestPopup]);
+
+  // Memoize the dismiss handler to prevent infinite loops
+  const handleNotificationDismiss = useCallback(() => {
+    setShowNotificationPopup(false);
+    setLatestNotification(null);
+  }, []);
 
   const formatRequestTime = (date) => {
     if (!date) return "Just now";
@@ -436,10 +432,7 @@ function Home() {
       {/* Auto-dismiss notification after 5 seconds */}
       {showNotificationPopup && latestNotification && (
         <NotificationAutoDismiss
-          onDismiss={() => {
-            setShowNotificationPopup(false);
-            setLatestNotification(null);
-          }}
+          onDismiss={handleNotificationDismiss}
         />
       )}
 

@@ -129,17 +129,23 @@ export default function DonationModal({ campaignId, onClose }) {
       }
     } catch (err) {
       console.error("Donation error:", err);
+      setLoading(false);
+      
       if (err.response?.status === 401) {
         setError("Please login to donate");
-        navigate("/donor/login", {
-          state: { from: window.location.pathname, action: "donate", campaignId },
-        });
-        onClose();
+        setTimeout(() => {
+          navigate("/donor/login", {
+            state: { from: window.location.pathname, action: "donate", campaignId },
+          });
+          onClose();
+        }, 1500);
+      } else if (err.response?.status === 404) {
+        setError("Donation endpoint not found. Please contact support.");
+      } else if (err.response?.status >= 500) {
+        setError("Server error. Please try again later.");
       } else {
-        setError(err.response?.data?.message || "Something went wrong. Please try again.");
+        setError(err.response?.data?.message || err.message || "Something went wrong. Please try again.");
       }
-    } finally {
-      setLoading(false);
     }
   };
 
