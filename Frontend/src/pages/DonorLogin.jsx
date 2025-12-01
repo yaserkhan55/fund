@@ -9,6 +9,11 @@ export default function DonorLogin() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSignedIn, user } = useAuth();
+  
+  // Set donorFlow flag when component mounts (user came from donor login)
+  useEffect(() => {
+    sessionStorage.setItem("donorFlow", "true");
+  }, []);
   const [formData, setFormData] = useState({
     email: "",
     password: "",

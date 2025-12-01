@@ -8,6 +8,11 @@ const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com"
 export default function DonorRegister() {
   const navigate = useNavigate();
   const { isSignedIn, user } = useAuth();
+  
+  // Set donorFlow flag when component mounts (user came from "Become a Donor")
+  useEffect(() => {
+    sessionStorage.setItem("donorFlow", "true");
+  }, []);
   const [formData, setFormData] = useState({
     name: "",
     email: "",

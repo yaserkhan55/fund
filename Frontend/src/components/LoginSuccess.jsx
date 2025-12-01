@@ -37,11 +37,20 @@ export default function LoginSuccess() {
 
         // Check if it's Clerk authentication
         if (isSignedIn && user) {
-          // Check if user wants to be a donor (from donation flow)
+          // Check if user wants to be a donor (from donation flow or "Become a Donor")
+          const donorFlowFlag = sessionStorage.getItem("donorFlow");
           const isDonorFlow = location.state?.isDonor || 
-                             sessionStorage.getItem("donorFlow") === "true" ||
+                             donorFlowFlag === "true" ||
+                             window.location.pathname.includes("/donor/") ||
                              document.referrer.includes("donation") ||
                              document.referrer.includes("donor");
+          
+          console.log("LoginSuccess - Donor Flow Check:", {
+            isDonorFlow,
+            donorFlowFlag,
+            pathname: window.location.pathname,
+            referrer: document.referrer
+          });
 
           if (isDonorFlow) {
             // Sync with donor backend
@@ -54,21 +63,30 @@ export default function LoginSuccess() {
               });
 
               if (response.data.success) {
+                console.log("Donor sync successful, setting token");
                 localStorage.setItem("donorToken", response.data.token);
                 localStorage.setItem("donorData", JSON.stringify(response.data.donor));
                 sessionStorage.removeItem("donorFlow");
                 
-                // Force update navbar by dispatching event
+                // Force update navbar by dispatching event multiple times to ensure it's caught
                 window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
                 
                 // Small delay to ensure state updates
                 setTimeout(() => {
-                  // Redirect back to donation page or campaign
+                  // Redirect back to donation page or campaign, or home if from "Become a Donor"
                   const returnUrl = location.state?.returnUrl || sessionStorage.getItem("donationReturnUrl") || "/";
                   sessionStorage.removeItem("donationReturnUrl");
+                  
+                  // Dispatch event again before navigation
+                  window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+                  
+                  // Force check one more time
+                  const tokenCheck = localStorage.getItem("donorToken");
+                  console.log("Token check before navigation:", !!tokenCheck);
+                  
                   setLoading(false);
                   navigate(returnUrl);
-                }, 100);
+                }, 500);
                 return;
               }
             } catch (error) {
