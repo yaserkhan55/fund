@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { SignInButton, useAuth } from "@clerk/clerk-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function DonorLogin() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isSignedIn, user } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -14,9 +16,41 @@ export default function DonorLogin() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   
-  // REMOVED: Auth check on mount - it was causing redirect issues
-  // The login form will always show, and users can login normally
+  // Handle Google authentication via Clerk
+  useEffect(() => {
+    if (isSignedIn && user) {
+      // User signed in via Google, sync with donor backend
+      const syncDonorWithGoogle = async () => {
+        try {
+          setGoogleLoading(true);
+          const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
+            email: user.primaryEmailAddress?.emailAddress,
+            name: user.fullName || user.firstName || "Donor",
+            clerkId: user.id,
+            imageUrl: user.imageUrl,
+          });
+
+          if (response.data.success) {
+            localStorage.setItem("donorToken", response.data.token);
+            localStorage.setItem("donorData", JSON.stringify(response.data.donor));
+            const redirectTo = location.state?.from || "/";
+            navigate(redirectTo);
+          }
+        } catch (error) {
+          console.error("Google auth sync error:", error);
+          setErrors({
+            submit: "Failed to sync Google account. Please try again.",
+          });
+        } finally {
+          setGoogleLoading(false);
+        }
+      };
+
+      syncDonorWithGoogle();
+    }
+  }, [isSignedIn, user, navigate, location]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -197,7 +231,7 @@ export default function DonorLogin() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || googleLoading}
               className="w-full bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white py-3.5 rounded-xl font-bold text-lg hover:from-[#009EA1] hover:to-[#008B8E] transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
             >
               {loading ? (
@@ -228,6 +262,58 @@ export default function DonorLogin() {
               )}
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">OR</span>
+            </div>
+          </div>
+
+          {/* Google Sign In Button */}
+          <div className="mb-6">
+            <SignInButton mode="redirect" redirectUrl={window.location.origin + "/donor/login"}>
+              <button
+                type="button"
+                disabled={loading || googleLoading}
+                className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3.5 rounded-xl font-semibold text-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] flex items-center justify-center gap-3"
+              >
+                {googleLoading ? (
+                  <svg
+                    className="animate-spin h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                ) : (
+                  <>
+                    <img
+                      src="https://developers.google.com/identity/images/g-logo.png"
+                      alt="Google"
+                      className="w-5 h-5"
+                    />
+                    <span>Sign in with Google</span>
+                  </>
+                )}
+              </button>
+            </SignInButton>
+          </div>
 
           {/* Links */}
           <div className="mt-6 space-y-3 text-center">

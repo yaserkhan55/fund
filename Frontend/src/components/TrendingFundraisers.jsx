@@ -1,15 +1,12 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../lib/api";
-import DonationModal from "./DonationModal";
 
 export default function TrendingFundraisers() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [itemsPerView, setItemsPerView] = useState(3);
-  const [showDonationModal, setShowDonationModal] = useState(false);
-  const [selectedCampaignId, setSelectedCampaignId] = useState(null);
   const navigate = useNavigate();
 
   const resolveImg = (img) => {
@@ -71,22 +68,11 @@ export default function TrendingFundraisers() {
     setActiveIndex((prev) => (prev < maxIndex ? prev + 1 : 0));
   };
 
-  const handleShare = (e, campaign) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const url = `${window.location.origin}/campaign/${campaign._id}`;
-    const text = `I am supporting "${campaign.title}" on SEUMP. Join me: ${url}`;
-    window.open(
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-      "_blank"
-    );
-  };
 
   const handleContribute = (e, campaignId) => {
     e.preventDefault();
     e.stopPropagation();
-    setSelectedCampaignId(campaignId);
-    setShowDonationModal(true);
+    navigate(`/campaign/${campaignId}`);
   };
 
   if (!campaigns.length && !loading) {
@@ -165,9 +151,6 @@ export default function TrendingFundraisers() {
                     ? Math.ceil((new Date(c.endDate) - new Date()) / (1000 * 60 * 60 * 24))
                     : null;
 
-                  const creatorName = c.owner?.name || "Anonymous";
-                  const creatorImage = c.owner?.image || "/default-avatar.png";
-
                   return (
                     <div
                       key={c._id}
@@ -191,20 +174,6 @@ export default function TrendingFundraisers() {
                             {c.title}
                           </h3>
 
-                          {/* Creator Info */}
-                          <div className="flex items-center gap-2 mb-4">
-                            <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-                              <img
-                                src={creatorImage}
-                                alt={creatorName}
-                                className="w-full h-full object-cover"
-                                onError={(e) => (e.currentTarget.src = "/default-avatar.png")}
-                              />
-                            </div>
-                            <p className="text-sm text-gray-600">
-                              by <span className="font-semibold text-[#003d3b]">{creatorName}</span>
-                            </p>
-                          </div>
 
                           {/* Amount Display */}
                           <div className="mb-3">
@@ -247,22 +216,13 @@ export default function TrendingFundraisers() {
                             )}
                           </div>
 
-                          {/* Action Buttons */}
-                          <div className="mt-auto flex gap-2">
-                            <button
-                              onClick={(e) => handleShare(e, c)}
-                              className="flex-1 bg-[#1877F2] text-white py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 hover:bg-[#166FE5] flex items-center justify-center gap-1.5"
-                            >
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                              </svg>
-                              Share
-                            </button>
+                          {/* Action Button */}
+                          <div className="mt-auto">
                             <button
                               onClick={(e) => handleContribute(e, c._id)}
-                              className="flex-1 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-1.5"
+                              className="w-full bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-1.5"
                             >
-                              Contribute
+                              تعاون (Contribute)
                             </button>
                           </div>
                         </div>
@@ -288,17 +248,6 @@ export default function TrendingFundraisers() {
           )}
         </div>
       </section>
-
-      {/* Donation Modal */}
-      {showDonationModal && selectedCampaignId && (
-        <DonationModal
-          campaignId={selectedCampaignId}
-          onClose={() => {
-            setShowDonationModal(false);
-            setSelectedCampaignId(null);
-          }}
-        />
-      )}
     </>
   );
 }

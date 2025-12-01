@@ -1,23 +1,56 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { SignInButton, SignUpButton, useAuth } from "@clerk/clerk-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function DonationModal({ campaignId, onClose }) {
   const navigate = useNavigate();
+  const { isSignedIn, user } = useAuth();
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isDonorLoggedIn, setIsDonorLoggedIn] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Check if donor is logged in
+  // Check if donor is logged in (either via token or Google)
   useEffect(() => {
     const donorToken = localStorage.getItem("donorToken");
-    setIsDonorLoggedIn(!!donorToken);
-  }, []);
+    setIsDonorLoggedIn(!!donorToken || isSignedIn);
+  }, [isSignedIn]);
+
+  // Handle Google authentication sync
+  useEffect(() => {
+    if (isSignedIn && user && !localStorage.getItem("donorToken")) {
+      const syncDonorWithGoogle = async () => {
+        try {
+          setGoogleLoading(true);
+          const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
+            email: user.primaryEmailAddress?.emailAddress,
+            name: user.fullName || user.firstName || "Donor",
+            clerkId: user.id,
+            imageUrl: user.imageUrl,
+          });
+
+          if (response.data.success) {
+            localStorage.setItem("donorToken", response.data.token);
+            localStorage.setItem("donorData", JSON.stringify(response.data.donor));
+            setIsDonorLoggedIn(true);
+          }
+        } catch (error) {
+          console.error("Google auth sync error:", error);
+          setError("Failed to sync Google account. Please try again.");
+        } finally {
+          setGoogleLoading(false);
+        }
+      };
+
+      syncDonorWithGoogle();
+    }
+  }, [isSignedIn, user]);
 
   // Quick amount buttons
   const quickAmounts = [100, 500, 1000, 2000, 5000];
@@ -236,6 +269,58 @@ export default function DonationModal({ campaignId, onClose }) {
               <p className="text-sm text-gray-600 mb-4">
                 Create a donor account or login to make a donation
               </p>
+              
+              {/* Google Authentication */}
+              <div className="mb-4">
+                <SignUpButton mode="redirect" redirectUrl={window.location.origin + window.location.pathname}>
+                  <button
+                    type="button"
+                    disabled={googleLoading}
+                    className="w-full bg-white border-2 border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mb-2"
+                  >
+                    {googleLoading ? (
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : (
+                      <>
+                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-4 h-4" />
+                        <span>Sign up with Google</span>
+                      </>
+                    )}
+                  </button>
+                </SignUpButton>
+                <SignInButton mode="redirect" redirectUrl={window.location.origin + window.location.pathname}>
+                  <button
+                    type="button"
+                    disabled={googleLoading}
+                    className="w-full bg-white border-2 border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {googleLoading ? (
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : (
+                      <>
+                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-4 h-4" />
+                        <span>Sign in with Google</span>
+                      </>
+                    )}
+                  </button>
+                </SignInButton>
+              </div>
+
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-[#E6F8F8] text-gray-500">OR</span>
+                </div>
+              </div>
+
               <div className="flex gap-3">
                 <button
                   onClick={() => {
