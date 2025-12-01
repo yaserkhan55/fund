@@ -382,15 +382,6 @@ export default function Navbar() {
         {/* Mobile Right Area */}
         <div className="md:hidden flex items-center gap-2 flex-shrink-0">
           <SignedIn>
-            {/* Show Donor Dashboard if donor is logged in (Mobile) */}
-            {isDonorLoggedIn && (
-              <Link
-                to="/donor/dashboard"
-                className="bg-[#00B5B8] text-white px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm whitespace-nowrap mr-2"
-              >
-                Donor
-              </Link>
-            )}
             {/* Mobile Dashboard Icon */}
             <Link
               to="/dashboard"
@@ -524,6 +515,17 @@ export default function Navbar() {
             Start a Fundraiser
           </Link>
 
+          {/* Donor Dashboard Button - Show when logged in as donor */}
+          {isDonorLoggedIn && (
+            <Link
+              to="/donor/dashboard"
+              onClick={() => setOpen(false)}
+              className="block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white text-center py-3 rounded-xl font-semibold shadow hover:from-[#009EA1] hover:to-[#008B8E] transition"
+            >
+              Donor Dashboard
+            </Link>
+          )}
+
           <SignedOut>
             {/* Donor Login/Register */}
             {!isDonorLoggedIn ? (
@@ -543,15 +545,7 @@ export default function Navbar() {
                   Donate Now
                 </Link>
               </>
-            ) : (
-              <Link
-                to="/donor/dashboard"
-                onClick={() => setOpen(false)}
-                className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
-              >
-                Donor Dashboard
-              </Link>
-            )}
+            ) : null}
             
             <Link
               to="/sign-in"
@@ -563,11 +557,12 @@ export default function Navbar() {
           </SignedOut>
 
           <SignedIn>
+            {/* Show Donor Dashboard if donor is logged in and user is signed in with Clerk */}
             {isDonorLoggedIn && (
               <Link
                 to="/donor/dashboard"
                 onClick={() => setOpen(false)}
-                className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
+                className="block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white text-center py-3 rounded-xl font-semibold shadow hover:from-[#009EA1] hover:to-[#008B8E] transition"
               >
                 Donor Dashboard
               </Link>

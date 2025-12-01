@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { SignInButton, SignUpButton, useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
@@ -208,62 +208,36 @@ export default function DonationModal({ campaignId, onClose }) {
                 Create a donor account or login to commit your donation
               </p>
               
-              {/* Google Authentication - Match main site style */}
+              {/* Google Authentication - Link to Clerk pages */}
               <div className="mb-4">
-                <SignUpButton 
-                  mode="redirect" 
-                  redirectUrl={`${window.location.origin}/auth/google/success`}
-                  afterSignUpUrl={`${window.location.origin}/auth/google/success`}
+                <Link
+                  to="/donor/sign-up"
+                  onClick={() => {
+                    sessionStorage.setItem("donorFlow", "true");
+                    sessionStorage.setItem("donationReturnUrl", window.location.pathname);
+                    onClose();
+                  }}
+                  className="block w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold mb-2 hover:bg-gray-50 transition"
                 >
-                  <button
-                    type="button"
-                    disabled={googleLoading}
-                    onClick={() => {
-                      sessionStorage.setItem("donorFlow", "true");
-                      sessionStorage.setItem("donationReturnUrl", window.location.pathname);
-                    }}
-                    className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg flex items-center justify-center gap-2 mb-2 hover:bg-gray-50 transition"
-                  >
-                    {googleLoading ? (
-                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                    ) : (
-                      <>
-                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
-                        <span>Sign up with Google</span>
-                      </>
-                    )}
-                  </button>
-                </SignUpButton>
-                <SignInButton 
-                  mode="redirect" 
-                  redirectUrl={`${window.location.origin}/auth/google/success`}
-                  afterSignInUrl={`${window.location.origin}/auth/google/success`}
+                  <div className="flex items-center justify-center gap-2">
+                    <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
+                    <span>Sign up with Google</span>
+                  </div>
+                </Link>
+                <Link
+                  to="/donor/sign-in"
+                  onClick={() => {
+                    sessionStorage.setItem("donorFlow", "true");
+                    sessionStorage.setItem("donationReturnUrl", window.location.pathname);
+                    onClose();
+                  }}
+                  className="block w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition"
                 >
-                  <button
-                    type="button"
-                    disabled={googleLoading}
-                    onClick={() => {
-                      sessionStorage.setItem("donorFlow", "true");
-                      sessionStorage.setItem("donationReturnUrl", window.location.pathname);
-                    }}
-                    className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition"
-                  >
-                    {googleLoading ? (
-                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                    ) : (
-                      <>
-                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
-                        <span>Login with Google</span>
-                      </>
-                    )}
-                  </button>
-                </SignInButton>
+                  <div className="flex items-center justify-center gap-2">
+                    <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
+                    <span>Login with Google</span>
+                  </div>
+                </Link>
               </div>
 
               <div className="relative my-4">

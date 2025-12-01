@@ -129,6 +129,32 @@ export default function App() {
         }
       />
       <Route
+        path="/donor/sign-in"
+        element={
+          <Layout>
+            <SignIn
+              path="/donor/sign-in"
+              routing="path"
+              afterSignInUrl="/auth/google/success"
+              redirectUrl="/auth/google/success"
+            />
+          </Layout>
+        }
+      />
+      <Route
+        path="/donor/sign-up"
+        element={
+          <Layout>
+            <SignUp
+              path="/donor/sign-up"
+              routing="path"
+              afterSignUpUrl="/auth/google/success"
+              redirectUrl="/auth/google/success"
+            />
+          </Layout>
+        }
+      />
+      <Route
         path="/donor/verify-otp"
         element={
           <Layout>
