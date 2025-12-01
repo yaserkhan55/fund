@@ -42,6 +42,27 @@ export default function Navbar() {
     };
   }, []);
 
+  // Sync Clerk user with donor backend if signed in but no donorToken
+  useEffect(() => {
+    const syncClerkAsDonor = async () => {
+      if (isSignedIn && !isDonorLoggedIn) {
+        try {
+          const { user } = await import("@clerk/clerk-react").then(m => m.useAuth());
+          // This will be handled by LoginSuccess component
+          // Just check if we should sync
+          const shouldSync = sessionStorage.getItem("donorFlow") === "true";
+          if (shouldSync) {
+            // LoginSuccess will handle the sync
+            return;
+          }
+        } catch (error) {
+          console.error("Clerk sync check error:", error);
+        }
+      }
+    };
+    syncClerkAsDonor();
+  }, [isSignedIn, isDonorLoggedIn]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
@@ -245,6 +266,15 @@ export default function Navbar() {
           </SignedOut>
 
           <SignedIn>
+            {/* Show Donor Dashboard if donor is logged in */}
+            {isDonorLoggedIn && (
+              <Link
+                to="/donor/dashboard"
+                className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap mr-2"
+              >
+                Donor Dashboard
+              </Link>
+            )}
             {/* Dashboard Icon */}
             <Link
               to="/dashboard"
@@ -352,6 +382,15 @@ export default function Navbar() {
         {/* Mobile Right Area */}
         <div className="md:hidden flex items-center gap-2 flex-shrink-0">
           <SignedIn>
+            {/* Show Donor Dashboard if donor is logged in (Mobile) */}
+            {isDonorLoggedIn && (
+              <Link
+                to="/donor/dashboard"
+                className="bg-[#00B5B8] text-white px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm whitespace-nowrap mr-2"
+              >
+                Donor
+              </Link>
+            )}
             {/* Mobile Dashboard Icon */}
             <Link
               to="/dashboard"
@@ -486,22 +525,54 @@ export default function Navbar() {
           </Link>
 
           <SignedOut>
+            {/* Donor Login/Register */}
+            {!isDonorLoggedIn ? (
+              <>
+                <Link
+                  to="/donor/login"
+                  onClick={() => setOpen(false)}
+                  className="block border border-[#00B5B8] text-[#00B5B8] text-center py-3 rounded-xl font-semibold"
+                >
+                  Donor Login
+                </Link>
+                <Link
+                  to="/donor/register"
+                  onClick={() => setOpen(false)}
+                  className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
+                >
+                  Donate Now
+                </Link>
+              </>
+            ) : (
+              <Link
+                to="/donor/dashboard"
+                onClick={() => setOpen(false)}
+                className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
+              >
+                Donor Dashboard
+              </Link>
+            )}
+            
             <Link
               to="/sign-in"
               onClick={() => setOpen(false)}
-              className="block border border-[#00B5B8] text-[#00B5B8] text-center py-3 rounded-xl font-semibold"
+              className="block border border-[#00B5B8] text-[#00B5B8] text-center py-3 rounded-xl font-semibold mt-2"
             >
-              Login
-            </Link>
-
-            <Link
-              to="/sign-up"
-              onClick={() => setOpen(false)}
-              className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
-            >
-              Sign Up
+              Create Campaign (Login)
             </Link>
           </SignedOut>
+
+          <SignedIn>
+            {isDonorLoggedIn && (
+              <Link
+                to="/donor/dashboard"
+                onClick={() => setOpen(false)}
+                className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
+              >
+                Donor Dashboard
+              </Link>
+            )}
+          </SignedIn>
 
         </div>
       </div>

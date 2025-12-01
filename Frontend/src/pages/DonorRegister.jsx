@@ -346,10 +346,18 @@ export default function DonorRegister() {
 
             {/* Google Sign Up Button - Match main site style */}
             <div className="mb-6">
-              <SignUpButton mode="redirect" redirectUrl={window.location.origin + "/donor/register"}>
+              <SignUpButton 
+                mode="redirect" 
+                redirectUrl={`${window.location.origin}/auth/google/success`}
+                afterSignUpUrl={`${window.location.origin}/auth/google/success`}
+              >
                 <button
                   type="button"
                   disabled={loading || googleLoading}
+                  onClick={() => {
+                    sessionStorage.setItem("donorFlow", "true");
+                    sessionStorage.setItem("donationReturnUrl", "/donor/verify-otp");
+                  }}
                   className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {googleLoading ? (

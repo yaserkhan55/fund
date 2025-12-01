@@ -275,10 +275,19 @@ export default function DonorLogin() {
 
           {/* Google Sign In Button - Match main site style */}
           <div className="mb-6">
-            <SignInButton mode="redirect" redirectUrl={window.location.origin + "/donor/login"}>
+            <SignInButton 
+              mode="redirect" 
+              redirectUrl={`${window.location.origin}/auth/google/success`}
+              afterSignInUrl={`${window.location.origin}/auth/google/success`}
+            >
               <button
                 type="button"
                 disabled={loading || googleLoading}
+                onClick={() => {
+                  sessionStorage.setItem("donorFlow", "true");
+                  const returnUrl = location.state?.from || "/";
+                  sessionStorage.setItem("donationReturnUrl", returnUrl);
+                }}
                 className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {googleLoading ? (

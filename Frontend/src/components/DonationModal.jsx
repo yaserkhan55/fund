@@ -210,10 +210,18 @@ export default function DonationModal({ campaignId, onClose }) {
               
               {/* Google Authentication - Match main site style */}
               <div className="mb-4">
-                <SignUpButton mode="redirect" redirectUrl={window.location.origin + window.location.pathname}>
+                <SignUpButton 
+                  mode="redirect" 
+                  redirectUrl={`${window.location.origin}/auth/google/success`}
+                  afterSignUpUrl={`${window.location.origin}/auth/google/success`}
+                >
                   <button
                     type="button"
                     disabled={googleLoading}
+                    onClick={() => {
+                      sessionStorage.setItem("donorFlow", "true");
+                      sessionStorage.setItem("donationReturnUrl", window.location.pathname);
+                    }}
                     className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg flex items-center justify-center gap-2 mb-2 hover:bg-gray-50 transition"
                   >
                     {googleLoading ? (
@@ -229,10 +237,18 @@ export default function DonationModal({ campaignId, onClose }) {
                     )}
                   </button>
                 </SignUpButton>
-                <SignInButton mode="redirect" redirectUrl={window.location.origin + window.location.pathname}>
+                <SignInButton 
+                  mode="redirect" 
+                  redirectUrl={`${window.location.origin}/auth/google/success`}
+                  afterSignInUrl={`${window.location.origin}/auth/google/success`}
+                >
                   <button
                     type="button"
                     disabled={googleLoading}
+                    onClick={() => {
+                      sessionStorage.setItem("donorFlow", "true");
+                      sessionStorage.setItem("donationReturnUrl", window.location.pathname);
+                    }}
                     className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition"
                   >
                     {googleLoading ? (

@@ -21,6 +21,10 @@ import CreatorDashboard from "./pages/CreatorDashboard";
 import DonorRegister from "./pages/DonorRegister";
 import DonorLogin from "./pages/DonorLogin";
 import DonorVerifyOTP from "./pages/DonorVerifyOTP";
+import DonorDashboard from "./pages/DonorDashboard";
+
+// Auth
+import LoginSuccess from "./components/LoginSuccess";
 
 // Admin
 import AdminLogin from "./pages/AdminLogin";
@@ -101,6 +105,12 @@ export default function App() {
         }
       />
 
+      {/* AUTH SUCCESS (Clerk redirect) */}
+      <Route
+        path="/auth/google/success"
+        element={<LoginSuccess />}
+      />
+
       {/* DONOR ROUTES */}
       <Route
         path="/donor/register"
@@ -123,6 +133,14 @@ export default function App() {
         element={
           <Layout>
             <DonorVerifyOTP />
+          </Layout>
+        }
+      />
+      <Route
+        path="/donor/dashboard"
+        element={
+          <Layout>
+            <DonorDashboard />
           </Layout>
         }
       />
