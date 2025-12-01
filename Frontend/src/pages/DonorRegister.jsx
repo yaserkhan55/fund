@@ -189,6 +189,7 @@ export default function DonorRegister() {
               <p className="text-sm text-gray-500">Redirecting to verification...</p>
             </div>
           ) : (
+            <>
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Name */}
               <div>
@@ -384,6 +385,7 @@ export default function DonorRegister() {
                 </button>
               </SignUpButton>
             </div>
+            </>
           )}
 
           {/* Login Link */}
