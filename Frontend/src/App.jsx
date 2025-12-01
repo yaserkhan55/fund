@@ -137,6 +137,13 @@ export default function App() {
               routing="path"
               afterSignInUrl="/auth/google/success"
               redirectUrl="/auth/google/success"
+              appearance={{
+                elements: {
+                  rootBox: "mx-auto",
+                  card: "shadow-lg",
+                },
+              }}
+              signInFallbackRedirectUrl="/auth/google/success"
             />
           </Layout>
         }
@@ -150,6 +157,13 @@ export default function App() {
               routing="path"
               afterSignUpUrl="/auth/google/success"
               redirectUrl="/auth/google/success"
+              appearance={{
+                elements: {
+                  rootBox: "mx-auto",
+                  card: "shadow-lg",
+                },
+              }}
+              signUpFallbackRedirectUrl="/auth/google/success"
             />
           </Layout>
         }

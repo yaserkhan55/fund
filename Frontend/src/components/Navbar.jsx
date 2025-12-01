@@ -24,7 +24,8 @@ export default function Navbar() {
   useEffect(() => {
     const checkDonorLogin = () => {
       const donorToken = localStorage.getItem("donorToken");
-      setIsDonorLoggedIn(!!donorToken);
+      const nowLoggedIn = !!donorToken;
+      setIsDonorLoggedIn(nowLoggedIn);
     };
 
     // Check on mount
@@ -32,12 +33,21 @@ export default function Navbar() {
 
     // Listen for storage changes (when donor logs in/out in another tab)
     window.addEventListener("storage", checkDonorLogin);
+    
+    // Listen for custom event when donor logs in
+    const handleDonorLogin = () => {
+      checkDonorLogin();
+    };
+    window.addEventListener("donorLogin", handleDonorLogin);
+    window.addEventListener("donorLogout", handleDonorLogin);
 
     // Check periodically (for same-tab login)
-    const interval = setInterval(checkDonorLogin, 1000);
+    const interval = setInterval(checkDonorLogin, 500);
 
     return () => {
       window.removeEventListener("storage", checkDonorLogin);
+      window.removeEventListener("donorLogin", handleDonorLogin);
+      window.removeEventListener("donorLogout", handleDonorLogin);
       clearInterval(interval);
     };
   }, []);
@@ -515,7 +525,7 @@ export default function Navbar() {
             Start a Fundraiser
           </Link>
 
-          {/* Donor Dashboard Button - Show when logged in as donor */}
+          {/* Donor Dashboard Button - Show when logged in as donor (regardless of Clerk status) */}
           {isDonorLoggedIn && (
             <Link
               to="/donor/dashboard"
@@ -527,8 +537,8 @@ export default function Navbar() {
           )}
 
           <SignedOut>
-            {/* Donor Login/Register */}
-            {!isDonorLoggedIn ? (
+            {/* Donor Login/Register - Only show if NOT logged in as donor */}
+            {!isDonorLoggedIn && (
               <>
                 <Link
                   to="/donor/login"
@@ -545,7 +555,7 @@ export default function Navbar() {
                   Donate Now
                 </Link>
               </>
-            ) : null}
+            )}
             
             <Link
               to="/sign-in"

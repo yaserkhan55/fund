@@ -82,6 +82,8 @@ export default function DonorDashboard() {
   const handleLogout = () => {
     localStorage.removeItem("donorToken");
     localStorage.removeItem("donorData");
+    // Dispatch event to notify navbar of donor logout
+    window.dispatchEvent(new Event("donorLogout"));
     navigate("/");
   };
 

@@ -58,6 +58,9 @@ export default function LoginSuccess() {
                 localStorage.setItem("donorData", JSON.stringify(response.data.donor));
                 sessionStorage.removeItem("donorFlow");
                 
+                // Dispatch event to notify navbar of donor login
+                window.dispatchEvent(new Event("donorLogin"));
+                
                 // Redirect back to donation page or campaign
                 const returnUrl = location.state?.returnUrl || sessionStorage.getItem("donationReturnUrl") || "/";
                 sessionStorage.removeItem("donationReturnUrl");
