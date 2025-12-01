@@ -243,30 +243,46 @@ function Home() {
             let notificationKey;
             if (latest.type === "admin_action") {
               notificationKey = `admin_action_${latest.action}_${latest.campaignId}_${latest.id}_${latest.createdAt}`;
-              // Show admin action popup
-              setActiveAction({
-                ...latest,
-                _id: latest.id,
-              });
-              setShowActionPopup(true);
             } else if (latest.type === "contact_reply") {
               notificationKey = `contact_reply_${latest.contactId}_${latest.createdAt}`;
-              setLatestNotification(latest);
-              setShowNotificationPopup(true);
             } else {
               notificationKey = `${latest.type}_${latest.id}_${latest.createdAt}`;
-              setLatestNotification(latest);
-              setShowNotificationPopup(true);
             }
             
-            if (notificationKey && !shownNotifications.includes(notificationKey) && isMounted) {
+            // Check if notification was already dismissed
+            const dismissedNotifications = JSON.parse(localStorage.getItem("dismissedNotifications") || "[]");
+            const isDismissed = dismissedNotifications.includes(notificationKey);
+            
+            if (notificationKey && !shownNotifications.includes(notificationKey) && !isDismissed && isMounted) {
+              if (latest.type === "admin_action") {
+                // Show admin action popup
+                setActiveAction({
+                  ...latest,
+                  _id: latest.id,
+                });
+                setShowActionPopup(true);
+              } else {
+                setLatestNotification(latest);
+                setShowNotificationPopup(true);
+              }
               playNotificationSound();
-              // Mark as shown
+              // Mark as shown immediately to prevent re-showing
               shownNotifications.push(notificationKey);
               if (shownNotifications.length > 50) {
                 shownNotifications.shift();
               }
               localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
+            } else if (notificationKey && shownNotifications.includes(notificationKey)) {
+              // If already shown, don't show again
+              if (isMounted) {
+                if (latest.type === "admin_action") {
+                  setShowActionPopup(false);
+                  setActiveAction(null);
+                } else {
+                  setShowNotificationPopup(false);
+                  setLatestNotification(null);
+                }
+              }
             }
           }
         }
@@ -518,6 +534,21 @@ function Home() {
             <div className="mt-4 flex justify-end">
               <button
                 onClick={() => {
+                  // Mark notification as viewed in backend if possible
+                  if (latestNotification && latestNotification.id) {
+                    // Store in localStorage that this notification was dismissed
+                    const dismissedNotifications = JSON.parse(localStorage.getItem("dismissedNotifications") || "[]");
+                    const notificationKey = latestNotification.type === "contact_reply" 
+                      ? `contact_reply_${latestNotification.contactId}_${latestNotification.createdAt}`
+                      : `${latestNotification.type}_${latestNotification.id}_${latestNotification.createdAt}`;
+                    if (!dismissedNotifications.includes(notificationKey)) {
+                      dismissedNotifications.push(notificationKey);
+                      if (dismissedNotifications.length > 100) {
+                        dismissedNotifications.shift();
+                      }
+                      localStorage.setItem("dismissedNotifications", JSON.stringify(dismissedNotifications));
+                    }
+                  }
                   setShowNotificationPopup(false);
                   setLatestNotification(null);
                 }}
@@ -644,6 +675,18 @@ function Home() {
                   } catch (err) {
                     console.error("Error marking action as viewed:", err);
                   }
+                  
+                  // Mark as dismissed in localStorage
+                  const actionKey = `admin_action_${activeAction.action}_${activeAction.campaignId}_${activeAction._id}_${activeAction.createdAt}`;
+                  const dismissedNotifications = JSON.parse(localStorage.getItem("dismissedNotifications") || "[]");
+                  if (!dismissedNotifications.includes(actionKey)) {
+                    dismissedNotifications.push(actionKey);
+                    if (dismissedNotifications.length > 100) {
+                      dismissedNotifications.shift();
+                    }
+                    localStorage.setItem("dismissedNotifications", JSON.stringify(dismissedNotifications));
+                  }
+                  
                   setShowActionPopup(false);
                   setActiveAction(null);
                 }}

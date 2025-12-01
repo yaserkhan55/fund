@@ -156,7 +156,7 @@ export default function TrendingFundraisers() {
                       key={c._id}
                       className="flex-shrink-0 w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-sm mx-auto"
                     >
-                      <div className="bg-white shadow-lg rounded-2xl overflow-hidden flex flex-col border border-gray-100 h-full" style={{ minHeight: '500px' }}>
+                      <div className="bg-white shadow-lg rounded-2xl overflow-hidden flex flex-col border border-gray-100 h-full transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-[#00B5B8]" style={{ minHeight: '420px' }}>
                         {/* Image Section - Fixed height, proper display */}
                         <div className="relative w-full h-48 overflow-hidden bg-gray-200">
                           <img
@@ -170,7 +170,7 @@ export default function TrendingFundraisers() {
                         {/* Content Section */}
                         <div className="p-5 flex flex-col flex-grow">
                           {/* Title */}
-                          <h3 className="text-lg font-bold text-[#003d3b] mb-3 line-clamp-2 leading-tight min-h-[3.5rem]">
+                          <h3 className="text-lg font-bold text-[#003d3b] mb-3 line-clamp-2 leading-tight min-h-[3rem]">
                             {c.title}
                           </h3>
 

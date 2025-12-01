@@ -140,23 +140,22 @@ export default function BrowseFundraisers() {
                   <Link
                     key={campaign._id}
                     to={`/campaign/${campaign._id}`}
-                    className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#E0F2F2] hover:shadow-xl transition-all duration-300 flex flex-col h-full"
-                    style={{ minHeight: "480px", maxHeight: "480px" }}
+                    className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#E0F2F2] hover:shadow-2xl hover:-translate-y-2 hover:border-[#00B5B8] transition-all duration-300 flex flex-col h-full group"
                   >
-                    <div className="h-40 w-full overflow-hidden bg-gray-200 relative flex-shrink-0">
+                    <div className="h-36 w-full overflow-hidden bg-gray-200 relative flex-shrink-0">
                       <img
                         src={resolveImg(campaign.image)}
                         alt={campaign.title}
                         onError={(e) => (e.currentTarget.src = "/no-image.png")}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       />
                       <div className="absolute top-3 right-3">
-                        <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                        <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
                           URGENT
                         </span>
                       </div>
                     </div>
-                    <div className="p-5 flex-grow flex flex-col" style={{ minHeight: "340px" }}>
+                    <div className="p-5 flex-grow flex flex-col">
                       <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                         {campaign.category && (
                           <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-full">
@@ -169,10 +168,10 @@ export default function BrowseFundraisers() {
                           </span>
                         )}
                       </div>
-                      <h3 className="font-bold text-lg text-[#003d3b] mb-2 line-clamp-2 flex-shrink-0" style={{ minHeight: "3.5rem" }}>
+                      <h3 className="font-bold text-lg text-[#003d3b] mb-2 line-clamp-2 flex-shrink-0 min-h-[3rem]">
                         {campaign.title}
                       </h3>
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow" style={{ minHeight: "2.5rem" }}>
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow min-h-[2.5rem]">
                         {campaign.shortDescription || "No description available."}
                       </p>
                       <div className="mt-auto flex-shrink-0">
@@ -186,8 +185,8 @@ export default function BrowseFundraisers() {
                           <span>₹{(campaign.raisedAmount || 0).toLocaleString()}</span>
                           <span>of ₹{(campaign.goalAmount || 0).toLocaleString()}</span>
                         </div>
-                        <div className="text-center bg-[#00B5B8] hover:bg-[#009EA1] text-white py-2.5 rounded-xl font-semibold transition">
-                          Help Now
+                        <div className="text-center bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-2.5 rounded-xl font-semibold transition-all duration-300 group-hover:shadow-lg">
+                          مدد کریں (Help Now)
                         </div>
                       </div>
                     </div>
@@ -302,56 +301,55 @@ export default function BrowseFundraisers() {
                   ? Math.min((campaign.raisedAmount / campaign.goalAmount) * 100, 100)
                   : 0;
               return (
-                <Link
-                  key={campaign._id}
-                  to={`/campaign/${campaign._id}`}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#E0F2F2] hover:shadow-xl transition-all duration-300 flex flex-col h-full"
-                  style={{ minHeight: "480px", maxHeight: "480px" }}
-                >
-                  <div className="h-40 w-full overflow-hidden bg-gray-200 relative flex-shrink-0">
-                    <img
-                      src={resolveImg(campaign.image)}
-                      alt={campaign.title}
-                      onError={(e) => (e.currentTarget.src = "/no-image.png")}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="p-5 flex-grow flex flex-col" style={{ minHeight: "340px" }}>
-                    <div className="flex items-center gap-2 mb-2 flex-shrink-0">
-                      {campaign.category && (
-                        <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-full">
-                          {campaign.category}
-                        </span>
-                      )}
-                      {campaign.zakatEligible && (
-                        <span className="text-xs font-semibold text-[#00897B] bg-[#E6F5F3] px-3 py-1 rounded-full">
-                          ✓ Zakat
-                        </span>
-                      )}
+                  <Link
+                    key={campaign._id}
+                    to={`/campaign/${campaign._id}`}
+                    className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#E0F2F2] hover:shadow-2xl hover:-translate-y-2 hover:border-[#00B5B8] transition-all duration-300 flex flex-col h-full group"
+                  >
+                    <div className="h-36 w-full overflow-hidden bg-gray-200 relative flex-shrink-0">
+                      <img
+                        src={resolveImg(campaign.image)}
+                        alt={campaign.title}
+                        onError={(e) => (e.currentTarget.src = "/no-image.png")}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
                     </div>
-                    <h3 className="font-bold text-lg text-[#003d3b] mb-2 line-clamp-2 flex-shrink-0" style={{ minHeight: "3.5rem" }}>
-                      {campaign.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow" style={{ minHeight: "2.5rem" }}>
-                      {campaign.shortDescription || "No description available."}
-                    </p>
-                    <div className="mt-auto flex-shrink-0">
-                      <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
-                        <div
-                          className="h-2 rounded-full bg-[#00B5B8] transition-all"
-                          style={{ width: `${progress}%` }}
-                        />
+                    <div className="p-5 flex-grow flex flex-col">
+                      <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+                        {campaign.category && (
+                          <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-full">
+                            {campaign.category}
+                          </span>
+                        )}
+                        {campaign.zakatEligible && (
+                          <span className="text-xs font-semibold text-[#00897B] bg-[#E6F5F3] px-3 py-1 rounded-full">
+                            ✓ Zakat
+                          </span>
+                        )}
                       </div>
-                      <div className="flex justify-between text-sm font-semibold text-[#003d3b] mb-3">
-                        <span>₹{(campaign.raisedAmount || 0).toLocaleString()}</span>
-                        <span>of ₹{(campaign.goalAmount || 0).toLocaleString()}</span>
-                      </div>
-                      <div className="text-center bg-[#00B5B8] hover:bg-[#009EA1] text-white py-2.5 rounded-xl font-semibold transition">
-                        View Details
+                      <h3 className="font-bold text-lg text-[#003d3b] mb-2 line-clamp-2 flex-shrink-0 min-h-[3rem]">
+                        {campaign.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow min-h-[2.5rem]">
+                        {campaign.shortDescription || "No description available."}
+                      </p>
+                      <div className="mt-auto flex-shrink-0">
+                        <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
+                          <div
+                            className="h-2 rounded-full bg-[#00B5B8] transition-all"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-sm font-semibold text-[#003d3b] mb-3">
+                          <span>₹{(campaign.raisedAmount || 0).toLocaleString()}</span>
+                          <span>of ₹{(campaign.goalAmount || 0).toLocaleString()}</span>
+                        </div>
+                        <div className="text-center bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-2.5 rounded-xl font-semibold transition-all duration-300 group-hover:shadow-lg">
+                          تفصیلات دیکھیں (View Details)
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
               );
             })}
           </div>
