@@ -13,22 +13,15 @@ export default function LoginSuccess() {
   const { setLoginData } = useContext(AuthContext);
   
   // Get Clerk auth - must be called unconditionally at top level
-  // This should work if ClerkProvider is properly set up in main.jsx
-  const authHook = useAuth();
-  const isSignedIn = authHook?.isSignedIn || false;
-  const user = authHook?.user || null;
+  // This should work if ClerkProvider wraps the app (which it does in main.jsx)
+  const auth = useAuth();
+  const isSignedIn = auth?.isSignedIn || false;
+  const user = auth?.user || null;
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // Check if Clerk is available
-        if (!authHook || typeof authHook.isSignedIn === 'undefined') {
-          console.error("Clerk not properly initialized");
-          setLoading(false);
-          navigate("/");
-          return;
-        }
         // Check if it's a token-based login (legacy)
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get("token");
@@ -44,18 +37,30 @@ export default function LoginSuccess() {
           return;
         }
 
-        // Wait longer for Clerk to fully initialize
+        // Wait for Clerk to fully initialize
         let retries = 0;
-        while (!isSignedIn && retries < 10) {
+        let currentIsSignedIn = isSignedIn;
+        let currentUser = user;
+        
+        while (!currentIsSignedIn && retries < 15) {
           await new Promise(resolve => setTimeout(resolve, 300));
           retries++;
+          
+          // Check auth state again
+          if (auth) {
+            currentIsSignedIn = auth.isSignedIn || false;
+            currentUser = auth.user || null;
+            if (currentIsSignedIn && currentUser) {
+              break;
+            }
+          }
         }
         
         // Additional wait to ensure user object is available
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Check if it's Clerk authentication
-        if (isSignedIn && user) {
+        if (currentIsSignedIn && currentUser) {
           // Check if user wants to be a donor (from donation flow or "Become a Donor")
           const donorFlowFlag = sessionStorage.getItem("donorFlow");
           const isDonorFlow = location.state?.isDonor || 
@@ -75,10 +80,10 @@ export default function LoginSuccess() {
             // Sync with donor backend
             try {
               const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
-                email: user.primaryEmailAddress?.emailAddress,
-                name: user.fullName || user.firstName || "Donor",
-                clerkId: user.id,
-                imageUrl: user.imageUrl,
+                email: currentUser.primaryEmailAddress?.emailAddress,
+                name: currentUser.fullName || currentUser.firstName || "Donor",
+                clerkId: currentUser.id,
+                imageUrl: currentUser.imageUrl,
               });
 
               if (response.data.success) {
@@ -138,10 +143,10 @@ export default function LoginSuccess() {
           // Regular user sync (campaign creator) - optional, don't block if it fails
           try {
             const response = await axios.post(`${API_URL}/api/auth/clerk-sync`, {
-              clerkId: user.id,
-              email: user.primaryEmailAddress?.emailAddress,
-              name: user.fullName || user.firstName || "User",
-              imageUrl: user.imageUrl,
+              clerkId: currentUser.id,
+              email: currentUser.primaryEmailAddress?.emailAddress,
+              name: currentUser.fullName || currentUser.firstName || "User",
+              imageUrl: currentUser.imageUrl,
             });
 
             if (response.data.success && response.data.token) {
@@ -163,7 +168,7 @@ export default function LoginSuccess() {
         } else {
           // Not signed in yet, wait a bit more or redirect
           setTimeout(() => {
-            if (!isSignedIn) {
+            if (!currentIsSignedIn) {
               setLoading(false);
               navigate("/");
             }
@@ -177,7 +182,7 @@ export default function LoginSuccess() {
     };
 
     handleAuth();
-  }, [navigate, isSignedIn, user, location, setLoginData]);
+  }, [navigate, location, setLoginData]);
 
   if (loading) {
     return (
