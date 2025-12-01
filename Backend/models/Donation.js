@@ -42,7 +42,7 @@ const donationSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["razorpay", "stripe", "upi", "card", "netbanking", "wallet"],
+      enum: ["razorpay", "stripe", "upi", "card", "netbanking", "wallet", "commitment"],
       default: "razorpay",
     },
     // Receipt
