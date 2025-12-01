@@ -47,15 +47,100 @@ export const createDonation = async (req, res) => {
   }
 };
 
+// Fraud Detection Helper Functions
+const calculateFraudScore = async (donorId, amount, ipAddress, campaignId) => {
+  let fraudScore = 0;
+  const reasons = [];
+  const now = new Date();
+  const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  // Check donation frequency from same donor
+  const recentDonationsFromDonor = await Donation.countDocuments({
+    donorId,
+    createdAt: { $gte: last24Hours },
+  });
+
+  if (recentDonationsFromDonor >= 10) {
+    fraudScore += 30;
+    reasons.push("Too many donations in last 24 hours");
+  } else if (recentDonationsFromDonor >= 5) {
+    fraudScore += 15;
+    reasons.push("High donation frequency");
+  }
+
+  // Check donation frequency from same IP
+  const recentDonationsFromIP = await Donation.countDocuments({
+    ipAddress,
+    createdAt: { $gte: last24Hours },
+  });
+
+  if (recentDonationsFromIP >= 20) {
+    fraudScore += 40;
+    reasons.push("Too many donations from same IP address");
+  } else if (recentDonationsFromIP >= 10) {
+    fraudScore += 20;
+    reasons.push("Multiple donations from same IP");
+  }
+
+  // Check for duplicate amounts
+  const duplicateAmount = await Donation.findOne({
+    donorId,
+    amount: Number(amount),
+    createdAt: { $gte: last24Hours },
+  });
+
+  if (duplicateAmount) {
+    fraudScore += 10;
+    reasons.push("Duplicate donation amount detected");
+  }
+
+  // Check for unusually high amounts
+  const avgDonation = await Donation.aggregate([
+    { $match: { campaignId } },
+    { $group: { _id: null, avg: { $avg: "$amount" } } },
+  ]);
+
+  if (avgDonation.length > 0 && Number(amount) > avgDonation[0].avg * 10) {
+    fraudScore += 25;
+    reasons.push("Unusually high donation amount");
+  }
+
+  // Check for very low amounts (potential spam)
+  if (Number(amount) < 10 && recentDonationsFromDonor >= 3) {
+    fraudScore += 15;
+    reasons.push("Multiple small donations (potential spam)");
+  }
+
+  // Determine risk level
+  let riskLevel = "low";
+  if (fraudScore >= 70) riskLevel = "critical";
+  else if (fraudScore >= 50) riskLevel = "high";
+  else if (fraudScore >= 30) riskLevel = "medium";
+
+  return { fraudScore, riskLevel, reasons, recentDonationsFromDonor, recentDonationsFromIP };
+};
+
 export const commitDonation = async (req, res) => {
   try {
     const { campaignId, amount, message, isAnonymous } = req.body;
     const donorId = req.donorId; // From donorAuth middleware
 
+    // Get IP address and user agent
+    const ipAddress = req.ip || req.headers["x-forwarded-for"] || req.connection.remoteAddress || "";
+    const userAgent = req.headers["user-agent"] || "";
+
     if (!campaignId || !amount || amount < 1) {
       return res.status(400).json({
         success: false,
         message: "Campaign ID and valid amount are required.",
+      });
+    }
+
+    // Validate amount
+    if (Number(amount) > 1000000) {
+      return res.status(400).json({
+        success: false,
+        message: "Donation amount exceeds maximum limit of ₹10,00,000. Please contact support for large donations.",
       });
     }
 
@@ -67,20 +152,65 @@ export const commitDonation = async (req, res) => {
       });
     }
 
-    // Create donation commitment (paymentStatus: pending)
+    // Fraud Detection
+    const fraudCheck = await calculateFraudScore(donorId, amount, ipAddress, campaignId);
+    
+    // Check if donation should be blocked
+    if (fraudCheck.fraudScore >= 80) {
+      return res.status(403).json({
+        success: false,
+        message: "Donation flagged for review. Please contact support.",
+        flagged: true,
+        reason: fraudCheck.reasons.join(", "),
+      });
+    }
+
+    // Get last donation time for velocity check
+    const lastDonation = await Donation.findOne({ donorId }).sort({ createdAt: -1 });
+    const timeSinceLastDonation = lastDonation 
+      ? Math.floor((Date.now() - new Date(lastDonation.createdAt).getTime()) / 1000)
+      : 999999;
+
+    // Velocity check - prevent donations within 30 seconds
+    if (timeSinceLastDonation < 30) {
+      return res.status(429).json({
+        success: false,
+        message: "Please wait before making another donation.",
+        retryAfter: 30 - timeSinceLastDonation,
+      });
+    }
+
+    // Create donation commitment with fraud detection data
     const donation = await Donation.create({
       donorId,
       campaignId,
       amount: Number(amount),
       message: message || "",
       isAnonymous: isAnonymous || false,
-      paymentStatus: "pending", // Payment pending - commitment recorded
-      paymentMethod: "commitment", // Special method for commitments
+      paymentStatus: "pending",
+      paymentMethod: "commitment",
+      // Fraud detection fields
+      ipAddress,
+      userAgent,
+      fraudScore: fraudCheck.fraudScore,
+      riskLevel: fraudCheck.riskLevel,
+      isSuspicious: fraudCheck.fraudScore >= 50,
+      suspiciousReason: fraudCheck.reasons.join("; "),
+      donationCountFromIP: fraudCheck.recentDonationsFromIP + 1,
+      donationCountFromDonor: fraudCheck.recentDonationsFromDonor + 1,
+      timeSinceLastDonation,
+      amountAnomaly: fraudCheck.reasons.some(r => r.includes("high donation amount") || r.includes("small donations")),
+      velocityCheck: timeSinceLastDonation < 300, // Less than 5 minutes
     });
 
     // Update campaign raised amount (as committed, not yet paid)
     campaign.raisedAmount += Number(amount);
     await campaign.save();
+
+    // If suspicious, log for admin review
+    if (donation.isSuspicious) {
+      console.warn(`⚠️ Suspicious donation detected: ${donation._id}, Score: ${donation.fraudScore}, Risk: ${donation.riskLevel}`);
+    }
 
     return res.status(201).json({
       success: true,
@@ -90,6 +220,7 @@ export const commitDonation = async (req, res) => {
         amount: donation.amount,
         paymentStatus: donation.paymentStatus,
         createdAt: donation.createdAt,
+        requiresReview: donation.isSuspicious,
       },
     });
   } catch (error) {

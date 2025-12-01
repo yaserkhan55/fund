@@ -20,6 +20,7 @@ export const adminAuth = (req, res, next) => {
     }
 
     req.admin = decoded;
+    req.adminId = decoded.id; // For easy access in controllers
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });

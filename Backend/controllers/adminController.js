@@ -1159,3 +1159,463 @@ export const getUserDetails = async (req, res) => {
     });
   }
 };
+
+/* ---------------------------------------------------
+   ADMIN PAYMENT MANAGEMENT
+---------------------------------------------------- */
+
+// Get all payments with filters
+export const getAllPayments = async (req, res) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 50, 
+      status, 
+      riskLevel, 
+      isSuspicious, 
+      paymentStatus,
+      startDate,
+      endDate,
+      minAmount,
+      maxAmount,
+      search,
+      sortBy = "createdAt",
+      sortOrder = "desc"
+    } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const query = {};
+
+    // Filter by payment status
+    if (paymentStatus) {
+      query.paymentStatus = paymentStatus;
+    }
+
+    // Filter by risk level
+    if (riskLevel) {
+      query.riskLevel = riskLevel;
+    }
+
+    // Filter suspicious donations
+    if (isSuspicious === "true") {
+      query.isSuspicious = true;
+    } else if (isSuspicious === "false") {
+      query.isSuspicious = false;
+    }
+
+    // Date range filter
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+
+    // Amount range filter
+    if (minAmount || maxAmount) {
+      query.amount = {};
+      if (minAmount) query.amount.$gte = Number(minAmount);
+      if (maxAmount) query.amount.$lte = Number(maxAmount);
+    }
+
+    // Search filter (by donor name, email, campaign title, receipt number)
+    if (search) {
+      query.$or = [
+        { receiptNumber: { $regex: search, $options: "i" } },
+        { message: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Sort options
+    const sort = {};
+    sort[sortBy] = sortOrder === "asc" ? 1 : -1;
+
+    const [donations, total] = await Promise.all([
+      Donation.find(query)
+        .populate("donorId", "name email phone")
+        .populate("campaignId", "title beneficiaryName")
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Donation.countDocuments(query),
+    ]);
+
+    // Calculate statistics
+    const stats = await Donation.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amount" },
+          totalCount: { $sum: 1 },
+          suspiciousCount: {
+            $sum: { $cond: ["$isSuspicious", 1, 0] }
+          },
+          pendingCount: {
+            $sum: { $cond: [{ $eq: ["$paymentStatus", "pending"] }, 1, 0] }
+          },
+          successCount: {
+            $sum: { $cond: [{ $eq: ["$paymentStatus", "success"] }, 1, 0] }
+          },
+        },
+      },
+    ]);
+
+    res.json({
+      success: true,
+      payments: donations,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+      stats: stats[0] || {
+        totalAmount: 0,
+        totalCount: 0,
+        suspiciousCount: 0,
+        pendingCount: 0,
+        successCount: 0,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load payments",
+      error: error.message,
+    });
+  }
+};
+
+// Get payment details
+export const getPaymentDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const donation = await Donation.findById(id)
+      .populate("donorId", "name email phone profilePicture")
+      .populate("campaignId", "title beneficiaryName imageUrl")
+      .populate("reviewedBy", "name email")
+      .populate("paymentVerifiedBy", "name email")
+      .lean();
+
+    if (!donation) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      });
+    }
+
+    // Get related donations from same donor/IP
+    const relatedDonations = await Donation.find({
+      $or: [
+        { donorId: donation.donorId },
+        { ipAddress: donation.ipAddress },
+      ],
+      _id: { $ne: donation._id },
+    })
+      .populate("campaignId", "title")
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean();
+
+    res.json({
+      success: true,
+      payment: donation,
+      relatedDonations,
+    });
+  } catch (error) {
+    console.error("Error fetching payment details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load payment details",
+      error: error.message,
+    });
+  }
+};
+
+// Mark payment as verified/received
+export const verifyPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentNotes } = req.body;
+    const adminId = req.adminId; // From adminAuth middleware
+
+    const donation = await Donation.findById(id);
+    if (!donation) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      });
+    }
+
+    donation.paymentReceived = true;
+    donation.paymentReceivedAt = new Date();
+    donation.paymentStatus = "success";
+    donation.paymentVerifiedBy = adminId;
+    if (paymentNotes) donation.paymentNotes = paymentNotes;
+
+    await donation.save();
+
+    res.json({
+      success: true,
+      message: "Payment marked as verified",
+      payment: donation,
+    });
+  } catch (error) {
+    console.error("Error verifying payment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to verify payment",
+      error: error.message,
+    });
+  }
+};
+
+// Flag payment as suspicious
+export const flagPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const adminId = req.adminId;
+
+    const donation = await Donation.findById(id);
+    if (!donation) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      });
+    }
+
+    donation.isSuspicious = true;
+    donation.flaggedBy = adminId;
+    donation.flaggedAt = new Date();
+    if (reason) {
+      donation.suspiciousReason = donation.suspiciousReason 
+        ? `${donation.suspiciousReason}; Admin: ${reason}`
+        : `Admin: ${reason}`;
+    }
+    donation.riskLevel = "high";
+
+    await donation.save();
+
+    res.json({
+      success: true,
+      message: "Payment flagged as suspicious",
+      payment: donation,
+    });
+  } catch (error) {
+    console.error("Error flagging payment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to flag payment",
+      error: error.message,
+    });
+  }
+};
+
+// Review payment (mark as reviewed)
+export const reviewPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reviewNotes, isSuspicious, riskLevel } = req.body;
+    const adminId = req.adminId;
+
+    const donation = await Donation.findById(id);
+    if (!donation) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      });
+    }
+
+    donation.reviewedBy = adminId;
+    donation.reviewedAt = new Date();
+    if (reviewNotes) donation.reviewNotes = reviewNotes;
+    if (isSuspicious !== undefined) donation.isSuspicious = isSuspicious;
+    if (riskLevel) donation.riskLevel = riskLevel;
+
+    await donation.save();
+
+    res.json({
+      success: true,
+      message: "Payment reviewed",
+      payment: donation,
+    });
+  } catch (error) {
+    console.error("Error reviewing payment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to review payment",
+      error: error.message,
+    });
+  }
+};
+
+// Reject payment
+export const rejectPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rejectionReason } = req.body;
+    const adminId = req.adminId;
+
+    if (!rejectionReason) {
+      return res.status(400).json({
+        success: false,
+        message: "Rejection reason is required",
+      });
+    }
+
+    const donation = await Donation.findById(id);
+    if (!donation) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      });
+    }
+
+    donation.adminRejected = true;
+    donation.rejectionReason = rejectionReason;
+    donation.paymentStatus = "cancelled";
+    donation.reviewedBy = adminId;
+    donation.reviewedAt = new Date();
+
+    // Revert campaign raised amount
+    const campaign = await Campaign.findById(donation.campaignId);
+    if (campaign) {
+      campaign.raisedAmount = Math.max(0, campaign.raisedAmount - donation.amount);
+      await campaign.save();
+    }
+
+    await donation.save();
+
+    res.json({
+      success: true,
+      message: "Payment rejected",
+      payment: donation,
+    });
+  } catch (error) {
+    console.error("Error rejecting payment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to reject payment",
+      error: error.message,
+    });
+  }
+};
+
+// Get suspicious payments
+export const getSuspiciousPayments = async (req, res) => {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const query = {
+      $or: [
+        { isSuspicious: true },
+        { riskLevel: { $in: ["high", "critical"] } },
+        { fraudScore: { $gte: 50 } },
+      ],
+    };
+
+    const [donations, total] = await Promise.all([
+      Donation.find(query)
+        .populate("donorId", "name email phone")
+        .populate("campaignId", "title beneficiaryName")
+        .sort({ fraudScore: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Donation.countDocuments(query),
+    ]);
+
+    res.json({
+      success: true,
+      payments: donations,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching suspicious payments:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load suspicious payments",
+      error: error.message,
+    });
+  }
+};
+
+// Export payments to CSV/Excel
+export const exportPayments = async (req, res) => {
+  try {
+    const { startDate, endDate, paymentStatus } = req.query;
+
+    const query = {};
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+    if (paymentStatus) {
+      query.paymentStatus = paymentStatus;
+    }
+
+    const donations = await Donation.find(query)
+      .populate("donorId", "name email phone")
+      .populate("campaignId", "title")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Convert to CSV format
+    const csvHeaders = [
+      "Receipt Number",
+      "Donor Name",
+      "Donor Email",
+      "Campaign",
+      "Amount",
+      "Payment Status",
+      "Payment Method",
+      "Risk Level",
+      "Fraud Score",
+      "Suspicious",
+      "Date",
+      "IP Address",
+    ];
+
+    const csvRows = donations.map((d) => [
+      d.receiptNumber || "N/A",
+      d.donorId?.name || "Anonymous",
+      d.donorId?.email || "N/A",
+      d.campaignId?.title || "N/A",
+      d.amount,
+      d.paymentStatus,
+      d.paymentMethod,
+      d.riskLevel,
+      d.fraudScore || 0,
+      d.isSuspicious ? "Yes" : "No",
+      new Date(d.createdAt).toLocaleString(),
+      d.ipAddress || "N/A",
+    ]);
+
+    const csv = [
+      csvHeaders.join(","),
+      ...csvRows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename=payments-${Date.now()}.csv`);
+    res.send(csv);
+  } catch (error) {
+    console.error("Error exporting payments:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to export payments",
+      error: error.message,
+    });
+  }
+};

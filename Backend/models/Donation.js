@@ -110,7 +110,7 @@ const donationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User", // Admin who processed refund
     },
-    // Fraud Detection
+    // Fraud Detection & Anti-Scam Features
     isSuspicious: {
       type: Boolean,
       default: false,
@@ -119,11 +119,112 @@ const donationSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    ipAddress: {
+    fraudScore: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100, // 0 = safe, 100 = highly suspicious
+    },
+    riskLevel: {
+      type: String,
+      enum: ["low", "medium", "high", "critical"],
+      default: "low",
+    },
+    flaggedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Admin who flagged this
+      default: null,
+    },
+    flaggedAt: {
+      type: Date,
+      default: null,
+    },
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Admin who reviewed this
+      default: null,
+    },
+    reviewedAt: {
+      type: Date,
+      default: null,
+    },
+    reviewNotes: {
       type: String,
       default: "",
     },
+    // Rate Limiting & Spam Prevention
+    ipAddress: {
+      type: String,
+      default: "",
+      index: true,
+    },
     userAgent: {
+      type: String,
+      default: "",
+    },
+    deviceFingerprint: {
+      type: String,
+      default: "",
+      index: true,
+    },
+    donationCountFromIP: {
+      type: Number,
+      default: 1, // Count of donations from this IP in last 24h
+    },
+    donationCountFromDonor: {
+      type: Number,
+      default: 1, // Count of donations from this donor in last 24h
+    },
+    timeSinceLastDonation: {
+      type: Number,
+      default: 0, // Seconds since last donation from this donor
+    },
+    // Pattern Detection
+    isDuplicate: {
+      type: Boolean,
+      default: false,
+    },
+    duplicateOf: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Donation",
+      default: null,
+    },
+    amountAnomaly: {
+      type: Boolean,
+      default: false, // True if amount is unusually high/low
+    },
+    velocityCheck: {
+      type: Boolean,
+      default: false, // True if too many donations too quickly
+    },
+    // Admin Actions
+    adminVerified: {
+      type: Boolean,
+      default: false,
+    },
+    adminRejected: {
+      type: Boolean,
+      default: false,
+    },
+    rejectionReason: {
+      type: String,
+      default: "",
+    },
+    // Payment Tracking
+    paymentReceived: {
+      type: Boolean,
+      default: false,
+    },
+    paymentReceivedAt: {
+      type: Date,
+      default: null,
+    },
+    paymentVerifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    paymentNotes: {
       type: String,
       default: "",
     },
@@ -145,5 +246,10 @@ donationSchema.index({ campaignId: 1, createdAt: -1 });
 donationSchema.index({ paymentStatus: 1 });
 donationSchema.index({ razorpayOrderId: 1 });
 donationSchema.index({ receiptNumber: 1 });
+donationSchema.index({ ipAddress: 1, createdAt: -1 });
+donationSchema.index({ isSuspicious: 1, riskLevel: 1 });
+donationSchema.index({ fraudScore: -1 });
+donationSchema.index({ adminVerified: 1 });
+donationSchema.index({ paymentReceived: 1 });
 
 export default mongoose.model("Donation", donationSchema);

@@ -18,7 +18,15 @@ import {
   getCampaignWithResponses,
   adminRespondToUserResponse,
   getCampaignsWithPendingResponses,
-  getActivityLog
+  getActivityLog,
+  getAllPayments,
+  getPaymentDetails,
+  verifyPayment,
+  flagPayment,
+  reviewPayment,
+  rejectPayment,
+  getSuspiciousPayments,
+  exportPayments
 } from "../controllers/adminController.js";
 
 import { adminAuth } from "../middlewares/adminAuth.js";
@@ -69,5 +77,17 @@ router.put("/campaigns/:id/info-requests/:requestId/resolve", adminAuth, resolve
 ------------------------------- */
 router.get("/campaigns/:id/responses", adminAuth, getCampaignWithResponses);
 router.post("/campaigns/:id/info-requests/:requestId/responses/:responseId/respond", adminAuth, adminRespondToUserResponse);
+
+/* -------------------------------
+   PAYMENT MANAGEMENT
+------------------------------- */
+router.get("/payments", adminAuth, getAllPayments);
+router.get("/payments/suspicious", adminAuth, getSuspiciousPayments);
+router.get("/payments/export", adminAuth, exportPayments);
+router.get("/payments/:id", adminAuth, getPaymentDetails);
+router.put("/payments/:id/verify", adminAuth, verifyPayment);
+router.put("/payments/:id/flag", adminAuth, flagPayment);
+router.put("/payments/:id/review", adminAuth, reviewPayment);
+router.put("/payments/:id/reject", adminAuth, rejectPayment);
 
 export default router;
