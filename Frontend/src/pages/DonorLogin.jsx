@@ -35,6 +35,10 @@ export default function DonorLogin() {
           if (response.data.success) {
             localStorage.setItem("donorToken", response.data.token);
             localStorage.setItem("donorData", JSON.stringify(response.data.donor));
+            
+            // Dispatch event to notify navbar
+            window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+            
             const redirectTo = location.state?.from || "/";
             navigate(redirectTo);
           }
@@ -97,6 +101,9 @@ export default function DonorLogin() {
         // Store token
         localStorage.setItem("donorToken", response.data.token);
         localStorage.setItem("donorData", JSON.stringify(response.data.donor));
+        
+        // Dispatch event to notify navbar
+        window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
 
         // Redirect to dashboard or previous page
         const redirectTo = location.state?.from || "/donor/dashboard";

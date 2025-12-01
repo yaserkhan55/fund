@@ -38,6 +38,10 @@ export default function DonorRegister() {
           if (response.data.success) {
             localStorage.setItem("donorToken", response.data.token);
             localStorage.setItem("donorData", JSON.stringify(response.data.donor));
+            
+            // Dispatch event to notify navbar
+            window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+            
             // Redirect to OTP verification or dashboard
             navigate("/donor/verify-otp", {
               state: { email: user.primaryEmailAddress?.emailAddress },
@@ -123,6 +127,8 @@ export default function DonorRegister() {
         // Store token
         if (response.data.token) {
           localStorage.setItem("donorToken", response.data.token);
+          // Dispatch event to notify navbar
+          window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
         }
         // Redirect to OTP verification after 2 seconds
         setTimeout(() => {

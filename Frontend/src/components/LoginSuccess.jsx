@@ -58,14 +58,17 @@ export default function LoginSuccess() {
                 localStorage.setItem("donorData", JSON.stringify(response.data.donor));
                 sessionStorage.removeItem("donorFlow");
                 
-                // Dispatch event to notify navbar of donor login
-                window.dispatchEvent(new Event("donorLogin"));
+                // Force update navbar by dispatching event
+                window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
                 
-                // Redirect back to donation page or campaign
-                const returnUrl = location.state?.returnUrl || sessionStorage.getItem("donationReturnUrl") || "/";
-                sessionStorage.removeItem("donationReturnUrl");
-                setLoading(false);
-                navigate(returnUrl);
+                // Small delay to ensure state updates
+                setTimeout(() => {
+                  // Redirect back to donation page or campaign
+                  const returnUrl = location.state?.returnUrl || sessionStorage.getItem("donationReturnUrl") || "/";
+                  sessionStorage.removeItem("donationReturnUrl");
+                  setLoading(false);
+                  navigate(returnUrl);
+                }, 100);
                 return;
               }
             } catch (error) {

@@ -111,6 +111,9 @@ export default function DonorVerifyOTP() {
         localStorage.setItem("donorToken", response.data.token);
         localStorage.setItem("donorData", JSON.stringify(response.data.donor));
         localStorage.removeItem("donorEmail");
+        
+        // Dispatch event to notify navbar
+        window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
 
         // Redirect to dashboard
         navigate("/donor/dashboard");
@@ -142,6 +145,9 @@ export default function DonorVerifyOTP() {
         localStorage.setItem("donorToken", response.data.token);
         localStorage.setItem("donorData", JSON.stringify(response.data.donor));
         localStorage.removeItem("donorEmail");
+        
+        // Dispatch event to notify navbar
+        window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
 
         // Redirect to dashboard
         navigate("/donor/dashboard");

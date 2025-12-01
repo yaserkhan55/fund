@@ -39,6 +39,10 @@ export default function DonationModal({ campaignId, onClose }) {
           if (response.data.success) {
             localStorage.setItem("donorToken", response.data.token);
             localStorage.setItem("donorData", JSON.stringify(response.data.donor));
+            
+            // Dispatch event to notify navbar
+            window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+            
             setIsDonorLoggedIn(true);
           }
         } catch (error) {

@@ -25,7 +25,9 @@ export default function Navbar() {
     const checkDonorLogin = () => {
       const donorToken = localStorage.getItem("donorToken");
       const nowLoggedIn = !!donorToken;
-      setIsDonorLoggedIn(nowLoggedIn);
+      if (isDonorLoggedIn !== nowLoggedIn) {
+        setIsDonorLoggedIn(nowLoggedIn);
+      }
     };
 
     // Check on mount
@@ -36,13 +38,17 @@ export default function Navbar() {
     
     // Listen for custom event when donor logs in
     const handleDonorLogin = () => {
-      checkDonorLogin();
+      const donorToken = localStorage.getItem("donorToken");
+      setIsDonorLoggedIn(!!donorToken);
     };
     window.addEventListener("donorLogin", handleDonorLogin);
     window.addEventListener("donorLogout", handleDonorLogin);
 
-    // Check periodically (for same-tab login)
-    const interval = setInterval(checkDonorLogin, 500);
+    // Check periodically (for same-tab login) - more frequent
+    const interval = setInterval(() => {
+      const donorToken = localStorage.getItem("donorToken");
+      setIsDonorLoggedIn(!!donorToken);
+    }, 200);
 
     return () => {
       window.removeEventListener("storage", checkDonorLogin);
@@ -50,7 +56,7 @@ export default function Navbar() {
       window.removeEventListener("donorLogout", handleDonorLogin);
       clearInterval(interval);
     };
-  }, []);
+  }, [isDonorLoggedIn]);
 
   // Sync Clerk user with donor backend if signed in but no donorToken
   useEffect(() => {
