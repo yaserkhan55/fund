@@ -212,12 +212,12 @@ export default function DonationModal({ campaignId, onClose }) {
                 Create a donor account or login to commit your donation
               </p>
               
-              {/* Google Authentication - Use Clerk modal buttons */}
+              {/* Google Authentication - Use Clerk redirect buttons */}
               <div className="mb-4">
                 <SignUpButton
-                  mode="modal"
-                  afterSignUpUrl="/auth/google/success"
-                  redirectUrl="/auth/google/success"
+                  mode="redirect"
+                  redirectUrl={`${window.location.origin}/auth/google/success`}
+                  afterSignUpUrl={`${window.location.origin}/auth/google/success`}
                 >
                   <button
                     type="button"
@@ -232,9 +232,9 @@ export default function DonationModal({ campaignId, onClose }) {
                   </button>
                 </SignUpButton>
                 <SignInButton
-                  mode="modal"
-                  afterSignInUrl="/auth/google/success"
-                  redirectUrl="/auth/google/success"
+                  mode="redirect"
+                  redirectUrl={`${window.location.origin}/auth/google/success`}
+                  afterSignInUrl={`${window.location.origin}/auth/google/success`}
                 >
                   <button
                     type="button"

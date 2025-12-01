@@ -291,15 +291,15 @@ export default function DonorLogin() {
             </div>
           </div>
 
-          {/* Google Sign In - Use Clerk SignInButton with modal */}
+          {/* Google Sign In - Use Clerk SignInButton with redirect */}
           <div className="mb-6">
             <div className="text-center mb-4">
               <p className="text-sm text-gray-600 mb-3">Or continue with</p>
             </div>
             <SignInButton
-              mode="modal"
-              afterSignInUrl="/auth/google/success"
-              redirectUrl="/auth/google/success"
+              mode="redirect"
+              redirectUrl={`${window.location.origin}/auth/google/success`}
+              afterSignInUrl={`${window.location.origin}/auth/google/success`}
             >
               <button
                 type="button"

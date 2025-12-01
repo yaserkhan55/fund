@@ -361,15 +361,15 @@ export default function DonorRegister() {
               </div>
             </div>
 
-            {/* Google Sign Up - Use Clerk SignUpButton with modal */}
+            {/* Google Sign Up - Use Clerk SignUpButton with redirect */}
             <div className="mb-6">
               <div className="text-center mb-4">
                 <p className="text-sm text-gray-600 mb-3">Or continue with</p>
               </div>
               <SignUpButton
-                mode="modal"
-                afterSignUpUrl="/auth/google/success"
-                redirectUrl="/auth/google/success"
+                mode="redirect"
+                redirectUrl={`${window.location.origin}/auth/google/success`}
+                afterSignUpUrl={`${window.location.origin}/auth/google/success`}
               >
                 <button
                   type="button"
