@@ -177,11 +177,21 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
               return;
             }
 
+            // Validate required fields before making request
+            if (!userEmail || !clerkId) {
+              console.error("Missing required fields for donor sync:", { userEmail, clerkId });
+              alert("Unable to get required user information. Please try logging in again.");
+              setLoading(false);
+              setHasProcessed(true);
+              navigate("/");
+              return;
+            }
+
             const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
               email: userEmail,
-              name: userName,
+              name: userName || "Donor",
               clerkId: clerkId,
-              imageUrl: userImage,
+              imageUrl: userImage || "",
             });
 
             if (response.data.success) {
@@ -250,8 +260,26 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
             }
           } catch (error) {
             console.error("Donor sync error:", error);
-            // Show error but still redirect
-            alert("Failed to sync donor account. Please try logging in again.");
+            // More detailed error logging
+            const errorMessage = error.response?.data?.message || 
+                                error.message || 
+                                "Failed to sync donor account";
+            console.error("Donor sync error details:", {
+              message: errorMessage,
+              status: error.response?.status,
+              data: error.response?.data,
+            });
+            
+            // Show user-friendly error message
+            const userFriendlyMessage = error.response?.data?.message || 
+                                       "Failed to sync donor account. Please try logging in again.";
+            alert(userFriendlyMessage);
+            
+            // Still redirect to home so user can try again
+            setLoading(false);
+            setHasProcessed(true);
+            navigate("/");
+            return;
           }
         }
 

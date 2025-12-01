@@ -54,9 +54,17 @@ export default function DonorLogin() {
             }
           } catch (error) {
             console.error("Google auth sync error:", error);
+            // More detailed error message
+            const errorMessage = error.response?.data?.message || 
+                                error.message || 
+                                "Failed to sync donor account. Please try logging in again.";
             setErrors({
-              submit: "Failed to sync Google account. Please try again.",
+              submit: errorMessage,
             });
+            // Don't block navigation - let user try again
+            setTimeout(() => {
+              setErrors({});
+            }, 5000);
           } finally {
             setGoogleLoading(false);
           }

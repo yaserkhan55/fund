@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-react";
 
@@ -7,6 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com"
 
 export default function DonorRegister() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isSignedIn, user } = useAuth();
   
   // Set donorFlow flag when component mounts (user came from "Become a Donor")
@@ -23,7 +24,6 @@ export default function DonorRegister() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
 
   // Handle Google authentication via Clerk - only if already signed in
@@ -52,10 +52,9 @@ export default function DonorRegister() {
               // Dispatch event to notify navbar
               window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
               
-              // Redirect to OTP verification or dashboard
-              navigate("/donor/verify-otp", {
-                state: { email: user.primaryEmailAddress?.emailAddress },
-              });
+              // Redirect to dashboard directly (no OTP)
+              const redirectTo = location.state?.from || "/donor/dashboard";
+              navigate(redirectTo);
             }
           } catch (error) {
             console.error("Google auth error:", error);
@@ -70,7 +69,7 @@ export default function DonorRegister() {
         createDonorWithGoogle();
       }
     }
-  }, [isSignedIn, user, navigate]);
+  }, [isSignedIn, user, navigate, location]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -134,19 +133,18 @@ export default function DonorRegister() {
 
       if (response.data.success) {
         setSuccess(true);
-        setRegisteredEmail(formData.email.trim().toLowerCase());
         // Store token
         if (response.data.token) {
           localStorage.setItem("donorToken", response.data.token);
+          localStorage.setItem("donorData", JSON.stringify(response.data.donor));
           // Dispatch event to notify navbar
           window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
         }
-        // Redirect to OTP verification after 2 seconds
+        // Redirect to dashboard directly (no OTP) after showing success message
         setTimeout(() => {
-          navigate("/donor/verify-otp", {
-            state: { email: formData.email.trim().toLowerCase() },
-          });
-        }, 2000);
+          const redirectTo = location.state?.from || "/donor/dashboard";
+          navigate(redirectTo);
+        }, 1500);
       }
     } catch (error) {
       setErrors({
@@ -201,9 +199,9 @@ export default function DonorRegister() {
               </div>
               <h2 className="text-xl font-bold text-[#003d3b] mb-2">Registration Successful!</h2>
               <p className="text-gray-600 mb-4">
-                We've sent an OTP to <strong>{registeredEmail}</strong>
+                Your account has been created successfully.
               </p>
-              <p className="text-sm text-gray-500">Redirecting to verification...</p>
+              <p className="text-sm text-gray-500">Redirecting to dashboard...</p>
             </div>
           ) : (
             <>
@@ -371,7 +369,8 @@ export default function DonorRegister() {
                 onClick={(e) => {
                   console.log("Navigating to /donor/sign-up");
                   sessionStorage.setItem("donorFlow", "true");
-                  sessionStorage.setItem("donationReturnUrl", "/donor/verify-otp");
+                  const returnUrl = location.state?.from || "/donor/dashboard";
+                  sessionStorage.setItem("donationReturnUrl", returnUrl);
                   // Don't prevent default - let Link navigate
                 }}
                 className="block w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-2 cursor-pointer"
