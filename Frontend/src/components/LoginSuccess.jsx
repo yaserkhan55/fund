@@ -11,12 +11,24 @@ export default function LoginSuccess() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setLoginData } = useContext(AuthContext);
-  const { isSignedIn, user } = useAuth();
+  
+  // Get Clerk auth - must be called unconditionally at top level
+  // This should work if ClerkProvider is properly set up in main.jsx
+  const authHook = useAuth();
+  const isSignedIn = authHook?.isSignedIn || false;
+  const user = authHook?.user || null;
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleAuth = async () => {
       try {
+        // Check if Clerk is available
+        if (!authHook || typeof authHook.isSignedIn === 'undefined') {
+          console.error("Clerk not properly initialized");
+          setLoading(false);
+          navigate("/");
+          return;
+        }
         // Check if it's a token-based login (legacy)
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get("token");

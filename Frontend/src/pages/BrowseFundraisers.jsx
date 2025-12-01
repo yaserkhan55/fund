@@ -142,7 +142,7 @@ export default function BrowseFundraisers() {
                     to={`/campaign/${campaign._id}`}
                     className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#E0F2F2] hover:shadow-2xl hover:-translate-y-2 hover:border-[#00B5B8] transition-all duration-300 flex flex-col h-full group"
                   >
-                    <div className="h-36 w-full overflow-hidden bg-gray-200 relative flex-shrink-0">
+                    <div className="relative w-full h-48 overflow-hidden bg-gray-200 flex-shrink-0">
                       <img
                         src={resolveImg(campaign.image)}
                         alt={campaign.title}
@@ -306,12 +306,12 @@ export default function BrowseFundraisers() {
                     to={`/campaign/${campaign._id}`}
                     className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#E0F2F2] hover:shadow-2xl hover:-translate-y-2 hover:border-[#00B5B8] transition-all duration-300 flex flex-col h-full group"
                   >
-                    <div className="h-36 w-full overflow-hidden bg-gray-200 relative flex-shrink-0">
+                    <div className="relative w-full h-48 overflow-hidden bg-gray-200 flex-shrink-0">
                       <img
                         src={resolveImg(campaign.image)}
                         alt={campaign.title}
                         onError={(e) => (e.currentTarget.src = "/no-image.png")}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="p-5 flex-grow flex flex-col">
