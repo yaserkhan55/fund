@@ -131,29 +131,27 @@ export default function App() {
       <Route
         path="/donor/sign-in"
         element={
-          <div className="min-h-screen flex items-center justify-center bg-[#F1FAFA]">
+          <Layout>
             <SignIn
               path="/donor/sign-in"
               routing="path"
               afterSignInUrl="/auth/google/success"
               redirectUrl="/auth/google/success"
-              fallbackRedirectUrl="/auth/google/success"
             />
-          </div>
+          </Layout>
         }
       />
       <Route
         path="/donor/sign-up"
         element={
-          <div className="min-h-screen flex items-center justify-center bg-[#F1FAFA]">
+          <Layout>
             <SignUp
               path="/donor/sign-up"
               routing="path"
               afterSignUpUrl="/auth/google/success"
               redirectUrl="/auth/google/success"
-              fallbackRedirectUrl="/auth/google/success"
             />
-          </div>
+          </Layout>
         }
       />
       <Route

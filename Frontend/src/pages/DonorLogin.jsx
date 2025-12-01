@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import { SignInButton, useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
@@ -291,29 +291,23 @@ export default function DonorLogin() {
             </div>
           </div>
 
-          {/* Google Sign In - Use Clerk SignInButton with redirect */}
+          {/* Google Sign In - Link to full Clerk SignIn page */}
           <div className="mb-6">
             <div className="text-center mb-4">
               <p className="text-sm text-gray-600 mb-3">Or continue with</p>
             </div>
-            <SignInButton
-              mode="redirect"
-              redirectUrl={`${window.location.origin}/auth/google/success`}
-              afterSignInUrl={`${window.location.origin}/auth/google/success`}
+            <Link
+              to="/donor/sign-in"
+              onClick={() => {
+                sessionStorage.setItem("donorFlow", "true");
+                const returnUrl = location.state?.from || "/";
+                sessionStorage.setItem("donationReturnUrl", returnUrl);
+              }}
+              className="block w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-2"
             >
-              <button
-                type="button"
-                onClick={() => {
-                  sessionStorage.setItem("donorFlow", "true");
-                  const returnUrl = location.state?.from || "/";
-                  sessionStorage.setItem("donationReturnUrl", returnUrl);
-                }}
-                className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-2"
-              >
-                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
-                Login with Google
-              </button>
-            </SignInButton>
+              <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
+              Login with Google
+            </Link>
           </div>
 
           {/* Links */}

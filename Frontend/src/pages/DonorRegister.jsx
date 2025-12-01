@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { SignUpButton, useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
@@ -361,28 +361,22 @@ export default function DonorRegister() {
               </div>
             </div>
 
-            {/* Google Sign Up - Use Clerk SignUpButton with redirect */}
+            {/* Google Sign Up - Link to full Clerk SignUp page */}
             <div className="mb-6">
               <div className="text-center mb-4">
                 <p className="text-sm text-gray-600 mb-3">Or continue with</p>
               </div>
-              <SignUpButton
-                mode="redirect"
-                redirectUrl={`${window.location.origin}/auth/google/success`}
-                afterSignUpUrl={`${window.location.origin}/auth/google/success`}
+              <Link
+                to="/donor/sign-up"
+                onClick={() => {
+                  sessionStorage.setItem("donorFlow", "true");
+                  sessionStorage.setItem("donationReturnUrl", "/donor/verify-otp");
+                }}
+                className="block w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-2"
               >
-                <button
-                  type="button"
-                  onClick={() => {
-                    sessionStorage.setItem("donorFlow", "true");
-                    sessionStorage.setItem("donationReturnUrl", "/donor/verify-otp");
-                  }}
-                  className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-2"
-                >
-                  <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
-                  Sign Up with Google
-                </button>
-              </SignUpButton>
+                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
+                Sign Up with Google
+              </Link>
             </div>
             </>
           )}
