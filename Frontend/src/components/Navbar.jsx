@@ -80,24 +80,17 @@ export default function Navbar() {
   }, [isDonorLoggedIn]);
 
   // Sync Clerk user with donor backend if signed in but no donorToken
+  // Note: This is handled by LoginSuccess component, so we just check the flag
   useEffect(() => {
-    const syncClerkAsDonor = async () => {
-      if (isSignedIn && !isDonorLoggedIn) {
-        try {
-          const { user } = await import("@clerk/clerk-react").then(m => m.useAuth());
-          // This will be handled by LoginSuccess component
-          // Just check if we should sync
-          const shouldSync = sessionStorage.getItem("donorFlow") === "true";
-          if (shouldSync) {
-            // LoginSuccess will handle the sync
-            return;
-          }
-        } catch (error) {
-          console.error("Clerk sync check error:", error);
-        }
+    // LoginSuccess component handles the actual sync
+    // We just need to check if donor flow is active
+    if (isSignedIn && !isDonorLoggedIn) {
+      const shouldSync = sessionStorage.getItem("donorFlow") === "true";
+      if (shouldSync) {
+        // LoginSuccess will handle the sync when user navigates there
+        // No need to do anything here
       }
-    };
-    syncClerkAsDonor();
+    }
   }, [isSignedIn, isDonorLoggedIn]);
 
   // Close dropdown when clicking outside
