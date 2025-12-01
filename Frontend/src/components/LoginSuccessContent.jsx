@@ -11,8 +11,12 @@ export default function LoginSuccessContent({ isSignedIn, user }) {
   const location = useLocation();
   const { setLoginData } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
+  const [hasProcessed, setHasProcessed] = useState(false);
 
   useEffect(() => {
+    // Don't process if we've already processed
+    if (hasProcessed) return;
+    
     const handleAuth = async () => {
       try {
         // Check if it's a token-based login (legacy)
@@ -31,24 +35,47 @@ export default function LoginSuccessContent({ isSignedIn, user }) {
         }
 
         // Wait for Clerk user to be available
+        // The props might update after component mounts, so we need to wait
         let retries = 0;
         let currentIsSignedIn = isSignedIn;
         let currentUser = user;
         
-        // Wait up to 10 seconds for Clerk to provide user data
-        while (!currentIsSignedIn && !currentUser && retries < 30) {
+        console.log("Initial Clerk state:", { isSignedIn, hasUser: !!user, retries: 0 });
+        
+        // Wait up to 15 seconds for Clerk to provide user data
+        // Check both the initial props and wait for them to update
+        while ((!currentIsSignedIn || !currentUser) && retries < 50) {
           await new Promise(resolve => setTimeout(resolve, 300));
           retries++;
-          // Re-check props (they might update)
-          if (isSignedIn && user) {
-            currentIsSignedIn = isSignedIn;
-            currentUser = user;
+          
+          // Always use the latest props values (they update reactively)
+          currentIsSignedIn = isSignedIn;
+          currentUser = user;
+          
+          if (currentIsSignedIn && currentUser) {
+            console.log("Clerk user found after waiting:", { retries, hasUser: !!currentUser });
             break;
+          }
+          
+          // Log progress every 5 retries
+          if (retries % 5 === 0) {
+            console.log("Waiting for Clerk user...", { retries, isSignedIn, hasUser: !!user });
           }
         }
         
         // Additional wait to ensure everything is ready
         await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Final check - use latest props
+        currentIsSignedIn = isSignedIn;
+        currentUser = user;
+
+        console.log("Final Clerk state check:", {
+          isSignedIn: currentIsSignedIn,
+          hasUser: !!currentUser,
+          retries,
+          userEmail: currentUser?.primaryEmailAddress?.emailAddress
+        });
 
         // Check if we have Clerk user data
         if (currentIsSignedIn && currentUser) {
@@ -129,6 +156,7 @@ export default function LoginSuccessContent({ isSignedIn, user }) {
                 sessionStorage.removeItem("donationReturnUrl");
                 
                 setLoading(false);
+                setHasProcessed(true);
                 
                 // Navigate
                 navigate(returnUrl);
@@ -198,27 +226,42 @@ export default function LoginSuccessContent({ isSignedIn, user }) {
           const returnUrl = location.state?.returnUrl || sessionStorage.getItem("donationReturnUrl") || "/";
           sessionStorage.removeItem("donationReturnUrl");
           setLoading(false);
+          setHasProcessed(true);
           navigate(returnUrl);
         } else {
+          // No user found yet - wait a bit more if we haven't waited long enough
+          if (retries < 40) {
+            console.log("Waiting for Clerk user...", { retries, isSignedIn, hasUser: !!user });
+            // Don't redirect yet, let the effect re-run when props update
+            return;
+          }
+          
           // No user found - might not be signed in or Clerk not loaded
-          console.log("No Clerk user found, redirecting to home");
+          console.log("No Clerk user found after waiting, redirecting to home", {
+            retries,
+            isSignedIn,
+            hasUser: !!user,
+            donorFlow: sessionStorage.getItem("donorFlow")
+          });
           setLoading(false);
+          setHasProcessed(true);
           navigate("/");
         }
       } catch (err) {
         console.error("Auth error:", err);
         setLoading(false);
+        setHasProcessed(true);
         navigate("/");
       }
     };
 
-    // Add a delay before starting to ensure page is fully loaded
+    // Add a small delay before starting to ensure page is fully loaded
     const timer = setTimeout(() => {
       handleAuth();
-    }, 200);
+    }, 500);
     
     return () => clearTimeout(timer);
-  }, [navigate, location, setLoginData, isSignedIn, user]);
+  }, [navigate, location, setLoginData, isSignedIn, user, hasProcessed]);
 
   if (loading) {
     return (
