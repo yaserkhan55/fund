@@ -53,7 +53,7 @@ const donationSchema = new mongoose.Schema(
     },
     receiptNumber: {
       type: String,
-      default: "",
+      default: null,
       unique: true,
       sparse: true,
     },
@@ -245,7 +245,7 @@ donationSchema.index({ donorId: 1, createdAt: -1 });
 donationSchema.index({ campaignId: 1, createdAt: -1 });
 donationSchema.index({ paymentStatus: 1 });
 donationSchema.index({ razorpayOrderId: 1 });
-donationSchema.index({ receiptNumber: 1 });
+donationSchema.index({ receiptNumber: 1 }, { unique: true, sparse: true }); // Sparse index to allow multiple null values
 donationSchema.index({ ipAddress: 1, createdAt: -1 });
 donationSchema.index({ isSuspicious: 1, riskLevel: 1 });
 donationSchema.index({ fraudScore: -1 });

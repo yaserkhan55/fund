@@ -21,12 +21,16 @@ export const createDonation = async (req, res) => {
     }
 
     // Save donation
-    const donation = await Donation.create({
+    const donation = new Donation({
       campaignId,
       amount,
       name,
       phone,
     });
+
+    // Generate unique receipt number before saving
+    donation.generateReceiptNumber();
+    await donation.save();
 
     // Update campaign raised amount
     campaign.raisedAmount += Number(amount);
@@ -181,7 +185,7 @@ export const commitDonation = async (req, res) => {
     }
 
     // Create donation commitment with fraud detection data
-    const donation = await Donation.create({
+    const donation = new Donation({
       donorId,
       campaignId,
       amount: Number(amount),
@@ -202,6 +206,10 @@ export const commitDonation = async (req, res) => {
       amountAnomaly: fraudCheck.reasons.some(r => r.includes("high donation amount") || r.includes("small donations")),
       velocityCheck: timeSinceLastDonation < 300, // Less than 5 minutes
     });
+
+    // Generate unique receipt number before saving
+    donation.generateReceiptNumber();
+    await donation.save();
 
     // Update campaign raised amount (as committed, not yet paid)
     campaign.raisedAmount += Number(amount);

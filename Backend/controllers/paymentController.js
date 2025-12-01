@@ -90,7 +90,7 @@ export const createPaymentOrder = async (req, res) => {
     // Create donation record (pending)
     let donation;
     try {
-      donation = await Donation.create({
+      donation = new Donation({
         donorId,
         campaignId,
         amount,
@@ -106,7 +106,7 @@ export const createPaymentOrder = async (req, res) => {
         userAgent: req.headers["user-agent"] || "",
       });
 
-      // Generate receipt number
+      // Generate unique receipt number before saving
       donation.generateReceiptNumber();
       await donation.save();
       console.log("[Create Order] Donation created:", donation._id);
