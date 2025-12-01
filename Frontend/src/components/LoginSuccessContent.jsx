@@ -6,7 +6,7 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
-export default function LoginSuccessContent({ isSignedIn, user }) {
+export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { setLoginData } = useContext(AuthContext);
@@ -34,33 +34,67 @@ export default function LoginSuccessContent({ isSignedIn, user }) {
         return;
       }
 
-      // Wait for Clerk user to be available if isSignedIn is true
-      let retries = 0;
+      // Use the latest values from props
       let currentIsSignedIn = isSignedIn;
       let currentUser = user;
       
-      console.log("Initial Clerk state:", { isSignedIn, hasUser: !!user, retries: 0 });
+      console.log("Starting auth processing:", { 
+        isSignedIn: currentIsSignedIn, 
+        hasUser: !!currentUser,
+        isClerkLoaded,
+        userId: currentUser?.id 
+      });
       
-      // If isSignedIn is true but user is null, wait for user object
+      // If isSignedIn is true but user is null, try to get user ID from session
       if (currentIsSignedIn && !currentUser) {
-        console.log("isSignedIn is true but user is null, waiting for user object...");
+        console.log("isSignedIn is true but user is null, trying to get user from Clerk...");
         
-        // Wait up to 15 seconds for user to become available
-        while (currentIsSignedIn && !currentUser && retries < 50) {
+        // Wait for user object to load (it should become available via props)
+        let retries = 0;
+        while (currentIsSignedIn && !currentUser && retries < 30) {
           await new Promise(resolve => setTimeout(resolve, 300));
           retries++;
+          currentUser = user; // Re-check prop (will update when useEffect re-runs)
           
-          // Re-check the latest props (they update reactively via useEffect)
-          // But we need to get them from the closure, so we'll rely on useEffect re-running
-          if (retries % 5 === 0) {
-            console.log("Still waiting for user object...", { retries, isSignedIn, hasUser: !!user });
+          if (currentUser) {
+            console.log("✅ User object loaded after waiting:", { retries, hasUser: !!currentUser });
+            break;
+          }
+          
+          // Try to get user ID from Clerk's session as fallback
+          if (retries === 10 || retries === 20) {
+            try {
+              const { getClerk } = await import("@clerk/clerk-react");
+              const clerk = getClerk();
+              
+              if (clerk) {
+                // Try to get userId from session
+                const userId = clerk.user?.id || clerk.session?.userId;
+                if (userId) {
+                  console.log("Got userId from Clerk:", userId);
+                  // Try to reload user
+                  if (clerk.user) {
+                    await clerk.user.reload();
+                    currentUser = clerk.user;
+                    if (currentUser) {
+                      console.log("✅ User reloaded from Clerk");
+                      break;
+                    }
+                  }
+                }
+              }
+            } catch (err) {
+              console.error("Error getting user from Clerk:", err);
+            }
           }
         }
       }
       
-      // Use the latest values (will be updated when useEffect re-runs)
+      // Final check - use latest prop values
       currentIsSignedIn = isSignedIn;
-      currentUser = user;
+      if (!currentUser) {
+        currentUser = user; // Use latest user prop
+      }
 
       console.log("Final Clerk state check:", {
         isSignedIn: currentIsSignedIn,
@@ -90,23 +124,63 @@ export default function LoginSuccessContent({ isSignedIn, user }) {
         if (isDonorFlow) {
           // Sync with donor backend
           try {
-            const userEmail = currentUser.primaryEmailAddress?.emailAddress || 
-                            currentUser.emailAddresses?.[0]?.emailAddress ||
-                            "";
+            // Get user data - try multiple sources
+            let userEmail = currentUser.primaryEmailAddress?.emailAddress || 
+                           currentUser.emailAddresses?.[0]?.emailAddress ||
+                           "";
             
-            const userName = currentUser.fullName || 
-                             currentUser.firstName || 
-                             currentUser.name ||
-                             "Donor";
+            let userName = currentUser.fullName || 
+                          currentUser.firstName || 
+                          currentUser.name ||
+                          "Donor";
             
-            const userImage = currentUser.imageUrl || 
-                             currentUser.profileImageUrl ||
-                             "";
+            let userImage = currentUser.imageUrl || 
+                           currentUser.profileImageUrl ||
+                           "";
+            
+            const clerkId = currentUser.id;
+            
+            // If we don't have email/name but have clerkId, try to get from Clerk API
+            if (clerkId && (!userEmail || !userName)) {
+              try {
+                const { getClerk } = await import("@clerk/clerk-react");
+                const clerk = getClerk();
+                if (clerk) {
+                  // Try to get user from Clerk
+                  const clerkUser = await clerk.user?.get();
+                  if (clerkUser) {
+                    userEmail = clerkUser.primaryEmailAddress?.emailAddress || 
+                               clerkUser.emailAddresses?.[0]?.emailAddress ||
+                               userEmail;
+                    userName = clerkUser.fullName || 
+                              clerkUser.firstName || 
+                              userName;
+                    userImage = clerkUser.imageUrl || 
+                               clerkUser.profileImageUrl ||
+                               userImage;
+                    console.log("Got user data from Clerk API:", { userEmail, userName });
+                  }
+                }
+              } catch (err) {
+                console.error("Error fetching user from Clerk API:", err);
+                // Continue with what we have
+              }
+            }
+
+            // If we still don't have email, we can't proceed
+            if (!userEmail && clerkId) {
+              console.error("Cannot proceed: No email available for clerkId:", clerkId);
+              alert("Unable to get user email from Clerk. Please try logging in again.");
+              setLoading(false);
+              setHasProcessed(true);
+              navigate("/");
+              return;
+            }
 
             const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
               email: userEmail,
               name: userName,
-              clerkId: currentUser.id,
+              clerkId: clerkId,
               imageUrl: userImage,
             });
 
@@ -252,7 +326,18 @@ export default function LoginSuccessContent({ isSignedIn, user }) {
   useEffect(() => {
     if (hasProcessed) return;
     
-    console.log("LoginSuccess effect triggered:", { isSignedIn, hasUser: !!user, hasProcessed });
+    console.log("LoginSuccess effect triggered:", { 
+      isSignedIn, 
+      hasUser: !!user, 
+      isClerkLoaded,
+      hasProcessed 
+    });
+    
+    // Wait for Clerk to be fully loaded first
+    if (!isClerkLoaded) {
+      console.log("⏳ Clerk is still loading, waiting...");
+      return;
+    }
     
     // If user is available, process immediately
     if (isSignedIn && user) {
@@ -271,9 +356,20 @@ export default function LoginSuccessContent({ isSignedIn, user }) {
           console.log("✅ User became available after wait, processing...");
           handleAuth();
         } else if (isSignedIn && !user && !hasProcessed) {
-          // Still no user after waiting - Clerk might be slow
-          console.log("⚠️ Still no user after wait, but isSignedIn is true - will retry when user prop updates");
-          // Don't process yet - wait for user prop to update via useEffect re-run
+          // Still no user after waiting - might be a backend issue or Clerk configuration
+          console.log("⚠️ Still no user after wait, but isSignedIn is true - checking backend...");
+          // Try to get user from backend or wait more
+          const retryTimer = setTimeout(() => {
+            if (isSignedIn && user && !hasProcessed) {
+              handleAuth();
+            } else {
+              console.error("❌ User object never loaded. This might be a Clerk configuration issue.");
+              setLoading(false);
+              setHasProcessed(true);
+              navigate("/");
+            }
+          }, 5000); // Wait 5 more seconds
+          return () => clearTimeout(retryTimer);
         }
       }, 3000); // Wait 3 seconds for Clerk to load user
       return () => clearTimeout(timer);
@@ -290,7 +386,7 @@ export default function LoginSuccessContent({ isSignedIn, user }) {
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [isSignedIn, user, hasProcessed, handleAuth, navigate]);
+  }, [isSignedIn, user, isClerkLoaded, hasProcessed, handleAuth, navigate]);
 
   if (loading) {
     return (
