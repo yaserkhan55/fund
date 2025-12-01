@@ -1,5 +1,5 @@
 // LoginSuccessContent.jsx - Content component that receives Clerk data as props
-import { useEffect, useContext, useState } from "react";
+import { useEffect, useContext, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import axios from "axios";
@@ -13,255 +13,275 @@ export default function LoginSuccessContent({ isSignedIn, user }) {
   const [loading, setLoading] = useState(true);
   const [hasProcessed, setHasProcessed] = useState(false);
 
-  useEffect(() => {
-    // Don't process if we've already processed
+  // Main auth processing function
+  const handleAuth = useCallback(async () => {
     if (hasProcessed) return;
     
-    const handleAuth = async () => {
-      try {
-        // Check if it's a token-based login (legacy)
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get("token");
+    try {
+      // Check if it's a token-based login (legacy)
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get("token");
 
-        if (token) {
-          // Legacy token-based login
-          localStorage.setItem("token", token);
-          if (setLoginData) {
-            setLoginData(token, null);
-          }
-          navigate("/");
-          setLoading(false);
-          return;
+      if (token) {
+        // Legacy token-based login
+        localStorage.setItem("token", token);
+        if (setLoginData) {
+          setLoginData(token, null);
         }
+        navigate("/");
+        setLoading(false);
+        setHasProcessed(true);
+        return;
+      }
 
-        // Wait for Clerk user to be available
-        // The props might update after component mounts, so we need to wait
-        let retries = 0;
-        let currentIsSignedIn = isSignedIn;
-        let currentUser = user;
+      // Wait for Clerk user to be available if isSignedIn is true
+      let retries = 0;
+      let currentIsSignedIn = isSignedIn;
+      let currentUser = user;
+      
+      console.log("Initial Clerk state:", { isSignedIn, hasUser: !!user, retries: 0 });
+      
+      // If isSignedIn is true but user is null, wait for user object
+      if (currentIsSignedIn && !currentUser) {
+        console.log("isSignedIn is true but user is null, waiting for user object...");
         
-        console.log("Initial Clerk state:", { isSignedIn, hasUser: !!user, retries: 0 });
-        
-        // Wait up to 15 seconds for Clerk to provide user data
-        // Check both the initial props and wait for them to update
-        while ((!currentIsSignedIn || !currentUser) && retries < 50) {
+        // Wait up to 15 seconds for user to become available
+        while (currentIsSignedIn && !currentUser && retries < 50) {
           await new Promise(resolve => setTimeout(resolve, 300));
           retries++;
           
-          // Always use the latest props values (they update reactively)
-          currentIsSignedIn = isSignedIn;
-          currentUser = user;
-          
-          if (currentIsSignedIn && currentUser) {
-            console.log("Clerk user found after waiting:", { retries, hasUser: !!currentUser });
-            break;
-          }
-          
-          // Log progress every 5 retries
+          // Re-check the latest props (they update reactively via useEffect)
+          // But we need to get them from the closure, so we'll rely on useEffect re-running
           if (retries % 5 === 0) {
-            console.log("Waiting for Clerk user...", { retries, isSignedIn, hasUser: !!user });
+            console.log("Still waiting for user object...", { retries, isSignedIn, hasUser: !!user });
           }
         }
-        
-        // Additional wait to ensure everything is ready
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Final check - use latest props
-        currentIsSignedIn = isSignedIn;
-        currentUser = user;
+      }
+      
+      // Use the latest values (will be updated when useEffect re-runs)
+      currentIsSignedIn = isSignedIn;
+      currentUser = user;
 
-        console.log("Final Clerk state check:", {
-          isSignedIn: currentIsSignedIn,
-          hasUser: !!currentUser,
-          retries,
-          userEmail: currentUser?.primaryEmailAddress?.emailAddress
+      console.log("Final Clerk state check:", {
+        isSignedIn: currentIsSignedIn,
+        hasUser: !!currentUser,
+        retries,
+        userEmail: currentUser?.primaryEmailAddress?.emailAddress
+      });
+
+      // Check if we have Clerk user data
+      if (currentIsSignedIn && currentUser) {
+        // Check if user wants to be a donor (from donation flow or "Become a Donor")
+        const donorFlowFlag = sessionStorage.getItem("donorFlow");
+        const isDonorFlow = location.state?.isDonor || 
+                           donorFlowFlag === "true" ||
+                           window.location.pathname.includes("/donor/") ||
+                           document.referrer.includes("donation") ||
+                           document.referrer.includes("donor");
+        
+        console.log("LoginSuccess - Donor Flow Check:", {
+          isDonorFlow,
+          donorFlowFlag,
+          pathname: window.location.pathname,
+          referrer: document.referrer,
+          hasUser: !!currentUser
         });
 
-        // Check if we have Clerk user data
-        if (currentIsSignedIn && currentUser) {
-          // Check if user wants to be a donor (from donation flow or "Become a Donor")
-          const donorFlowFlag = sessionStorage.getItem("donorFlow");
-          const isDonorFlow = location.state?.isDonor || 
-                             donorFlowFlag === "true" ||
-                             window.location.pathname.includes("/donor/") ||
-                             document.referrer.includes("donation") ||
-                             document.referrer.includes("donor");
-          
-          console.log("LoginSuccess - Donor Flow Check:", {
-            isDonorFlow,
-            donorFlowFlag,
-            pathname: window.location.pathname,
-            referrer: document.referrer,
-            hasUser: !!currentUser
-          });
-
-          if (isDonorFlow) {
-            // Sync with donor backend
-            try {
-              const userEmail = currentUser.primaryEmailAddress?.emailAddress || 
-                              currentUser.emailAddresses?.[0]?.emailAddress ||
-                              "";
-              
-              const userName = currentUser.fullName || 
-                               currentUser.firstName || 
-                               currentUser.name ||
-                               "Donor";
-              
-              const userImage = currentUser.imageUrl || 
-                               currentUser.profileImageUrl ||
-                               "";
-
-              const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
-                email: userEmail,
-                name: userName,
-                clerkId: currentUser.id,
-                imageUrl: userImage,
-              });
-
-              if (response.data.success) {
-                console.log("Donor sync successful, setting token");
-                
-                // Set token first
-                localStorage.setItem("donorToken", response.data.token);
-                localStorage.setItem("donorData", JSON.stringify(response.data.donor));
-                sessionStorage.removeItem("donorFlow");
-                
-                // Immediately dispatch event
-                window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
-                
-                // Force update navbar by dispatching event multiple times with delays
-                for (let i = 0; i < 10; i++) {
-                  setTimeout(() => {
-                    const token = localStorage.getItem("donorToken");
-                    if (token) {
-                      window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
-                    }
-                  }, i * 100);
-                }
-                
-                // Also trigger a storage event manually
-                window.dispatchEvent(new StorageEvent("storage", {
-                  key: "donorToken",
-                  newValue: response.data.token
-                }));
-                
-                // Wait a bit longer to ensure navbar has time to update
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                // Dispatch one more time before navigation
-                window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
-                
-                // Redirect back to donation page or campaign, or home if from "Become a Donor"
-                const returnUrl = location.state?.returnUrl || sessionStorage.getItem("donationReturnUrl") || "/";
-                sessionStorage.removeItem("donationReturnUrl");
-                
-                setLoading(false);
-                setHasProcessed(true);
-                
-                // Navigate
-                navigate(returnUrl);
-                
-                // After navigation, dispatch multiple more times to ensure navbar updates
-                setTimeout(() => {
-                  const token = localStorage.getItem("donorToken");
-                  if (token) {
-                    for (let i = 0; i < 5; i++) {
-                      setTimeout(() => {
-                        window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
-                      }, i * 100);
-                    }
-                  }
-                }, 300);
-                
-                setTimeout(() => {
-                  const token = localStorage.getItem("donorToken");
-                  if (token) {
-                    window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
-                  }
-                }, 1000);
-                
-                return;
-              }
-            } catch (error) {
-              console.error("Donor sync error:", error);
-              // Show error but still redirect
-              alert("Failed to sync donor account. Please try logging in again.");
-            }
-          }
-
-          // Regular user sync (campaign creator) - optional, don't block if it fails
+        if (isDonorFlow) {
+          // Sync with donor backend
           try {
             const userEmail = currentUser.primaryEmailAddress?.emailAddress || 
                             currentUser.emailAddresses?.[0]?.emailAddress ||
                             "";
             
             const userName = currentUser.fullName || 
-                           currentUser.firstName || 
-                           currentUser.name ||
-                           "User";
+                             currentUser.firstName || 
+                             currentUser.name ||
+                             "Donor";
             
             const userImage = currentUser.imageUrl || 
                              currentUser.profileImageUrl ||
                              "";
 
-            const response = await axios.post(`${API_URL}/api/auth/clerk-sync`, {
-              clerkId: currentUser.id,
+            const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
               email: userEmail,
               name: userName,
+              clerkId: currentUser.id,
               imageUrl: userImage,
             });
 
-            if (response.data.success && response.data.token) {
-              localStorage.setItem("token", response.data.token);
-              if (setLoginData) {
-                setLoginData(response.data.token, response.data.user);
+            if (response.data.success) {
+              console.log("Donor sync successful, setting token");
+              
+              // Set token first
+              localStorage.setItem("donorToken", response.data.token);
+              localStorage.setItem("donorData", JSON.stringify(response.data.donor));
+              sessionStorage.removeItem("donorFlow");
+              
+              // Immediately dispatch event
+              window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+              
+              // Force update navbar by dispatching event multiple times with delays
+              for (let i = 0; i < 10; i++) {
+                setTimeout(() => {
+                  const token = localStorage.getItem("donorToken");
+                  if (token) {
+                    window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
+                  }
+                }, i * 100);
               }
+              
+              // Also trigger a storage event manually
+              window.dispatchEvent(new StorageEvent("storage", {
+                key: "donorToken",
+                newValue: response.data.token
+              }));
+              
+              // Wait a bit longer to ensure navbar has time to update
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              
+              // Dispatch one more time before navigation
+              window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+              
+              // Redirect back to donation page or campaign, or home if from "Become a Donor"
+              const returnUrl = location.state?.returnUrl || sessionStorage.getItem("donationReturnUrl") || "/";
+              sessionStorage.removeItem("donationReturnUrl");
+              
+              setLoading(false);
+              setHasProcessed(true);
+              
+              // Navigate
+              navigate(returnUrl);
+              
+              // After navigation, dispatch multiple more times to ensure navbar updates
+              setTimeout(() => {
+                const token = localStorage.getItem("donorToken");
+                if (token) {
+                  for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
+                    }, i * 100);
+                  }
+                }
+              }, 300);
+              
+              setTimeout(() => {
+                const token = localStorage.getItem("donorToken");
+                if (token) {
+                  window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
+                }
+              }, 1000);
+              
+              return;
             }
           } catch (error) {
-            // User sync is optional - user might just want to be a donor
-            console.log("User sync skipped (user may be donor-only)");
+            console.error("Donor sync error:", error);
+            // Show error but still redirect
+            alert("Failed to sync donor account. Please try logging in again.");
           }
-
-          // Redirect to home or return URL
-          const returnUrl = location.state?.returnUrl || sessionStorage.getItem("donationReturnUrl") || "/";
-          sessionStorage.removeItem("donationReturnUrl");
-          setLoading(false);
-          setHasProcessed(true);
-          navigate(returnUrl);
-        } else {
-          // No user found yet - wait a bit more if we haven't waited long enough
-          if (retries < 40) {
-            console.log("Waiting for Clerk user...", { retries, isSignedIn, hasUser: !!user });
-            // Don't redirect yet, let the effect re-run when props update
-            return;
-          }
-          
-          // No user found - might not be signed in or Clerk not loaded
-          console.log("No Clerk user found after waiting, redirecting to home", {
-            retries,
-            isSignedIn,
-            hasUser: !!user,
-            donorFlow: sessionStorage.getItem("donorFlow")
-          });
-          setLoading(false);
-          setHasProcessed(true);
-          navigate("/");
         }
-      } catch (err) {
-        console.error("Auth error:", err);
+
+        // Regular user sync (campaign creator) - optional, don't block if it fails
+        try {
+          const userEmail = currentUser.primaryEmailAddress?.emailAddress || 
+                          currentUser.emailAddresses?.[0]?.emailAddress ||
+                          "";
+          
+          const userName = currentUser.fullName || 
+                         currentUser.firstName || 
+                         currentUser.name ||
+                         "User";
+          
+          const userImage = currentUser.imageUrl || 
+                           currentUser.profileImageUrl ||
+                           "";
+
+          const response = await axios.post(`${API_URL}/api/auth/clerk-sync`, {
+            clerkId: currentUser.id,
+            email: userEmail,
+            name: userName,
+            imageUrl: userImage,
+          });
+
+          if (response.data.success && response.data.token) {
+            localStorage.setItem("token", response.data.token);
+            if (setLoginData) {
+              setLoginData(response.data.token, response.data.user);
+            }
+          }
+        } catch (error) {
+          // User sync is optional - user might just want to be a donor
+          console.log("User sync skipped (user may be donor-only)");
+        }
+
+        // Redirect to home or return URL
+        const returnUrl = location.state?.returnUrl || sessionStorage.getItem("donationReturnUrl") || "/";
+        sessionStorage.removeItem("donationReturnUrl");
+        setLoading(false);
+        setHasProcessed(true);
+        navigate(returnUrl);
+      } else {
+        // No user found yet - wait a bit more if isSignedIn is true
+        if (isSignedIn && !user) {
+          console.log("isSignedIn is true but user is still null, will retry when user becomes available");
+          // Don't redirect yet - let useEffect re-run when user becomes available
+          return;
+        }
+        
+        // Not signed in or no user after waiting
+        console.log("No Clerk user found, redirecting to home", {
+          isSignedIn,
+          hasUser: !!user,
+          retries,
+          donorFlow: sessionStorage.getItem("donorFlow")
+        });
         setLoading(false);
         setHasProcessed(true);
         navigate("/");
       }
-    };
-
-    // Add a small delay before starting to ensure page is fully loaded
-    const timer = setTimeout(() => {
-      handleAuth();
-    }, 500);
-    
-    return () => clearTimeout(timer);
+    } catch (err) {
+      console.error("Auth error:", err);
+      setLoading(false);
+      setHasProcessed(true);
+      navigate("/");
+    }
   }, [navigate, location, setLoginData, isSignedIn, user, hasProcessed]);
+
+  // Effect that triggers when user becomes available
+  useEffect(() => {
+    if (hasProcessed) return;
+    
+    // If user is available, process immediately
+    if (isSignedIn && user) {
+      console.log("User is available, processing auth...");
+      handleAuth();
+    } else if (isSignedIn && !user) {
+      // isSignedIn is true but user is null - wait a bit then check again
+      console.log("isSignedIn is true but user is null, waiting...");
+      const timer = setTimeout(() => {
+        if (isSignedIn && user && !hasProcessed) {
+          console.log("User became available after wait, processing...");
+          handleAuth();
+        } else if (isSignedIn && !user && !hasProcessed) {
+          // Still no user, try processing anyway (might work)
+          console.log("Still no user after wait, trying to process...");
+          handleAuth();
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else if (!isSignedIn) {
+      // Not signed in, wait a bit then redirect
+      const timer = setTimeout(() => {
+        if (!isSignedIn && !hasProcessed) {
+          console.log("Not signed in, redirecting to home");
+          setLoading(false);
+          setHasProcessed(true);
+          navigate("/");
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isSignedIn, user, hasProcessed, handleAuth, navigate]);
 
   if (loading) {
     return (
@@ -276,4 +296,3 @@ export default function LoginSuccessContent({ isSignedIn, user }) {
 
   return null;
 }
-
