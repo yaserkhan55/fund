@@ -344,13 +344,13 @@ export default function DonorRegister() {
               </div>
             </div>
 
-            {/* Google Sign Up Button */}
+            {/* Google Sign Up Button - Match main site style */}
             <div className="mb-6">
               <SignUpButton mode="redirect" redirectUrl={window.location.origin + "/donor/register"}>
                 <button
                   type="button"
                   disabled={loading || googleLoading}
-                  className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3.5 rounded-xl font-semibold text-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] flex items-center justify-center gap-3"
+                  className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {googleLoading ? (
                     <svg
@@ -379,7 +379,7 @@ export default function DonorRegister() {
                         alt="Google"
                         className="w-5 h-5"
                       />
-                      <span>Sign up with Google</span>
+                      <span>Sign Up with Google</span>
                     </>
                   )}
                 </button>

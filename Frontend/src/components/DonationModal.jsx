@@ -13,6 +13,7 @@ export default function DonationModal({ campaignId, onClose }) {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const [isDonorLoggedIn, setIsDonorLoggedIn] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -52,11 +53,33 @@ export default function DonationModal({ campaignId, onClose }) {
     }
   }, [isSignedIn, user]);
 
-  // Quick amount buttons
-  const quickAmounts = [100, 500, 1000, 2000, 5000];
+  // Quick amount buttons - More realistic amounts
+  const quickAmounts = [
+    { label: "₹100", value: 100 },
+    { label: "₹500", value: 500 },
+    { label: "₹1,000", value: 1000 },
+    { label: "₹2,500", value: 2500 },
+    { label: "₹5,000", value: 5000 },
+    { label: "₹10,000", value: 10000 },
+    { label: "Other", value: "other" },
+  ];
+
+  const handleAmountClick = (value) => {
+    if (value === "other") {
+      setAmount("");
+      // Focus on input
+      setTimeout(() => {
+        const input = document.querySelector('input[type="number"]');
+        if (input) input.focus();
+      }, 100);
+    } else {
+      setAmount(value.toString());
+    }
+  };
 
   const handleDonation = async () => {
     setError("");
+    setSuccess(false);
 
     if (!amount || Number(amount) < 1) {
       setError("Please enter a valid donation amount (minimum ₹1).");
@@ -78,7 +101,7 @@ export default function DonationModal({ campaignId, onClose }) {
     try {
       const token = localStorage.getItem("donorToken");
       if (!token) {
-        setError("Please login to donate");
+        setError("Please login to commit donation");
         navigate("/donor/login", {
           state: { from: window.location.pathname, action: "donate", campaignId },
         });
@@ -86,9 +109,9 @@ export default function DonationModal({ campaignId, onClose }) {
         return;
       }
 
-      // Create payment order
+      // Create donation commitment (without payment)
       const response = await axios.post(
-        `${API_URL}/api/donations/create-order`,
+        `${API_URL}/api/donations/commit`,
         {
           campaignId,
           amount: Number(amount),
@@ -101,133 +124,32 @@ export default function DonationModal({ campaignId, onClose }) {
       );
 
       if (response.data.success) {
-        // Load Razorpay script
-        await loadRazorpayScript();
-
-        // Open Razorpay checkout
-        const options = {
-          key: response.data.razorpayKeyId,
-          amount: response.data.order.amount,
-          currency: response.data.order.currency,
-          order_id: response.data.order.id,
-          name: "SEUMP",
-          description: `Donation to Campaign`,
-          handler: async function (razorpayResponse) {
-            // Verify payment
-            try {
-              const verifyResponse = await axios.post(
-                `${API_URL}/api/donations/verify`,
-                {
-                  orderId: razorpayResponse.razorpay_order_id,
-                  paymentId: razorpayResponse.razorpay_payment_id,
-                  signature: razorpayResponse.razorpay_signature,
-                  donationId: response.data.donation.id,
-                },
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
-              );
-
-              if (verifyResponse.data.success) {
-                // Success - show thank you message
-                alert("Thank you! Your donation was successful. Receipt will be sent to your email.");
-                onClose();
-                // Reload page to update campaign stats
-                window.location.reload();
-              } else {
-                setError("Payment verification failed. Please contact support with your receipt number.");
-                setLoading(false);
-              }
-            } catch (error) {
-              console.error("Payment verification error:", error);
-              const errorMsg = error.response?.data?.message || "Payment verification failed. Please contact support.";
-              setError(errorMsg);
-              setLoading(false);
-              
-              // If verification fails but payment was successful, show warning
-              if (error.response?.status === 400) {
-                setError("Payment may have been processed but verification failed. Please check your email or contact support.");
-              }
-            }
-          },
-          prefill: {
-            // Pre-fill donor details if available
-          },
-          theme: {
-            color: "#00B5B8",
-          },
-          modal: {
-            ondismiss: function () {
-              setLoading(false);
-            },
-          },
-        };
-
-        const razorpay = new window.Razorpay(options);
-        razorpay.open();
-        
-        razorpay.on("payment.failed", function (response) {
-          console.error("Razorpay payment failed:", response);
-          const errorDescription = response.error?.description || "Payment failed";
-          setError(`Payment failed: ${errorDescription}. Please try again or use a different payment method.`);
-          setLoading(false);
-        });
-        
-        razorpay.on("payment.authorized", function (response) {
-          // Payment authorized but not yet captured
-          console.log("Payment authorized:", response);
-        });
+        setSuccess(true);
+        // Show success message for 3 seconds then close
+        setTimeout(() => {
+          onClose();
+          // Reload page to update campaign stats
+          window.location.reload();
+        }, 3000);
       }
     } catch (err) {
-      console.error("Donation error:", err);
+      console.error("Donation commit error:", err);
       setLoading(false);
       
       if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
         setError("Network error. Please check your connection and try again.");
       } else if (err.response?.status === 401) {
-        setError("Please login to donate");
+        setError("Please login to commit donation");
         setTimeout(() => {
           navigate("/donor/login", {
             state: { from: window.location.pathname, action: "donate", campaignId },
           });
           onClose();
         }, 1500);
-      } else if (err.response?.status === 404) {
-        setError("Donation endpoint not found. Please contact support.");
-      } else if (err.response?.status === 400 || err.response?.status === 500) {
-        const errorMsg = err.response?.data?.message || "Server error. Please try again later.";
-        const details = err.response?.data?.details;
-        
-        // Check if it's a configuration error
-        if (details && (!details.hasKeyId || !details.hasKeySecret)) {
-          setError(
-            "Payment gateway is not configured. " +
-            "Please configure Razorpay credentials (RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET) " +
-            "in your backend environment variables to enable donations."
-          );
-        } else {
-          setError(errorMsg);
-        }
       } else {
-        setError(err.response?.data?.message || err.message || "Failed to create donation. Please try again.");
+        setError(err.response?.data?.message || err.message || "Failed to commit donation. Please try again.");
       }
     }
-  };
-
-  // Load Razorpay script
-  const loadRazorpayScript = () => {
-    return new Promise((resolve, reject) => {
-      if (window.Razorpay) {
-        resolve();
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Failed to load Razorpay"));
-      document.body.appendChild(script);
-    });
   };
 
   return (
@@ -236,8 +158,8 @@ export default function DonationModal({ campaignId, onClose }) {
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-[#003d3b]">Donate Now</h2>
-            <p className="text-sm text-gray-500 mt-1">Support this campaign</p>
+            <h2 className="text-2xl font-bold text-[#003d3b]">Commit Donation</h2>
+            <p className="text-sm text-gray-500 mt-1">Pledge your support to this campaign</p>
           </div>
           <button
             className="text-gray-400 hover:text-[#00B5B8] text-2xl font-light transition"
@@ -247,8 +169,24 @@ export default function DonationModal({ campaignId, onClose }) {
           </button>
         </div>
 
+        {/* SUCCESS MESSAGE */}
+        {success && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-4 text-center">
+            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-green-800 mb-2">Thank You!</h3>
+            <p className="text-sm text-green-700">
+              Your donation commitment of ₹{Number(amount).toLocaleString('en-IN')} has been recorded.
+            </p>
+            <p className="text-xs text-green-600 mt-2">You will be contacted for payment processing.</p>
+          </div>
+        )}
+
         {/* ERROR MESSAGE */}
-        {error && (
+        {error && !success && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
             <p className="text-sm text-red-700">{error}</p>
           </div>
@@ -264,28 +202,28 @@ export default function DonationModal({ campaignId, onClose }) {
                 </svg>
               </div>
               <h3 className="text-lg font-bold text-[#003d3b] mb-2">
-                Login to Donate
+                Login to Commit Donation
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                Create a donor account or login to make a donation
+                Create a donor account or login to commit your donation
               </p>
               
-              {/* Google Authentication */}
+              {/* Google Authentication - Match main site style */}
               <div className="mb-4">
                 <SignUpButton mode="redirect" redirectUrl={window.location.origin + window.location.pathname}>
                   <button
                     type="button"
                     disabled={googleLoading}
-                    className="w-full bg-white border-2 border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mb-2"
+                    className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg flex items-center justify-center gap-2 mb-2 hover:bg-gray-50 transition"
                   >
                     {googleLoading ? (
-                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
                     ) : (
                       <>
-                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-4 h-4" />
+                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
                         <span>Sign up with Google</span>
                       </>
                     )}
@@ -295,17 +233,17 @@ export default function DonationModal({ campaignId, onClose }) {
                   <button
                     type="button"
                     disabled={googleLoading}
-                    className="w-full bg-white border-2 border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition"
                   >
                     {googleLoading ? (
-                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
                     ) : (
                       <>
-                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-4 h-4" />
-                        <span>Sign in with Google</span>
+                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
+                        <span>Login with Google</span>
                       </>
                     )}
                   </button>
@@ -361,20 +299,22 @@ export default function DonationModal({ campaignId, onClose }) {
                 placeholder="Enter amount"
                 min="1"
               />
-              {/* Quick Amount Buttons */}
-              <div className="flex flex-wrap gap-2 mt-3">
-                {quickAmounts.map((amt) => (
+              {/* Quick Amount Buttons - More functional */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3">
+                {quickAmounts.map((item) => (
                   <button
-                    key={amt}
+                    key={item.value}
                     type="button"
-                    onClick={() => setAmount(amt.toString())}
-                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
-                      amount === amt.toString()
-                        ? "bg-[#00B5B8] text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    onClick={() => handleAmountClick(item.value)}
+                    className={`px-3 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 ${
+                      amount === item.value.toString()
+                        ? "bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white shadow-lg scale-105"
+                        : item.value === "other"
+                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-dashed border-gray-300"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105"
                     }`}
                   >
-                    ₹{amt}
+                    {item.label}
                   </button>
                 ))}
               </div>
@@ -406,15 +346,15 @@ export default function DonationModal({ campaignId, onClose }) {
                 className="w-4 h-4 text-[#00B5B8] border-gray-300 rounded focus:ring-[#00B5B8]"
               />
               <label htmlFor="anonymous" className="text-sm text-gray-700">
-                Donate anonymously
+                Commit donation anonymously
               </label>
             </div>
 
-            {/* DONATE BUTTON */}
+            {/* COMMIT BUTTON */}
             <button
               className="group relative w-full bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white py-3.5 rounded-xl font-bold text-lg hover:from-[#009EA1] hover:to-[#008B8E] transition-all duration-300 shadow-lg hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
               onClick={handleDonation}
-              disabled={loading || !amount || Number(amount) < 1}
+              disabled={loading || !amount || Number(amount) < 1 || success}
             >
               {/* Animated background gradient */}
               <div className="absolute inset-0 bg-gradient-to-r from-[#009EA1] to-[#00B5B8] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -444,21 +384,21 @@ export default function DonationModal({ campaignId, onClose }) {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    Processing...
+                    Committing...
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Donate Now
+                    Commit Donation
                   </>
                 )}
               </span>
             </button>
 
             <p className="text-xs text-center text-gray-500">
-              Secure payment powered by Razorpay
+              Your commitment will be recorded. You will be contacted for payment processing.
             </p>
           </div>
         )}

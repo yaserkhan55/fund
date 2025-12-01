@@ -147,7 +147,7 @@ export default function BrowseFundraisers() {
                         src={resolveImg(campaign.image)}
                         alt={campaign.title}
                         onError={(e) => (e.currentTarget.src = "/no-image.png")}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        className="w-full h-full object-cover"
                       />
                       <div className="absolute top-3 right-3">
                         <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
