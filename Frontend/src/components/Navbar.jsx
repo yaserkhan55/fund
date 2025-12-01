@@ -38,25 +38,19 @@ export default function Navbar() {
     
     // Listen for custom event when donor logs in
     const handleDonorLogin = (e) => {
-      // Force check immediately
-      const donorToken = localStorage.getItem("donorToken");
-      setIsDonorLoggedIn(!!donorToken);
+      // Force check immediately and multiple times
+      const checkAndUpdate = () => {
+        const donorToken = localStorage.getItem("donorToken");
+        setIsDonorLoggedIn(!!donorToken);
+      };
       
-      // Check multiple times to ensure it's caught
-      setTimeout(() => {
-        const token = localStorage.getItem("donorToken");
-        setIsDonorLoggedIn(!!token);
-      }, 50);
+      // Check immediately
+      checkAndUpdate();
       
-      setTimeout(() => {
-        const token = localStorage.getItem("donorToken");
-        setIsDonorLoggedIn(!!token);
-      }, 200);
-      
-      setTimeout(() => {
-        const token = localStorage.getItem("donorToken");
-        setIsDonorLoggedIn(!!token);
-      }, 500);
+      // Check multiple times with increasing delays to ensure it's caught
+      [50, 100, 200, 300, 500, 800, 1000, 1500].forEach(delay => {
+        setTimeout(checkAndUpdate, delay);
+      });
     };
     
     window.addEventListener("donorLogin", handleDonorLogin);
@@ -66,9 +60,7 @@ export default function Navbar() {
     const interval = setInterval(() => {
       const donorToken = localStorage.getItem("donorToken");
       const nowLoggedIn = !!donorToken;
-      if (isDonorLoggedIn !== nowLoggedIn) {
-        setIsDonorLoggedIn(nowLoggedIn);
-      }
+      setIsDonorLoggedIn(nowLoggedIn); // Always update to ensure state is current
     }, 50);
 
     return () => {

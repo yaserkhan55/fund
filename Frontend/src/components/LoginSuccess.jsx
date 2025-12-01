@@ -35,38 +35,57 @@ export default function LoginSuccess() {
         let clerkUser = null;
         let clerkLoaded = false;
 
-        // Wait up to 10 seconds for Clerk to load
-        while (!clerkLoaded && retries < 30) {
+        // Wait up to 15 seconds for Clerk to load
+        while (!clerkLoaded && retries < 50) {
           await new Promise(resolve => setTimeout(resolve, 300));
           retries++;
 
           // Check if Clerk is loaded via window object
-          if (window.__clerk && window.__clerk.loaded) {
-            clerkLoaded = true;
+          if (window.__clerk) {
             const clerk = window.__clerk;
             
-            // Try to get user from Clerk
-            if (clerk.user) {
-              clerkUser = clerk.user;
-              break;
-            }
-            
-            // Try to get user from session
-            if (clerk.session && clerk.session.user) {
-              clerkUser = clerk.session.user;
-              break;
+            // Check if Clerk is loaded
+            if (clerk.loaded || clerk.client) {
+              clerkLoaded = true;
+              
+              // Try multiple ways to get user
+              if (clerk.user) {
+                clerkUser = clerk.user;
+                break;
+              }
+              
+              if (clerk.session?.user) {
+                clerkUser = clerk.session.user;
+                break;
+              }
+              
+              // Try to get from client
+              if (clerk.client?.sessions?.[0]?.user) {
+                clerkUser = clerk.client.sessions[0].user;
+                break;
+              }
             }
           }
 
           // Alternative: Try to access Clerk via dynamic import
           try {
             const clerkModule = await import("@clerk/clerk-react");
-            if (clerkModule && window.__clerk) {
-              const clerk = window.__clerk;
-              if (clerk.loaded && clerk.user) {
-                clerkUser = clerk.user;
-                clerkLoaded = true;
-                break;
+            if (clerkModule) {
+              // Try to use useAuth hook via a workaround
+              // But we can't call hooks here, so check window.__clerk again
+              if (window.__clerk) {
+                const clerk = window.__clerk;
+                if (clerk.loaded || clerk.client) {
+                  clerkLoaded = true;
+                  if (clerk.user) {
+                    clerkUser = clerk.user;
+                    break;
+                  }
+                  if (clerk.session?.user) {
+                    clerkUser = clerk.session.user;
+                    break;
+                  }
+                }
               }
             }
           } catch (err) {
@@ -75,14 +94,25 @@ export default function LoginSuccess() {
         }
 
         // If we still don't have user, try one more time with a fresh check
-        if (!clerkUser && window.__clerk?.loaded) {
+        if (!clerkUser && window.__clerk) {
           const clerk = window.__clerk;
-          if (clerk.user) {
-            clerkUser = clerk.user;
-          } else if (clerk.session?.user) {
-            clerkUser = clerk.session.user;
+          if (clerk.loaded || clerk.client) {
+            if (clerk.user) {
+              clerkUser = clerk.user;
+            } else if (clerk.session?.user) {
+              clerkUser = clerk.session.user;
+            } else if (clerk.client?.sessions?.[0]?.user) {
+              clerkUser = clerk.client.sessions[0].user;
+            }
           }
         }
+        
+        console.log("Clerk user detection:", {
+          hasClerk: !!window.__clerk,
+          clerkLoaded: window.__clerk?.loaded,
+          hasUser: !!clerkUser,
+          retries
+        });
 
         // Additional wait to ensure everything is ready
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -131,14 +161,22 @@ export default function LoginSuccess() {
 
               if (response.data.success) {
                 console.log("Donor sync successful, setting token");
+                
+                // Set token first
                 localStorage.setItem("donorToken", response.data.token);
                 localStorage.setItem("donorData", JSON.stringify(response.data.donor));
                 sessionStorage.removeItem("donorFlow");
                 
-                // Force update navbar by dispatching event multiple times
-                for (let i = 0; i < 5; i++) {
+                // Immediately dispatch event
+                window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+                
+                // Force update navbar by dispatching event multiple times with delays
+                for (let i = 0; i < 10; i++) {
                   setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+                    const token = localStorage.getItem("donorToken");
+                    if (token) {
+                      window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
+                    }
                   }, i * 100);
                 }
                 
@@ -148,32 +186,40 @@ export default function LoginSuccess() {
                   newValue: response.data.token
                 }));
                 
-                // Small delay to ensure state updates
+                // Wait a bit longer to ensure navbar has time to update
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Dispatch one more time before navigation
+                window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+                
+                // Redirect back to donation page or campaign, or home if from "Become a Donor"
+                const returnUrl = location.state?.returnUrl || sessionStorage.getItem("donationReturnUrl") || "/";
+                sessionStorage.removeItem("donationReturnUrl");
+                
+                setLoading(false);
+                
+                // Navigate
+                navigate(returnUrl);
+                
+                // After navigation, dispatch multiple more times to ensure navbar updates
                 setTimeout(() => {
-                  // Dispatch event multiple times to ensure navbar catches it
-                  for (let i = 0; i < 3; i++) {
-                    setTimeout(() => {
-                      window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
-                    }, i * 200);
-                  }
-                  
-                  // Redirect back to donation page or campaign, or home if from "Become a Donor"
-                  const returnUrl = location.state?.returnUrl || sessionStorage.getItem("donationReturnUrl") || "/";
-                  sessionStorage.removeItem("donationReturnUrl");
-                  
-                  setLoading(false);
-                  
-                  // Navigate and then force a small refresh to ensure navbar updates
-                  navigate(returnUrl);
-                  
-                  // After navigation, check and update navbar one more time
-                  setTimeout(() => {
-                    const token = localStorage.getItem("donorToken");
-                    if (token) {
-                      window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
+                  const token = localStorage.getItem("donorToken");
+                  if (token) {
+                    for (let i = 0; i < 5; i++) {
+                      setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
+                      }, i * 100);
                     }
-                  }, 500);
+                  }
+                }, 300);
+                
+                setTimeout(() => {
+                  const token = localStorage.getItem("donorToken");
+                  if (token) {
+                    window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
+                  }
                 }, 1000);
+                
                 return;
               }
             } catch (error) {
