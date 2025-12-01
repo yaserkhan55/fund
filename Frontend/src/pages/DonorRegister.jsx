@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { SignUp, useAuth } from "@clerk/clerk-react";
+import { SignUpButton, useAuth } from "@clerk/clerk-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
@@ -26,43 +26,49 @@ export default function DonorRegister() {
   const [registeredEmail, setRegisteredEmail] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Handle Google authentication via Clerk
+  // Handle Google authentication via Clerk - only if already signed in
   useEffect(() => {
-    if (isSignedIn && user) {
-      // User signed up via Google, create donor account
-      const createDonorWithGoogle = async () => {
-        try {
-          setGoogleLoading(true);
-          const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
-            email: user.primaryEmailAddress?.emailAddress,
-            name: user.fullName || user.firstName || "Donor",
-            clerkId: user.id,
-            imageUrl: user.imageUrl,
-          });
-
-          if (response.data.success) {
-            localStorage.setItem("donorToken", response.data.token);
-            localStorage.setItem("donorData", JSON.stringify(response.data.donor));
-            
-            // Dispatch event to notify navbar
-            window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
-            
-            // Redirect to OTP verification or dashboard
-            navigate("/donor/verify-otp", {
-              state: { email: user.primaryEmailAddress?.emailAddress },
+    // Only sync if user is already signed in AND doesn't have donorToken yet
+    if (isSignedIn && user && !localStorage.getItem("donorToken")) {
+      // Check if this is from donor flow
+      const isDonorFlow = sessionStorage.getItem("donorFlow") === "true";
+      
+      if (isDonorFlow) {
+        // User signed up via Google, create donor account
+        const createDonorWithGoogle = async () => {
+          try {
+            setGoogleLoading(true);
+            const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
+              email: user.primaryEmailAddress?.emailAddress,
+              name: user.fullName || user.firstName || "Donor",
+              clerkId: user.id,
+              imageUrl: user.imageUrl,
             });
-          }
-        } catch (error) {
-          console.error("Google auth error:", error);
-          setErrors({
-            submit: error.response?.data?.message || "Failed to create account with Google. Please try again.",
-          });
-        } finally {
-          setGoogleLoading(false);
-        }
-      };
 
-      createDonorWithGoogle();
+            if (response.data.success) {
+              localStorage.setItem("donorToken", response.data.token);
+              localStorage.setItem("donorData", JSON.stringify(response.data.donor));
+              
+              // Dispatch event to notify navbar
+              window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+              
+              // Redirect to OTP verification or dashboard
+              navigate("/donor/verify-otp", {
+                state: { email: user.primaryEmailAddress?.emailAddress },
+              });
+            }
+          } catch (error) {
+            console.error("Google auth error:", error);
+            setErrors({
+              submit: error.response?.data?.message || "Failed to create account with Google. Please try again.",
+            });
+          } finally {
+            setGoogleLoading(false);
+          }
+        };
+
+        createDonorWithGoogle();
+      }
     }
   }, [isSignedIn, user, navigate]);
 
@@ -355,21 +361,28 @@ export default function DonorRegister() {
               </div>
             </div>
 
-            {/* Google Sign Up - Link to Clerk Sign Up page */}
+            {/* Google Sign Up - Use Clerk SignUpButton with modal */}
             <div className="mb-6">
               <div className="text-center mb-4">
                 <p className="text-sm text-gray-600 mb-3">Or continue with</p>
               </div>
-              <Link
-                to="/donor/sign-up"
-                onClick={() => {
-                  sessionStorage.setItem("donorFlow", "true");
-                  sessionStorage.setItem("donationReturnUrl", "/donor/verify-otp");
-                }}
-                className="block w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition"
+              <SignUpButton
+                mode="modal"
+                afterSignUpUrl="/auth/google/success"
+                redirectUrl="/auth/google/success"
               >
-                Sign Up with Google
-              </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sessionStorage.setItem("donorFlow", "true");
+                    sessionStorage.setItem("donationReturnUrl", "/donor/verify-otp");
+                  }}
+                  className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-2"
+                >
+                  <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
+                  Sign Up with Google
+                </button>
+              </SignUpButton>
             </div>
             </>
           )}

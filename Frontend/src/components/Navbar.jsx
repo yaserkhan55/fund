@@ -25,7 +25,9 @@ export default function Navbar() {
     const checkDonorLogin = () => {
       const donorToken = localStorage.getItem("donorToken");
       const nowLoggedIn = !!donorToken;
-      setIsDonorLoggedIn(nowLoggedIn);
+      if (isDonorLoggedIn !== nowLoggedIn) {
+        setIsDonorLoggedIn(nowLoggedIn);
+      }
     };
 
     // Check on mount
@@ -35,24 +37,39 @@ export default function Navbar() {
     window.addEventListener("storage", checkDonorLogin);
     
     // Listen for custom event when donor logs in
-    const handleDonorLogin = () => {
+    const handleDonorLogin = (e) => {
       // Force check immediately
       const donorToken = localStorage.getItem("donorToken");
       setIsDonorLoggedIn(!!donorToken);
-      // Also check again after a small delay
+      
+      // Check multiple times to ensure it's caught
       setTimeout(() => {
         const token = localStorage.getItem("donorToken");
         setIsDonorLoggedIn(!!token);
-      }, 100);
+      }, 50);
+      
+      setTimeout(() => {
+        const token = localStorage.getItem("donorToken");
+        setIsDonorLoggedIn(!!token);
+      }, 200);
+      
+      setTimeout(() => {
+        const token = localStorage.getItem("donorToken");
+        setIsDonorLoggedIn(!!token);
+      }, 500);
     };
+    
     window.addEventListener("donorLogin", handleDonorLogin);
     window.addEventListener("donorLogout", handleDonorLogin);
 
-    // Check periodically (for same-tab login) - more frequent
+    // Check periodically (for same-tab login) - very frequent
     const interval = setInterval(() => {
       const donorToken = localStorage.getItem("donorToken");
-      setIsDonorLoggedIn(!!donorToken);
-    }, 100);
+      const nowLoggedIn = !!donorToken;
+      if (isDonorLoggedIn !== nowLoggedIn) {
+        setIsDonorLoggedIn(nowLoggedIn);
+      }
+    }, 50);
 
     return () => {
       window.removeEventListener("storage", checkDonorLogin);
@@ -60,7 +77,7 @@ export default function Navbar() {
       window.removeEventListener("donorLogout", handleDonorLogin);
       clearInterval(interval);
     };
-  }, []);
+  }, [isDonorLoggedIn]);
 
   // Sync Clerk user with donor backend if signed in but no donorToken
   useEffect(() => {
@@ -250,6 +267,16 @@ export default function Navbar() {
             Start a Fundraiser
           </Link>
 
+          {/* Show Donor Dashboard if donor is logged in (regardless of Clerk status) */}
+          {isDonorLoggedIn && (
+            <Link
+              to="/donor/dashboard"
+              className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap mr-2"
+            >
+              Donor Dashboard
+            </Link>
+          )}
+
           <SignedOut>
             {/* Campaign Creator Login/Signup */}
             <Link
@@ -261,15 +288,6 @@ export default function Navbar() {
           </SignedOut>
 
           <SignedIn>
-            {/* Show Donor Dashboard if donor is logged in */}
-            {isDonorLoggedIn && (
-              <Link
-                to="/donor/dashboard"
-                className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap mr-2"
-              >
-                Donor Dashboard
-              </Link>
-            )}
             {/* Dashboard Icon */}
             <Link
               to="/dashboard"

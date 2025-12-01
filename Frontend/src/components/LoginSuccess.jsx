@@ -32,7 +32,14 @@ export default function LoginSuccess() {
           return;
         }
 
-        // Wait a bit for Clerk to fully initialize
+        // Wait longer for Clerk to fully initialize
+        let retries = 0;
+        while (!isSignedIn && retries < 10) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          retries++;
+        }
+        
+        // Additional wait to ensure user object is available
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Check if it's Clerk authentication
@@ -68,25 +75,45 @@ export default function LoginSuccess() {
                 localStorage.setItem("donorData", JSON.stringify(response.data.donor));
                 sessionStorage.removeItem("donorFlow");
                 
-                // Force update navbar by dispatching event multiple times to ensure it's caught
-                window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+                // Force update navbar by dispatching event multiple times
+                for (let i = 0; i < 5; i++) {
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+                  }, i * 100);
+                }
+                
+                // Also trigger a storage event manually
+                window.dispatchEvent(new StorageEvent("storage", {
+                  key: "donorToken",
+                  newValue: response.data.token
+                }));
                 
                 // Small delay to ensure state updates
                 setTimeout(() => {
+                  // Dispatch event multiple times to ensure navbar catches it
+                  for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+                    }, i * 200);
+                  }
+                  
                   // Redirect back to donation page or campaign, or home if from "Become a Donor"
                   const returnUrl = location.state?.returnUrl || sessionStorage.getItem("donationReturnUrl") || "/";
                   sessionStorage.removeItem("donationReturnUrl");
                   
-                  // Dispatch event again before navigation
-                  window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
-                  
-                  // Force check one more time
-                  const tokenCheck = localStorage.getItem("donorToken");
-                  console.log("Token check before navigation:", !!tokenCheck);
-                  
                   setLoading(false);
+                  
+                  // Navigate and then force a small refresh to ensure navbar updates
                   navigate(returnUrl);
-                }, 500);
+                  
+                  // After navigation, check and update navbar one more time
+                  setTimeout(() => {
+                    const token = localStorage.getItem("donorToken");
+                    if (token) {
+                      window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
+                    }
+                  }, 500);
+                }, 1000);
                 return;
               }
             } catch (error) {

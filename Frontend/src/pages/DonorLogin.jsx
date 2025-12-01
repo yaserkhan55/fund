@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import { SignIn, useAuth } from "@clerk/clerk-react";
+import { SignInButton, useAuth } from "@clerk/clerk-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
@@ -23,41 +23,47 @@ export default function DonorLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   
-  // Handle Google authentication via Clerk
+  // Handle Google authentication via Clerk - only if already signed in
   useEffect(() => {
-    if (isSignedIn && user) {
-      // User signed in via Google, sync with donor backend
-      const syncDonorWithGoogle = async () => {
-        try {
-          setGoogleLoading(true);
-          const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
-            email: user.primaryEmailAddress?.emailAddress,
-            name: user.fullName || user.firstName || "Donor",
-            clerkId: user.id,
-            imageUrl: user.imageUrl,
-          });
+    // Only sync if user is already signed in AND doesn't have donorToken yet
+    if (isSignedIn && user && !localStorage.getItem("donorToken")) {
+      // Check if this is from donor flow
+      const isDonorFlow = sessionStorage.getItem("donorFlow") === "true";
+      
+      if (isDonorFlow) {
+        // User signed in via Google, sync with donor backend
+        const syncDonorWithGoogle = async () => {
+          try {
+            setGoogleLoading(true);
+            const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
+              email: user.primaryEmailAddress?.emailAddress,
+              name: user.fullName || user.firstName || "Donor",
+              clerkId: user.id,
+              imageUrl: user.imageUrl,
+            });
 
-          if (response.data.success) {
-            localStorage.setItem("donorToken", response.data.token);
-            localStorage.setItem("donorData", JSON.stringify(response.data.donor));
-            
-            // Dispatch event to notify navbar
-            window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
-            
-            const redirectTo = location.state?.from || "/";
-            navigate(redirectTo);
+            if (response.data.success) {
+              localStorage.setItem("donorToken", response.data.token);
+              localStorage.setItem("donorData", JSON.stringify(response.data.donor));
+              
+              // Dispatch event to notify navbar
+              window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
+              
+              const redirectTo = location.state?.from || "/";
+              navigate(redirectTo);
+            }
+          } catch (error) {
+            console.error("Google auth sync error:", error);
+            setErrors({
+              submit: "Failed to sync Google account. Please try again.",
+            });
+          } finally {
+            setGoogleLoading(false);
           }
-        } catch (error) {
-          console.error("Google auth sync error:", error);
-          setErrors({
-            submit: "Failed to sync Google account. Please try again.",
-          });
-        } finally {
-          setGoogleLoading(false);
-        }
-      };
+        };
 
-      syncDonorWithGoogle();
+        syncDonorWithGoogle();
+      }
     }
   }, [isSignedIn, user, navigate, location]);
 
@@ -285,22 +291,29 @@ export default function DonorLogin() {
             </div>
           </div>
 
-          {/* Google Sign In - Link to Clerk Sign In page */}
+          {/* Google Sign In - Use Clerk SignInButton with modal */}
           <div className="mb-6">
             <div className="text-center mb-4">
               <p className="text-sm text-gray-600 mb-3">Or continue with</p>
             </div>
-            <Link
-              to="/donor/sign-in"
-              onClick={() => {
-                sessionStorage.setItem("donorFlow", "true");
-                const returnUrl = location.state?.from || "/";
-                sessionStorage.setItem("donationReturnUrl", returnUrl);
-              }}
-              className="block w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition"
+            <SignInButton
+              mode="modal"
+              afterSignInUrl="/auth/google/success"
+              redirectUrl="/auth/google/success"
             >
-              Login with Google
-            </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  sessionStorage.setItem("donorFlow", "true");
+                  const returnUrl = location.state?.from || "/";
+                  sessionStorage.setItem("donationReturnUrl", returnUrl);
+                }}
+                className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-2"
+              >
+                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
+                Login with Google
+              </button>
+            </SignInButton>
           </div>
 
           {/* Links */}
