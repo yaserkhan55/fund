@@ -12,12 +12,13 @@ export default function LoginSuccess() {
   const location = useLocation();
   const { setLoginData } = useContext(AuthContext);
   
-  // Get Clerk auth - must be called unconditionally at top level
-  // This should work if ClerkProvider wraps the app (which it does in main.jsx)
+  // Get Clerk auth - must be called unconditionally
+  // If Clerk isn't loaded, this will throw, but React will handle it
   const auth = useAuth();
   const isSignedIn = auth?.isSignedIn || false;
   const user = auth?.user || null;
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const handleAuth = async () => {
@@ -42,11 +43,12 @@ export default function LoginSuccess() {
         let currentIsSignedIn = isSignedIn;
         let currentUser = user;
         
+        // Wait up to 5 seconds for Clerk to initialize
         while (!currentIsSignedIn && retries < 15) {
           await new Promise(resolve => setTimeout(resolve, 300));
           retries++;
           
-          // Check auth state again
+          // Check if auth state has updated
           if (auth) {
             currentIsSignedIn = auth.isSignedIn || false;
             currentUser = auth.user || null;
@@ -176,13 +178,32 @@ export default function LoginSuccess() {
         }
       } catch (err) {
         console.error("Auth error:", err);
+        setError(err);
         setLoading(false);
-        navigate("/");
+        // Still redirect to home even on error
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
       }
     };
 
-    handleAuth();
-  }, [navigate, location, setLoginData]);
+    // Add a small delay before starting to ensure Clerk is loaded
+    const timer = setTimeout(() => {
+      handleAuth();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [navigate, location, setLoginData, isSignedIn, user, auth]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F1FAFA]">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Authentication error. Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
