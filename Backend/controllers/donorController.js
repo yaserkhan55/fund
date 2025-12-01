@@ -42,32 +42,21 @@ export const registerDonor = async (req, res) => {
       });
     }
 
-    // Create donor
+    // Create donor with email auto-verified (OTP removed)
     const donor = await Donor.create({
       name: name.trim(),
       email: email.toLowerCase().trim(),
       phone: phone.trim(),
       password,
+      isEmailVerified: true, // Auto-verify email, no OTP required
     });
-
-    // Generate OTP for email verification
-    const otp = donor.generateOTP();
-    await donor.save();
-
-    // Send OTP via email
-    const emailResult = await sendOTPEmail(donor.email, otp, donor.name);
-    
-    // In development, also log OTP if email fails
-    if (!emailResult.success) {
-      console.log(`⚠️ Email sending failed. OTP for ${donor.email}: ${otp}`);
-    }
 
     // Generate token
     const token = generateToken(donor._id);
 
     res.status(201).json({
       success: true,
-      message: "Donor registered successfully. Please check your email for OTP verification.",
+      message: "Donor registered successfully.",
       donor: {
         id: donor._id,
         name: donor.name,
@@ -76,9 +65,6 @@ export const registerDonor = async (req, res) => {
         isEmailVerified: donor.isEmailVerified,
       },
       token,
-      otpSent: emailResult.success,
-      // In development mode, return OTP if email failed (remove in production)
-      ...(process.env.NODE_ENV === "development" && !emailResult.success && { devOtp: otp }),
     });
   } catch (error) {
     console.error("Donor registration error:", error);
@@ -375,6 +361,13 @@ export const googleAuth = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Email is required",
+      });
+    }
+
+    if (!clerkId) {
+      return res.status(400).json({
+        success: false,
+        message: "Clerk ID is required for Google authentication",
       });
     }
 
