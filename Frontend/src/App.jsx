@@ -22,6 +22,8 @@ import DonorRegister from "./pages/DonorRegister";
 import DonorLogin from "./pages/DonorLogin";
 import DonorVerifyOTP from "./pages/DonorVerifyOTP";
 import DonorDashboard from "./pages/DonorDashboard";
+import DonorSignIn from "./pages/DonorSignIn";
+import DonorSignUp from "./pages/DonorSignUp";
 
 // Auth
 import LoginSuccess from "./components/LoginSuccess";
@@ -80,12 +82,16 @@ export default function App() {
         path="/sign-in"
         element={
           <Layout>
-            <SignIn
-              path="/sign-in"
-              routing="path"
-              afterSignInUrl="/"
-              redirectUrl="/"
-            />
+            <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
+              <div className="w-full max-w-md">
+                <SignIn
+                  path="/sign-in"
+                  routing="path"
+                  afterSignInUrl="/"
+                  redirectUrl="/"
+                />
+              </div>
+            </div>
           </Layout>
         }
       />
@@ -95,12 +101,16 @@ export default function App() {
         path="/sign-up"
         element={
           <Layout>
-            <SignUp
-              path="/sign-up"
-              routing="path"
-              afterSignUpUrl="/"
-              redirectUrl="/"
-            />
+            <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
+              <div className="w-full max-w-md">
+                <SignUp
+                  path="/sign-up"
+                  routing="path"
+                  afterSignUpUrl="/"
+                  redirectUrl="/"
+                />
+              </div>
+            </div>
           </Layout>
         }
       />
@@ -132,12 +142,7 @@ export default function App() {
         path="/donor/sign-in"
         element={
           <Layout>
-            <SignIn
-              path="/donor/sign-in"
-              routing="path"
-              afterSignInUrl="/auth/google/success"
-              redirectUrl="/auth/google/success"
-            />
+            <DonorSignIn />
           </Layout>
         }
       />
@@ -145,12 +150,7 @@ export default function App() {
         path="/donor/sign-up"
         element={
           <Layout>
-            <SignUp
-              path="/donor/sign-up"
-              routing="path"
-              afterSignUpUrl="/auth/google/success"
-              redirectUrl="/auth/google/success"
-            />
+            <DonorSignUp />
           </Layout>
         }
       />

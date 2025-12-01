@@ -368,11 +368,13 @@ export default function DonorRegister() {
               </div>
               <Link
                 to="/donor/sign-up"
-                onClick={() => {
+                onClick={(e) => {
+                  console.log("Navigating to /donor/sign-up");
                   sessionStorage.setItem("donorFlow", "true");
                   sessionStorage.setItem("donationReturnUrl", "/donor/verify-otp");
+                  // Don't prevent default - let Link navigate
                 }}
-                className="block w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-2"
+                className="block w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
                 Sign Up with Google
