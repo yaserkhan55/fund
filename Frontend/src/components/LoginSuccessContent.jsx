@@ -248,32 +248,41 @@ export default function LoginSuccessContent({ isSignedIn, user }) {
   }, [navigate, location, setLoginData, isSignedIn, user, hasProcessed]);
 
   // Effect that triggers when user becomes available
+  // This effect watches for when Clerk provides the user object
   useEffect(() => {
     if (hasProcessed) return;
     
+    console.log("LoginSuccess effect triggered:", { isSignedIn, hasUser: !!user, hasProcessed });
+    
     // If user is available, process immediately
     if (isSignedIn && user) {
-      console.log("User is available, processing auth...");
-      handleAuth();
+      console.log("✅ User is available, processing auth immediately...");
+      // Small delay to ensure user object is fully loaded
+      const timer = setTimeout(() => {
+        handleAuth();
+      }, 300);
+      return () => clearTimeout(timer);
     } else if (isSignedIn && !user) {
-      // isSignedIn is true but user is null - wait a bit then check again
-      console.log("isSignedIn is true but user is null, waiting...");
+      // isSignedIn is true but user is null - Clerk is still loading user
+      console.log("⏳ isSignedIn is true but user is null, waiting for Clerk to load user...");
+      // Wait longer for Clerk to load the user object
       const timer = setTimeout(() => {
         if (isSignedIn && user && !hasProcessed) {
-          console.log("User became available after wait, processing...");
+          console.log("✅ User became available after wait, processing...");
           handleAuth();
         } else if (isSignedIn && !user && !hasProcessed) {
-          // Still no user, try processing anyway (might work)
-          console.log("Still no user after wait, trying to process...");
-          handleAuth();
+          // Still no user after waiting - Clerk might be slow
+          console.log("⚠️ Still no user after wait, but isSignedIn is true - will retry when user prop updates");
+          // Don't process yet - wait for user prop to update via useEffect re-run
         }
-      }, 2000);
+      }, 3000); // Wait 3 seconds for Clerk to load user
       return () => clearTimeout(timer);
     } else if (!isSignedIn) {
       // Not signed in, wait a bit then redirect
+      console.log("❌ Not signed in, waiting before redirect...");
       const timer = setTimeout(() => {
         if (!isSignedIn && !hasProcessed) {
-          console.log("Not signed in, redirecting to home");
+          console.log("Not signed in after wait, redirecting to home");
           setLoading(false);
           setHasProcessed(true);
           navigate("/");

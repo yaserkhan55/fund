@@ -22,8 +22,6 @@ import DonorRegister from "./pages/DonorRegister";
 import DonorLogin from "./pages/DonorLogin";
 import DonorVerifyOTP from "./pages/DonorVerifyOTP";
 import DonorDashboard from "./pages/DonorDashboard";
-import DonorSignIn from "./pages/DonorSignIn";
-import DonorSignUp from "./pages/DonorSignUp";
 
 // Auth
 import LoginSuccess from "./components/LoginSuccess";
@@ -142,7 +140,17 @@ export default function App() {
         path="/donor/sign-in"
         element={
           <Layout>
-            <DonorSignIn />
+            <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 bg-[#F1FAFA]">
+              <div className="w-full max-w-md">
+                <SignIn
+                  path="/donor/sign-in"
+                  routing="path"
+                  afterSignInUrl="/auth/google/success"
+                  redirectUrl="/auth/google/success"
+                  signInFallbackRedirectUrl="/auth/google/success"
+                />
+              </div>
+            </div>
           </Layout>
         }
       />
@@ -150,7 +158,17 @@ export default function App() {
         path="/donor/sign-up"
         element={
           <Layout>
-            <DonorSignUp />
+            <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 bg-[#F1FAFA]">
+              <div className="w-full max-w-md">
+                <SignUp
+                  path="/donor/sign-up"
+                  routing="path"
+                  afterSignUpUrl="/auth/google/success"
+                  redirectUrl="/auth/google/success"
+                  signUpFallbackRedirectUrl="/auth/google/success"
+                />
+              </div>
+            </div>
           </Layout>
         }
       />
