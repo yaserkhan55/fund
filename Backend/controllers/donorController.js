@@ -366,6 +366,89 @@ export const updateDonorProfile = async (req, res) => {
   }
 };
 
+// ✅ GOOGLE AUTHENTICATION
+export const googleAuth = async (req, res) => {
+  try {
+    const { email, name, clerkId, imageUrl } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    // Find or create donor with Google account
+    let donor = await Donor.findOne({ 
+      $or: [
+        { email: email.toLowerCase() },
+        { clerkId: clerkId },
+        { googleId: clerkId }
+      ]
+    });
+
+    if (donor) {
+      // Update existing donor with Google info if needed
+      if (!donor.clerkId && clerkId) {
+        donor.clerkId = clerkId;
+        donor.googleId = clerkId;
+        donor.provider = "google";
+        if (imageUrl) donor.profilePicture = imageUrl;
+        if (name && !donor.name) donor.name = name;
+        donor.isEmailVerified = true; // Google emails are verified
+        await donor.save();
+      }
+    } else {
+      // Create new donor with Google account
+      donor = await Donor.create({
+        name: name || "Donor",
+        email: email.toLowerCase(),
+        phone: undefined, // Phone not required for Google auth
+        password: undefined, // Password not required for Google auth
+        clerkId: clerkId,
+        googleId: clerkId,
+        provider: "google",
+        profilePicture: imageUrl || "",
+        isEmailVerified: true, // Google emails are verified
+        isPhoneVerified: false,
+      });
+    }
+
+    // Check if account is blocked
+    if (donor.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: "Your account has been blocked. Please contact support.",
+      });
+    }
+
+    // Generate token
+    const token = generateToken(donor._id);
+
+    res.json({
+      success: true,
+      message: "Google authentication successful",
+      donor: {
+        id: donor._id,
+        name: donor.name,
+        email: donor.email,
+        phone: donor.phone,
+        isEmailVerified: donor.isEmailVerified,
+        totalDonated: donor.totalDonated,
+        totalDonations: donor.totalDonations,
+        profilePicture: donor.profilePicture,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error("Google auth error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to authenticate with Google",
+    });
+  }
+};
+
 // ✅ CHANGE PASSWORD
 export const changePassword = async (req, res) => {
   try {

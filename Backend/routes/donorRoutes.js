@@ -7,6 +7,7 @@ import {
   getDonorProfile,
   updateDonorProfile,
   changePassword,
+  googleAuth,
 } from "../controllers/donorController.js";
 import { donorAuth } from "../middlewares/donorAuth.js";
 
@@ -15,6 +16,7 @@ const router = express.Router();
 // Public routes
 router.post("/register", registerDonor);
 router.post("/login", loginDonor);
+router.post("/google-auth", googleAuth);
 router.post("/verify-otp", verifyOTP);
 router.post("/resend-otp", resendOTP);
 

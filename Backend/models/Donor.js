@@ -18,13 +18,18 @@ const donorSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      required: [true, "Phone number is required"],
+      required: function() {
+        return this.provider === "local";
+      },
       unique: true,
+      sparse: true, // Allow multiple null values
       trim: true,
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
+      required: function() {
+        return this.provider === "local";
+      },
       minlength: [6, "Password must be at least 6 characters"],
       select: false, // Don't return password by default
     },
@@ -46,6 +51,11 @@ const donorSchema = new mongoose.Schema(
       default: false,
     },
     // Social Login
+    clerkId: {
+      type: String,
+      default: null,
+      sparse: true,
+    },
     googleId: {
       type: String,
       default: null,
