@@ -37,6 +37,7 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
       // Use the latest values from props
       let currentIsSignedIn = isSignedIn;
       let currentUser = user;
+      let retries = 0; // Declare retries at function scope
       
       console.log("Starting auth processing:", { 
         isSignedIn: currentIsSignedIn, 
@@ -50,7 +51,6 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
         console.log("isSignedIn is true but user is null, trying to get user from Clerk...");
         
         // Wait for user object to load (it should become available via props)
-        let retries = 0;
         while (currentIsSignedIn && !currentUser && retries < 30) {
           await new Promise(resolve => setTimeout(resolve, 300));
           retries++;
