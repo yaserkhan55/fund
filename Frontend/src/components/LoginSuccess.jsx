@@ -2,7 +2,6 @@
 import { useEffect, useContext, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
@@ -11,14 +10,7 @@ export default function LoginSuccess() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setLoginData } = useContext(AuthContext);
-  
-  // Get Clerk auth - must be called unconditionally
-  // If Clerk isn't loaded, this will throw, but React will handle it
-  const auth = useAuth();
-  const isSignedIn = auth?.isSignedIn || false;
-  const user = auth?.user || null;
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     const handleAuth = async () => {
@@ -38,31 +30,65 @@ export default function LoginSuccess() {
           return;
         }
 
-        // Wait for Clerk to fully initialize
+        // Wait for Clerk to initialize - check window.__clerk
         let retries = 0;
-        let currentIsSignedIn = isSignedIn;
-        let currentUser = user;
-        
-        // Wait up to 5 seconds for Clerk to initialize
-        while (!currentIsSignedIn && retries < 15) {
+        let clerkUser = null;
+        let clerkLoaded = false;
+
+        // Wait up to 10 seconds for Clerk to load
+        while (!clerkLoaded && retries < 30) {
           await new Promise(resolve => setTimeout(resolve, 300));
           retries++;
-          
-          // Check if auth state has updated
-          if (auth) {
-            currentIsSignedIn = auth.isSignedIn || false;
-            currentUser = auth.user || null;
-            if (currentIsSignedIn && currentUser) {
+
+          // Check if Clerk is loaded via window object
+          if (window.__clerk && window.__clerk.loaded) {
+            clerkLoaded = true;
+            const clerk = window.__clerk;
+            
+            // Try to get user from Clerk
+            if (clerk.user) {
+              clerkUser = clerk.user;
+              break;
+            }
+            
+            // Try to get user from session
+            if (clerk.session && clerk.session.user) {
+              clerkUser = clerk.session.user;
               break;
             }
           }
+
+          // Alternative: Try to access Clerk via dynamic import
+          try {
+            const clerkModule = await import("@clerk/clerk-react");
+            if (clerkModule && window.__clerk) {
+              const clerk = window.__clerk;
+              if (clerk.loaded && clerk.user) {
+                clerkUser = clerk.user;
+                clerkLoaded = true;
+                break;
+              }
+            }
+          } catch (err) {
+            // Continue waiting
+          }
         }
-        
-        // Additional wait to ensure user object is available
+
+        // If we still don't have user, try one more time with a fresh check
+        if (!clerkUser && window.__clerk?.loaded) {
+          const clerk = window.__clerk;
+          if (clerk.user) {
+            clerkUser = clerk.user;
+          } else if (clerk.session?.user) {
+            clerkUser = clerk.session.user;
+          }
+        }
+
+        // Additional wait to ensure everything is ready
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Check if it's Clerk authentication
-        if (currentIsSignedIn && currentUser) {
+        // Check if we have Clerk user data
+        if (clerkUser) {
           // Check if user wants to be a donor (from donation flow or "Become a Donor")
           const donorFlowFlag = sessionStorage.getItem("donorFlow");
           const isDonorFlow = location.state?.isDonor || 
@@ -75,17 +101,32 @@ export default function LoginSuccess() {
             isDonorFlow,
             donorFlowFlag,
             pathname: window.location.pathname,
-            referrer: document.referrer
+            referrer: document.referrer,
+            hasUser: !!clerkUser
           });
 
           if (isDonorFlow) {
             // Sync with donor backend
             try {
+              const userEmail = clerkUser.primaryEmailAddress?.emailAddress || 
+                              clerkUser.emailAddresses?.[0]?.emailAddress ||
+                              clerkUser.emailAddresses?.[0]?.emailAddress ||
+                              "";
+              
+              const userName = clerkUser.fullName || 
+                               clerkUser.firstName || 
+                               clerkUser.name ||
+                               "Donor";
+              
+              const userImage = clerkUser.imageUrl || 
+                               clerkUser.profileImageUrl ||
+                               "";
+
               const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
-                email: currentUser.primaryEmailAddress?.emailAddress,
-                name: currentUser.fullName || currentUser.firstName || "Donor",
-                clerkId: currentUser.id,
-                imageUrl: currentUser.imageUrl,
+                email: userEmail,
+                name: userName,
+                clerkId: clerkUser.id,
+                imageUrl: userImage,
               });
 
               if (response.data.success) {
@@ -144,11 +185,24 @@ export default function LoginSuccess() {
 
           // Regular user sync (campaign creator) - optional, don't block if it fails
           try {
+            const userEmail = clerkUser.primaryEmailAddress?.emailAddress || 
+                            clerkUser.emailAddresses?.[0]?.emailAddress ||
+                            "";
+            
+            const userName = clerkUser.fullName || 
+                           clerkUser.firstName || 
+                           clerkUser.name ||
+                           "User";
+            
+            const userImage = clerkUser.imageUrl || 
+                             clerkUser.profileImageUrl ||
+                             "";
+
             const response = await axios.post(`${API_URL}/api/auth/clerk-sync`, {
-              clerkId: currentUser.id,
-              email: currentUser.primaryEmailAddress?.emailAddress,
-              name: currentUser.fullName || currentUser.firstName || "User",
-              imageUrl: currentUser.imageUrl,
+              clerkId: clerkUser.id,
+              email: userEmail,
+              name: userName,
+              imageUrl: userImage,
             });
 
             if (response.data.success && response.data.token) {
@@ -168,42 +222,25 @@ export default function LoginSuccess() {
           setLoading(false);
           navigate(returnUrl);
         } else {
-          // Not signed in yet, wait a bit more or redirect
-          setTimeout(() => {
-            if (!currentIsSignedIn) {
-              setLoading(false);
-              navigate("/");
-            }
-          }, 2000);
+          // No user found - might not be signed in or Clerk not loaded
+          console.log("No Clerk user found, redirecting to home");
+          setLoading(false);
+          navigate("/");
         }
       } catch (err) {
         console.error("Auth error:", err);
-        setError(err);
         setLoading(false);
-        // Still redirect to home even on error
-        setTimeout(() => {
-          navigate("/");
-        }, 2000);
+        navigate("/");
       }
     };
 
-    // Add a small delay before starting to ensure Clerk is loaded
+    // Add a delay before starting to ensure page is fully loaded
     const timer = setTimeout(() => {
       handleAuth();
-    }, 100);
+    }, 200);
     
     return () => clearTimeout(timer);
-  }, [navigate, location, setLoginData, isSignedIn, user, auth]);
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F1FAFA]">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">Authentication error. Redirecting...</p>
-        </div>
-      </div>
-    );
-  }
+  }, [navigate, location, setLoginData]);
 
   if (loading) {
     return (
