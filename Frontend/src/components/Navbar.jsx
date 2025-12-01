@@ -254,31 +254,6 @@ export default function Navbar() {
             >
               Create Campaign
             </Link>
-
-            {/* Donor Login/Register */}
-            {!isDonorLoggedIn ? (
-              <>
-                <Link
-                  to="/donor/login"
-                  className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
-                >
-                  Donor Login
-                </Link>
-                <Link
-                  to="/donor/register"
-                  className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap"
-                >
-                  Donate Now
-                </Link>
-              </>
-            ) : (
-              <Link
-                to="/donor/dashboard"
-                className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap"
-              >
-                Donor Dashboard
-              </Link>
-            )}
           </SignedOut>
 
           <SignedIn>
@@ -531,6 +506,16 @@ export default function Navbar() {
             Start a Fundraiser
           </Link>
 
+          <SignedOut>
+            <Link
+              to="/sign-in"
+              onClick={() => setOpen(false)}
+              className="block border border-[#00B5B8] text-[#00B5B8] text-center py-3 rounded-xl font-semibold"
+            >
+              Create Campaign (Login)
+            </Link>
+          </SignedOut>
+
           {/* Donor Dashboard Button - Show when logged in as donor (regardless of Clerk status) */}
           {isDonorLoggedIn && (
             <Link
@@ -541,49 +526,6 @@ export default function Navbar() {
               Donor Dashboard
             </Link>
           )}
-
-          <SignedOut>
-            {/* Donor Login/Register - Only show if NOT logged in as donor */}
-            {!isDonorLoggedIn && (
-              <>
-                <Link
-                  to="/donor/login"
-                  onClick={() => setOpen(false)}
-                  className="block border border-[#00B5B8] text-[#00B5B8] text-center py-3 rounded-xl font-semibold"
-                >
-                  Donor Login
-                </Link>
-                <Link
-                  to="/donor/register"
-                  onClick={() => setOpen(false)}
-                  className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
-                >
-                  Donate Now
-                </Link>
-              </>
-            )}
-            
-            <Link
-              to="/sign-in"
-              onClick={() => setOpen(false)}
-              className="block border border-[#00B5B8] text-[#00B5B8] text-center py-3 rounded-xl font-semibold mt-2"
-            >
-              Create Campaign (Login)
-            </Link>
-          </SignedOut>
-
-          <SignedIn>
-            {/* Show Donor Dashboard if donor is logged in and user is signed in with Clerk */}
-            {isDonorLoggedIn && (
-              <Link
-                to="/donor/dashboard"
-                onClick={() => setOpen(false)}
-                className="block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white text-center py-3 rounded-xl font-semibold shadow hover:from-[#009EA1] hover:to-[#008B8E] transition"
-              >
-                Donor Dashboard
-              </Link>
-            )}
-          </SignedIn>
 
         </div>
       </div>
