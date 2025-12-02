@@ -1,137 +1,85 @@
 // clerkPhoneDisabler.js
-// This file MUST be loaded BEFORE Clerk to completely disable phone validation
-// It patches Clerk's internal methods to prevent phone validation from running
+// This file MUST be loaded BEFORE Clerk to disable phone validation
+// Less aggressive approach - only patches Clerk when it loads
 
 (function() {
   'use strict';
   
-  // Store original methods before Clerk loads
-  const originalMethods = {};
-  
-  // Intercept Object.defineProperty to catch Clerk's phone validation setup
-  const originalDefineProperty = Object.defineProperty;
-  Object.defineProperty = function(obj, prop, descriptor) {
-    // If Clerk is trying to set up phone validation, neutralize it
-    if (prop && typeof prop === 'string' && (
-      prop.toLowerCase().includes('phone') ||
-      prop.toLowerCase().includes('number')
-    )) {
-      // Replace phone validation methods with no-ops
-      if (descriptor && descriptor.value && typeof descriptor.value === 'function') {
-        descriptor.value = function() {
-          return true; // Always return valid
-        };
-      }
-    }
-    return originalDefineProperty.call(this, obj, prop, descriptor);
-  };
-  
-  // Intercept Function.prototype to catch phone validation functions
-  const originalCall = Function.prototype.call;
-  Function.prototype.call = function(thisArg, ...args) {
-    // Check if this is a phone validation function
-    const funcStr = this.toString().toLowerCase();
-    if (funcStr.includes('phone') && (funcStr.includes('validate') || funcStr.includes('number'))) {
-      return true; // Always return valid
-    }
-    return originalCall.apply(this, [thisArg, ...args]);
-  };
-  
-  // Patch window.Clerk when it becomes available
-  const clerkProxy = new Proxy({}, {
-    get: function(target, prop) {
-      // If accessing phone-related properties, return no-op functions
-      if (typeof prop === 'string' && prop.toLowerCase().includes('phone')) {
-        return function() { return true; };
-      }
-      return target[prop];
-    },
-    set: function(target, prop, value) {
-      // If setting phone-related properties, replace with no-op
-      if (typeof prop === 'string' && prop.toLowerCase().includes('phone')) {
-        target[prop] = function() { return true; };
-      } else {
-        target[prop] = value;
-      }
-      return true;
-    }
-  });
-  
-  // Set up a watcher for window.Clerk
-  let clerkCheckInterval = setInterval(() => {
+  // Wait for Clerk to load, then patch phone validation
+  const patchClerk = () => {
     if (window.Clerk) {
-      clearInterval(clerkCheckInterval);
-      
-      // Patch Clerk object
-      const clerk = window.Clerk;
-      
-      // Override any phone validation methods
-      if (clerk.phone) {
-        Object.keys(clerk.phone).forEach(key => {
-          if (typeof clerk.phone[key] === 'function') {
-            clerk.phone[key] = function() { return true; };
-          }
-        });
-      }
-      
-      // Override validatePhoneNumber if it exists
-      if (clerk.validatePhoneNumber) {
-        clerk.validatePhoneNumber = function() { return true; };
-      }
-      
-      // Proxy Clerk to intercept phone calls
-      window.Clerk = new Proxy(clerk, {
-        get: function(target, prop) {
-          if (typeof prop === 'string' && prop.toLowerCase().includes('phone')) {
-            return function() { return true; };
-          }
-          return target[prop];
+      try {
+        // Patch Clerk.phone if it exists
+        if (window.Clerk.phone) {
+          Object.keys(window.Clerk.phone).forEach(key => {
+            if (typeof window.Clerk.phone[key] === 'function') {
+              const original = window.Clerk.phone[key];
+              window.Clerk.phone[key] = function(...args) {
+                try {
+                  return original.apply(this, args);
+                } catch (e) {
+                  // Suppress phone validation errors
+                  if (e.message && e.message.toLowerCase().includes('phone')) {
+                    return true;
+                  }
+                  throw e;
+                }
+              };
+            }
+          });
         }
-      });
-      
-      console.log('✅ Clerk phone validation disabled');
+        
+        // Patch validatePhoneNumber if it exists
+        if (window.Clerk.validatePhoneNumber) {
+          window.Clerk.validatePhoneNumber = function() { return true; };
+        }
+        
+        console.log('✅ Clerk phone validation patched');
+      } catch (e) {
+        console.warn('Could not patch Clerk phone validation:', e);
+      }
+    }
+  };
+  
+  // Try to patch immediately if Clerk is already loaded
+  patchClerk();
+  
+  // Watch for Clerk to load
+  let checkCount = 0;
+  const checkInterval = setInterval(() => {
+    checkCount++;
+    if (window.Clerk) {
+      patchClerk();
+      clearInterval(checkInterval);
+    } else if (checkCount > 100) {
+      // Stop checking after 5 seconds
+      clearInterval(checkInterval);
     }
   }, 50);
   
-  // Stop checking after 10 seconds
-  setTimeout(() => {
-    clearInterval(clerkCheckInterval);
-  }, 10000);
-  
-  // Global error suppression - catch errors at the lowest level
+  // Global error suppression - catch phone validation errors
   const originalError = window.onerror;
-  window.onerror = function(message, source, lineno, colno, error) {
-    const errorStr = String(message || error?.message || '').toLowerCase();
-    
-    if (
-      errorStr.includes('illegal argument') ||
-      (errorStr.includes('undefined') && errorStr.includes('number')) ||
-      errorStr.includes('phone')
-    ) {
-      return true; // Suppress completely
+  window.onerror = function(msg, src, line, col, err) {
+    const msgStr = String(msg || '').toLowerCase();
+    if (msgStr.includes('illegal argument') || 
+        (msgStr.includes('undefined') && msgStr.includes('number')) ||
+        (msgStr.includes('phone') && msgStr.includes('validation'))) {
+      return true; // Suppress
     }
-    
-    if (originalError) {
-      return originalError(message, source, lineno, colno, error);
-    }
+    if (originalError) return originalError.apply(this, arguments);
     return false;
   };
   
   // Suppress unhandled rejections
-  window.addEventListener('unhandledrejection', function(event) {
-    const errorStr = String(event.reason?.message || event.reason || '').toLowerCase();
-    
-    if (
-      errorStr.includes('illegal argument') ||
-      (errorStr.includes('undefined') && errorStr.includes('number')) ||
-      errorStr.includes('phone')
-    ) {
-      event.preventDefault();
-      event.stopPropagation();
-      return false;
+  window.addEventListener('unhandledrejection', function(e) {
+    const errStr = String(e.reason?.message || e.reason || '').toLowerCase();
+    if (errStr.includes('illegal argument') || 
+        (errStr.includes('undefined') && errStr.includes('number')) ||
+        (errStr.includes('phone') && errStr.includes('validation'))) {
+      e.preventDefault();
+      e.stopPropagation();
     }
   }, true);
   
   console.log('✅ Clerk phone disabler initialized');
 })();
-

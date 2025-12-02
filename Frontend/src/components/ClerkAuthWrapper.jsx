@@ -94,13 +94,16 @@ class ClerkErrorBoundary extends Component {
     // Log the error for debugging
     console.error("Clerk Auth Error:", error);
     
-    // Check if it's a phone number related error
+    // Check if it's a phone number related error - if so, don't show error UI
     const errorMessage = error?.message || error?.toString() || "";
     if (errorMessage.includes("illegal arguments") || 
-        errorMessage.includes("undefined") && errorMessage.includes("number")) {
-      console.warn("Phone authentication error detected. Ensure phone auth is disabled in Clerk Dashboard.");
+        (errorMessage.includes("undefined") && errorMessage.includes("number"))) {
+      console.warn("Phone authentication error detected. Suppressing error UI.");
+      // Don't show error UI for phone errors - just log and continue
+      return { hasError: false, error: null };
     }
     
+    // For other errors, show error UI
     return { hasError: true, error };
   }
 
@@ -180,9 +183,6 @@ export function SafeSignIn(props) {
       <SignIn 
         {...props} 
         appearance={mergedAppearance}
-        // Force disable phone at component level
-        routing="path"
-        path="/sign-in"
       />
     </ClerkErrorBoundary>
   );
@@ -215,9 +215,6 @@ export function SafeSignUp(props) {
       <SignUp 
         {...props} 
         appearance={mergedAppearance}
-        // Force disable phone at component level
-        routing="path"
-        path="/sign-up"
       />
     </ClerkErrorBoundary>
   );
