@@ -541,8 +541,9 @@ export default function Navbar() {
             </Link>
           </SignedOut>
 
-          {/* Donor Dashboard Button - Show when logged in as donor (regardless of Clerk status) */}
-          {isDonorLoggedIn && (
+          {/* Donor Dashboard Button - Only show when user is actually a donor (has donorToken but NOT regular Clerk auth) */}
+          {/* If user is signed in with Clerk but not through donor flow, don't show Donor Dashboard */}
+          {isDonorLoggedIn && !isSignedIn && (
             <Link
               to="/donor/dashboard"
               onClick={() => setOpen(false)}

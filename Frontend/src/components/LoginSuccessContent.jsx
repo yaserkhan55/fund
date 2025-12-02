@@ -287,6 +287,22 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
         }
 
         // Regular user sync (campaign creator) - optional, don't block if it fails
+        // IMPORTANT: If this is NOT a donor flow, clear any leftover donorToken
+        // Check if this is a donor flow (re-check to ensure we have the right context)
+        const checkIsDonorFlow = location.state?.isDonor || 
+                                 sessionStorage.getItem("donorFlow") === "true" ||
+                                 window.location.pathname.includes("/donor/") ||
+                                 document.referrer.includes("donation") ||
+                                 document.referrer.includes("donor");
+        
+        if (!checkIsDonorFlow) {
+          // Clear donorToken for regular users to prevent Donor Dashboard from showing
+          localStorage.removeItem("donorToken");
+          localStorage.removeItem("donorData");
+          // Dispatch event to update navbar
+          window.dispatchEvent(new CustomEvent("donorLogout"));
+        }
+        
         try {
           const userEmail = currentUser.primaryEmailAddress?.emailAddress || 
                           currentUser.emailAddresses?.[0]?.emailAddress ||
