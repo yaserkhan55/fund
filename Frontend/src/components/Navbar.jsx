@@ -108,6 +108,20 @@ export default function Navbar() {
     };
   }, []); // Remove isDonorLoggedIn dependency to always check
 
+  // Listen for userType updates from LoginSuccess component
+  useEffect(() => {
+    const handleUserTypeUpdate = (event) => {
+      if (event.detail?.userType) {
+        setUserType(event.detail.userType);
+        // Also update isDonorLoggedIn based on new userType
+        const isDonor = event.detail.userType === "donor" || event.detail.userType === "both";
+        setIsDonorLoggedIn(isDonor);
+      }
+    };
+    window.addEventListener("userTypeUpdated", handleUserTypeUpdate);
+    return () => window.removeEventListener("userTypeUpdated", handleUserTypeUpdate);
+  }, []);
+
   // Sync Clerk user with donor backend if signed in but no donorToken
   // Note: This is handled by LoginSuccess component, so we just check the flag
   useEffect(() => {
@@ -282,30 +296,35 @@ export default function Navbar() {
 
         {/* Desktop Right Side */}
         <div className="hidden md:flex items-center space-x-2 lg:space-x-4 flex-shrink-0">
-          <Link
-            to="/create-campaign"
-            className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
-          >
-            Start a Fundraiser
-          </Link>
+          <SignedIn>
+            {/* Show Create Campaign button ONLY for campaign creators */}
+            {(userType === "campaign_creator" || userType === "both") && (
+              <Link
+                to="/create-campaign"
+                className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
+              >
+                Create Campaign
+              </Link>
+            )}
 
-          {/* Show Donor Dashboard if donor is logged in (regardless of Clerk status) */}
-          {isDonorLoggedIn && (
-            <Link
-              to="/donor/dashboard"
-              className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap mr-2"
-            >
-              Donor Dashboard
-            </Link>
-          )}
+            {/* Show Donor Dashboard button ONLY for donors */}
+            {(userType === "donor" || userType === "both") && (
+              <Link
+                to="/donor/dashboard"
+                className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap"
+              >
+                Donor Dashboard
+              </Link>
+            )}
+          </SignedIn>
 
           <SignedOut>
-            {/* Campaign Creator Login/Signup */}
+            {/* Generic sign in button for non-authenticated users */}
             <Link
               to="/sign-in"
               className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
             >
-              Create Campaign
+              Sign In
             </Link>
           </SignedOut>
 
@@ -560,35 +579,40 @@ export default function Navbar() {
             How It Works
           </Link>
 
-          <Link
-            to="/create-campaign"
-            onClick={() => setOpen(false)}
-            className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
-          >
-            Start a Fundraiser
-          </Link>
+          <SignedIn>
+            {/* Show Create Campaign button ONLY for campaign creators in mobile menu */}
+            {(userType === "campaign_creator" || userType === "both") && (
+              <Link
+                to="/create-campaign"
+                onClick={() => setOpen(false)}
+                className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
+              >
+                Create Campaign
+              </Link>
+            )}
+
+            {/* Show Donor Dashboard button ONLY for donors in mobile menu */}
+            {(userType === "donor" || userType === "both") && (
+              <Link
+                to="/donor/dashboard"
+                onClick={() => setOpen(false)}
+                className="block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white text-center py-3 rounded-xl font-semibold shadow hover:from-[#009EA1] hover:to-[#008B8E] transition"
+              >
+                Donor Dashboard
+              </Link>
+            )}
+          </SignedIn>
 
           <SignedOut>
+            {/* Generic sign in button for non-authenticated users */}
             <Link
               to="/sign-in"
               onClick={() => setOpen(false)}
               className="block border border-[#00B5B8] text-[#00B5B8] text-center py-3 rounded-xl font-semibold"
             >
-              Create Campaign (Login)
+              Sign In
             </Link>
           </SignedOut>
-
-          {/* Donor Dashboard Button - Show when user is a donor (has donorToken) */}
-          {/* Show for ALL donors regardless of Clerk authentication status */}
-          {isDonorLoggedIn && (
-            <Link
-              to="/donor/dashboard"
-              onClick={() => setOpen(false)}
-              className="block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white text-center py-3 rounded-xl font-semibold shadow hover:from-[#009EA1] hover:to-[#008B8E] transition"
-            >
-              Donor Dashboard
-            </Link>
-          )}
 
         </div>
       </div>

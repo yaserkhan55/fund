@@ -355,6 +355,13 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
           if (response.data.success && response.data.token) {
             localStorage.setItem("token", response.data.token);
             // ⚠️ REMOVED setLoginData - using ONLY Clerk
+            
+            // Dispatch userType update event for navbar
+            if (response.data.user?.userType) {
+              window.dispatchEvent(new CustomEvent("userTypeUpdated", {
+                detail: { userType: response.data.user.userType }
+              }));
+            }
           }
         } catch (error) {
           // User sync is optional - user might just want to be a donor
