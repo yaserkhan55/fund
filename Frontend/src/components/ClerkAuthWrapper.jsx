@@ -3,6 +3,39 @@
 import { Component } from "react";
 import { SignIn, SignUp } from "@clerk/clerk-react";
 
+// Global error handler to catch Clerk phone authentication errors
+if (typeof window !== "undefined") {
+  const originalError = window.onerror;
+  window.onerror = function(message, source, lineno, colno, error) {
+    // Catch and suppress phone number validation errors
+    if (
+      message &&
+      (message.toString().includes("illegal arguments") ||
+       message.toString().includes("undefined") && message.toString().includes("number"))
+    ) {
+      console.warn("Clerk phone authentication error suppressed. Please disable phone auth in Clerk Dashboard.");
+      return true; // Prevent default error handling
+    }
+    // Call original error handler for other errors
+    if (originalError) {
+      return originalError(message, source, lineno, colno, error);
+    }
+    return false;
+  };
+
+  // Also catch unhandled promise rejections
+  window.addEventListener("unhandledrejection", (event) => {
+    const errorMessage = event.reason?.message || event.reason?.toString() || "";
+    if (
+      errorMessage.includes("illegal arguments") ||
+      (errorMessage.includes("undefined") && errorMessage.includes("number"))
+    ) {
+      console.warn("Clerk phone authentication error suppressed (promise rejection).");
+      event.preventDefault(); // Prevent the error from being logged
+    }
+  });
+}
+
 class ClerkErrorBoundary extends Component {
   constructor(props) {
     super(props);
@@ -75,9 +108,29 @@ class ClerkErrorBoundary extends Component {
 // Wrapped SignIn component with error boundary
 // This prevents "illegal arguments undefined numbers" errors from breaking the UI
 export function SafeSignIn(props) {
+  // Merge appearance props to hide phone number fields
+  const mergedAppearance = {
+    ...props.appearance,
+    elements: {
+      ...props.appearance?.elements,
+      // Hide phone number input fields
+      phoneInputBox: "hidden",
+      phoneInput: "hidden",
+      formFieldInput__phoneNumber: "hidden",
+    },
+    layout: {
+      ...props.appearance?.layout,
+      // Only show email and social providers
+      showOptionalFields: false,
+    },
+  };
+
   return (
     <ClerkErrorBoundary>
-      <SignIn {...props} />
+      <SignIn 
+        {...props} 
+        appearance={mergedAppearance}
+      />
     </ClerkErrorBoundary>
   );
 }
@@ -85,9 +138,29 @@ export function SafeSignIn(props) {
 // Wrapped SignUp component with error boundary
 // This prevents "illegal arguments undefined numbers" errors from breaking the UI
 export function SafeSignUp(props) {
+  // Merge appearance props to hide phone number fields
+  const mergedAppearance = {
+    ...props.appearance,
+    elements: {
+      ...props.appearance?.elements,
+      // Hide phone number input fields
+      phoneInputBox: "hidden",
+      phoneInput: "hidden",
+      formFieldInput__phoneNumber: "hidden",
+    },
+    layout: {
+      ...props.appearance?.layout,
+      // Only show email and social providers
+      showOptionalFields: false,
+    },
+  };
+
   return (
     <ClerkErrorBoundary>
-      <SignUp {...props} />
+      <SignUp 
+        {...props} 
+        appearance={mergedAppearance}
+      />
     </ClerkErrorBoundary>
   );
 }

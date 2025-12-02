@@ -24,6 +24,14 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         socialButtonsBlockButton: "bg-white border border-[#00897b] text-[#00897b] hover:bg-gray-50",
         rootBox: "w-full",
         card: "w-full shadow-lg",
+        // Hide phone number fields globally
+        phoneInputBox: "hidden",
+        phoneInput: "hidden",
+        formFieldInput__phoneNumber: "hidden",
+      },
+      layout: {
+        // Only show email and social providers, hide phone
+        showOptionalFields: false,
       },
     }}
     // Mobile-friendly URLs - enables account switching and proper redirects
