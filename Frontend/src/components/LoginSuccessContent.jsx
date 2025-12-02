@@ -332,11 +332,15 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
                            currentUser.profileImageUrl ||
                            "";
 
+          // Determine userType based on flow
+          const userType = isDonorFlow ? "donor" : "campaign_creator";
+          
           const response = await axios.post(`${API_URL}/api/auth/clerk-sync`, {
             clerkId: currentUser.id,
             email: userEmail,
             name: userName,
             imageUrl: userImage,
+            userType: userType, // Set user type based on flow
           });
 
           if (response.data.success && response.data.token) {

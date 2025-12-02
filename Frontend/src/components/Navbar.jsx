@@ -8,7 +8,7 @@ import { FiGrid } from "react-icons/fi";
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function Navbar() {
-  const { isSignedIn, getToken } = useAuth();
+  const { isSignedIn, getToken, user: clerkUser } = useAuth();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -16,16 +16,38 @@ export default function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [isDonorLoggedIn, setIsDonorLoggedIn] = useState(false);
+  const [userType, setUserType] = useState(null);
 
   const menuRef = useRef(null);
   const notificationRef = useRef(null);
+
+  // Check user type from Clerk metadata
+  useEffect(() => {
+    if (isSignedIn && clerkUser) {
+      const clerkUserType = clerkUser.publicMetadata?.userType || 
+                           clerkUser.privateMetadata?.userType ||
+                           "campaign_creator";
+      setUserType(clerkUserType);
+      
+      // Set isDonorLoggedIn based on userType
+      const isDonor = clerkUserType === "donor" || clerkUserType === "both";
+      setIsDonorLoggedIn(isDonor || !!localStorage.getItem("donorToken"));
+    } else {
+      setUserType(null);
+      setIsDonorLoggedIn(!!localStorage.getItem("donorToken"));
+    }
+  }, [isSignedIn, clerkUser]);
 
   // Check if donor is logged in and listen for changes
   // Enhanced for mobile - ensures Donor Dashboard shows after authentication
   useEffect(() => {
     const checkDonorLogin = () => {
       const donorToken = localStorage.getItem("donorToken");
-      const nowLoggedIn = !!donorToken;
+      // Also check userType from Clerk
+      const clerkUserType = clerkUser?.publicMetadata?.userType || 
+                           clerkUser?.privateMetadata?.userType;
+      const isDonor = clerkUserType === "donor" || clerkUserType === "both";
+      const nowLoggedIn = !!donorToken || isDonor;
       // Always update state to ensure UI reflects current status
       setIsDonorLoggedIn(nowLoggedIn);
     };
