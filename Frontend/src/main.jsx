@@ -3,6 +3,10 @@ import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "./index.css";
 
+// ⚠️ CRITICAL: Import error suppression FIRST, before Clerk
+// This ensures phone validation errors are caught before Clerk initializes
+import "./utils/clerkErrorSuppression.js";
+
 import { ClerkProvider } from "@clerk/clerk-react";
 import { BrowserRouter } from "react-router-dom";
 

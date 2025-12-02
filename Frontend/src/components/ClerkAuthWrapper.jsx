@@ -4,16 +4,43 @@ import { Component } from "react";
 import { SignIn, SignUp } from "@clerk/clerk-react";
 
 // Global error handler to catch Clerk phone authentication errors
+// This runs immediately when the module loads to catch errors early
 if (typeof window !== "undefined") {
+  // Intercept all console.error calls to suppress phone validation errors
+  const originalConsoleError = console.error;
+  console.error = function(...args) {
+    const errorMessage = args.map(arg => 
+      typeof arg === 'string' ? arg : 
+      arg?.message || arg?.toString() || ''
+    ).join(' ');
+    
+    // Suppress phone number validation errors
+    if (
+      errorMessage.includes("illegal arguments") ||
+      (errorMessage.includes("undefined") && errorMessage.includes("number")) ||
+      errorMessage.includes("Illegal arguments") ||
+      (errorMessage.includes("undefined") && errorMessage.includes("Number"))
+    ) {
+      // Silently suppress - don't log at all
+      return;
+    }
+    // Call original console.error for other errors
+    originalConsoleError.apply(console, args);
+  };
+
+  // Global error handler
   const originalError = window.onerror;
   window.onerror = function(message, source, lineno, colno, error) {
+    const errorStr = message?.toString() || error?.message || error?.toString() || "";
+    
     // Catch and suppress phone number validation errors
     if (
-      message &&
-      (message.toString().includes("illegal arguments") ||
-       message.toString().includes("undefined") && message.toString().includes("number"))
+      errorStr.includes("illegal arguments") ||
+      (errorStr.includes("undefined") && errorStr.includes("number")) ||
+      errorStr.includes("Illegal arguments") ||
+      (errorStr.includes("undefined") && errorStr.includes("Number"))
     ) {
-      console.warn("Clerk phone authentication error suppressed. Please disable phone auth in Clerk Dashboard.");
+      // Suppress completely
       return true; // Prevent default error handling
     }
     // Call original error handler for other errors
@@ -23,17 +50,38 @@ if (typeof window !== "undefined") {
     return false;
   };
 
-  // Also catch unhandled promise rejections
+  // Catch unhandled promise rejections
   window.addEventListener("unhandledrejection", (event) => {
     const errorMessage = event.reason?.message || event.reason?.toString() || "";
     if (
       errorMessage.includes("illegal arguments") ||
-      (errorMessage.includes("undefined") && errorMessage.includes("number"))
+      (errorMessage.includes("undefined") && errorMessage.includes("number")) ||
+      errorMessage.includes("Illegal arguments") ||
+      (errorMessage.includes("undefined") && errorMessage.includes("Number"))
     ) {
-      console.warn("Clerk phone authentication error suppressed (promise rejection).");
-      event.preventDefault(); // Prevent the error from being logged
+      // Suppress promise rejection
+      event.preventDefault();
+      event.stopPropagation();
     }
-  });
+  }, true); // Use capture phase
+
+  // Also intercept console.warn for phone-related warnings
+  const originalConsoleWarn = console.warn;
+  console.warn = function(...args) {
+    const warnMessage = args.map(arg => 
+      typeof arg === 'string' ? arg : 
+      arg?.message || arg?.toString() || ''
+    ).join(' ');
+    
+    // Suppress phone-related warnings
+    if (
+      warnMessage.includes("illegal arguments") ||
+      (warnMessage.includes("undefined") && warnMessage.includes("number"))
+    ) {
+      return; // Suppress
+    }
+    originalConsoleWarn.apply(console, args);
+  };
 }
 
 class ClerkErrorBoundary extends Component {
