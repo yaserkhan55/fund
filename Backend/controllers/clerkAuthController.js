@@ -13,7 +13,7 @@ import jwt from "jsonwebtoken";
  */
 export const syncClerkUser = async (req, res) => {
   try {
-    const { clerkId, email, name, imageUrl, userType = "campaign_creator" } = req.body;
+    const { clerkId, email, name, imageUrl } = req.body;
 
     if (!clerkId || !email) {
       return res.status(400).json({
@@ -21,10 +21,6 @@ export const syncClerkUser = async (req, res) => {
         message: "clerkId and email are required"
       });
     }
-
-    // Validate userType
-    const validUserTypes = ["campaign_creator", "donor", "both"];
-    const finalUserType = validUserTypes.includes(userType) ? userType : "campaign_creator";
 
     // Find or create User (campaign creator)
     let user = await User.findOne({ 
@@ -39,20 +35,9 @@ export const syncClerkUser = async (req, res) => {
       user.clerkId = clerkId;
       user.name = name || user.name;
       user.picture = imageUrl || user.picture;
-      
-      // Update userType if provided and different
-      if (finalUserType && user.userType !== finalUserType) {
-        // If user already has a type, check if we should make it "both"
-        if (user.userType && user.userType !== finalUserType && user.userType !== "both") {
-          user.userType = "both";
-        } else if (!user.userType) {
-          user.userType = finalUserType;
-        }
-      }
-      
       await user.save();
     } else {
-      // Create new user
+      // Create new user - simple, no userType restrictions
       user = await User.create({
         name: name || "User",
         email: email.toLowerCase(),
@@ -60,13 +45,13 @@ export const syncClerkUser = async (req, res) => {
         picture: imageUrl || "",
         provider: "clerk",
         password: "clerk-auth",
-        role: "user",
-        userType: finalUserType
+        role: "user"
       });
     }
 
-    // If userType is "donor" or "both", also sync to Donor collection
-    if (finalUserType === "donor" || finalUserType === "both") {
+    // Also sync to Donor collection if user wants to donate (optional)
+    // This allows users to both create campaigns AND donate
+    if (req.body.syncDonor) {
       let donor = await Donor.findOne({
         $or: [
           { clerkId },
@@ -95,21 +80,9 @@ export const syncClerkUser = async (req, res) => {
       }
     }
 
-    // Update Clerk metadata with userType
-    try {
-      await clerkClient.users.updateUser(clerkId, {
-        publicMetadata: {
-          userType: user.userType
-        }
-      });
-    } catch (clerkError) {
-      console.error("Error updating Clerk metadata:", clerkError);
-      // Continue even if metadata update fails
-    }
-
     // Generate JWT token for backward compatibility
     const token = jwt.sign(
-      { userId: user._id, clerkId, userType: user.userType },
+      { userId: user._id, clerkId },
       process.env.JWT_SECRET || "your-secret-key",
       { expiresIn: "30d" }
     );
@@ -121,7 +94,6 @@ export const syncClerkUser = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        userType: user.userType,
         clerkId: user.clerkId
       },
       message: "User synced successfully"
