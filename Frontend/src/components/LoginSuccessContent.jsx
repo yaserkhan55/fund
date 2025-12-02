@@ -105,13 +105,22 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
 
       // Check if we have Clerk user data
       if (currentIsSignedIn && currentUser) {
-        // Check if user wants to be a donor (from donation flow or "Become a Donor")
+        // Check user flow from homepage selection or other indicators
+        const userFlow = sessionStorage.getItem("userFlow"); // "campaign_creator" or "donor"
         const donorFlowFlag = sessionStorage.getItem("donorFlow");
-        const isDonorFlow = location.state?.isDonor || 
+        
+        // Determine if this is a donor flow
+        const isDonorFlow = userFlow === "donor" ||
+                           location.state?.isDonor || 
                            donorFlowFlag === "true" ||
                            window.location.pathname.includes("/donor/") ||
                            document.referrer.includes("donation") ||
                            document.referrer.includes("donor");
+        
+        // Clear userFlow after reading (one-time use)
+        if (userFlow) {
+          sessionStorage.removeItem("userFlow");
+        }
         
         console.log("LoginSuccess - Donor Flow Check:", {
           isDonorFlow,

@@ -26,6 +26,7 @@ import DonorDashboard from "./pages/DonorDashboard";
 
 // Auth
 import LoginSuccess from "./components/LoginSuccess";
+import SignUpHeader from "./components/SignUpHeader";
 
 // Admin
 import AdminLogin from "./pages/AdminLogin";
@@ -86,9 +87,9 @@ export default function App() {
                 <SafeSignIn
                   path="/sign-in"
                   routing="path"
-                  afterSignInUrl="/"
-                  redirectUrl="/"
-                  signInFallbackRedirectUrl="/"
+                  afterSignInUrl="/auth/google/success"
+                  redirectUrl="/auth/google/success"
+                  signInFallbackRedirectUrl="/auth/google/success"
                   // Mobile-specific settings
                   appearance={{
                     elements: {
@@ -110,12 +111,13 @@ export default function App() {
           <Layout>
             <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
               <div className="w-full max-w-md">
+                <SignUpHeader />
                 <SafeSignUp
                   path="/sign-up"
                   routing="path"
-                  afterSignUpUrl="/"
-                  redirectUrl="/"
-                  signUpFallbackRedirectUrl="/"
+                  afterSignUpUrl="/auth/google/success"
+                  redirectUrl="/auth/google/success"
+                  signUpFallbackRedirectUrl="/auth/google/success"
                   // Mobile-specific settings
                   appearance={{
                     elements: {
