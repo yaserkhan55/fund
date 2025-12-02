@@ -202,15 +202,21 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
               localStorage.setItem("donorData", JSON.stringify(response.data.donor));
               sessionStorage.removeItem("donorFlow");
               
-              // Immediately dispatch event
+              // Immediately dispatch event - Enhanced for mobile
               window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
               
               // Force update navbar by dispatching event multiple times with delays
-              for (let i = 0; i < 10; i++) {
+              // More events for mobile to ensure UI updates
+              for (let i = 0; i < 15; i++) {
                 setTimeout(() => {
                   const token = localStorage.getItem("donorToken");
                   if (token) {
                     window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
+                    // Also trigger storage event for cross-tab sync
+                    window.dispatchEvent(new StorageEvent("storage", {
+                      key: "donorToken",
+                      newValue: token
+                    }));
                   }
                 }, i * 100);
               }
@@ -221,8 +227,13 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
                 newValue: response.data.token
               }));
               
-              // Wait a bit longer to ensure navbar has time to update
-              await new Promise(resolve => setTimeout(resolve, 1500));
+              // Force a page visibility check for mobile
+              if (document.hidden) {
+                document.dispatchEvent(new Event("visibilitychange"));
+              }
+              
+              // Wait a bit longer to ensure navbar has time to update on mobile
+              await new Promise(resolve => setTimeout(resolve, 2000));
               
               // Dispatch one more time before navigation
               window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
@@ -237,24 +248,31 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
               // Navigate
               navigate(returnUrl);
               
-              // After navigation, dispatch multiple more times to ensure navbar updates
+              // After navigation, dispatch multiple more times to ensure navbar updates on mobile
               setTimeout(() => {
                 const token = localStorage.getItem("donorToken");
                 if (token) {
-                  for (let i = 0; i < 5; i++) {
+                  for (let i = 0; i < 10; i++) {
                     setTimeout(() => {
                       window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
-                    }, i * 100);
+                      window.dispatchEvent(new StorageEvent("storage", {
+                        key: "donorToken",
+                        newValue: token
+                      }));
+                    }, i * 150);
                   }
                 }
-              }, 300);
+              }, 500);
               
+              // Final check after navigation completes
               setTimeout(() => {
                 const token = localStorage.getItem("donorToken");
                 if (token) {
                   window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token } }));
+                  // Force navbar re-render
+                  window.dispatchEvent(new Event("resize"));
                 }
-              }, 1000);
+              }, 1500);
               
               return;
             }

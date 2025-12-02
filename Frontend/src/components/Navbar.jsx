@@ -21,16 +21,16 @@ export default function Navbar() {
   const notificationRef = useRef(null);
 
   // Check if donor is logged in and listen for changes
+  // Enhanced for mobile - ensures Donor Dashboard shows after authentication
   useEffect(() => {
     const checkDonorLogin = () => {
       const donorToken = localStorage.getItem("donorToken");
       const nowLoggedIn = !!donorToken;
-      if (isDonorLoggedIn !== nowLoggedIn) {
-        setIsDonorLoggedIn(nowLoggedIn);
-      }
+      // Always update state to ensure UI reflects current status
+      setIsDonorLoggedIn(nowLoggedIn);
     };
 
-    // Check on mount
+    // Check on mount immediately
     checkDonorLogin();
 
     // Listen for storage changes (when donor logs in/out in another tab)
@@ -38,17 +38,23 @@ export default function Navbar() {
     
     // Listen for custom event when donor logs in
     const handleDonorLogin = (e) => {
-      // Force check immediately and multiple times
+      // Force check immediately and multiple times for mobile
       const checkAndUpdate = () => {
         const donorToken = localStorage.getItem("donorToken");
-        setIsDonorLoggedIn(!!donorToken);
+        const isLoggedIn = !!donorToken;
+        setIsDonorLoggedIn(isLoggedIn);
+        // Force re-render on mobile
+        if (isLoggedIn) {
+          // Trigger a state update to ensure UI updates
+          setTimeout(() => setIsDonorLoggedIn(true), 0);
+        }
       };
       
       // Check immediately
       checkAndUpdate();
       
-      // Check multiple times with increasing delays to ensure it's caught
-      [50, 100, 200, 300, 500, 800, 1000, 1500].forEach(delay => {
+      // Check multiple times with increasing delays to ensure it's caught on mobile
+      [50, 100, 200, 300, 500, 800, 1000, 1500, 2000].forEach(delay => {
         setTimeout(checkAndUpdate, delay);
       });
     };
@@ -56,20 +62,29 @@ export default function Navbar() {
     window.addEventListener("donorLogin", handleDonorLogin);
     window.addEventListener("donorLogout", handleDonorLogin);
 
-    // Check periodically (for same-tab login) - very frequent
+    // Check periodically (for same-tab login) - more frequent for mobile
     const interval = setInterval(() => {
       const donorToken = localStorage.getItem("donorToken");
       const nowLoggedIn = !!donorToken;
       setIsDonorLoggedIn(nowLoggedIn); // Always update to ensure state is current
-    }, 50);
+    }, 100); // Check every 100ms for better mobile responsiveness
+
+    // Also check when visibility changes (mobile app switching)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkDonorLogin();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.removeEventListener("storage", checkDonorLogin);
       window.removeEventListener("donorLogin", handleDonorLogin);
       window.removeEventListener("donorLogout", handleDonorLogin);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearInterval(interval);
     };
-  }, [isDonorLoggedIn]);
+  }, []); // Remove isDonorLoggedIn dependency to always check
 
   // Sync Clerk user with donor backend if signed in but no donorToken
   // Note: This is handled by LoginSuccess component, so we just check the flag
@@ -541,9 +556,9 @@ export default function Navbar() {
             </Link>
           </SignedOut>
 
-          {/* Donor Dashboard Button - Only show when user is actually a donor (has donorToken but NOT regular Clerk auth) */}
-          {/* If user is signed in with Clerk but not through donor flow, don't show Donor Dashboard */}
-          {isDonorLoggedIn && !isSignedIn && (
+          {/* Donor Dashboard Button - Show when user is a donor (has donorToken) */}
+          {/* Show for ALL donors regardless of Clerk authentication status */}
+          {isDonorLoggedIn && (
             <Link
               to="/donor/dashboard"
               onClick={() => setOpen(false)}
