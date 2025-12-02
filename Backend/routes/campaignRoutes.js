@@ -4,6 +4,7 @@ import upload, { uploadToCloudinary } from "../middlewares/upload.js";
 // Clerk
 import { requireAuth } from "@clerk/express";
 import { syncClerkUser } from "../middlewares/syncClerkUser.js";
+import { checkUserType } from "../middlewares/checkUserType.js";
 
 import {
   createCampaign,

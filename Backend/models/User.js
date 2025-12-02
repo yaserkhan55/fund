@@ -39,6 +39,15 @@ const userSchema = new mongoose.Schema(
     },
 
     // ============================
+    // ✅ USER TYPE (campaign_creator or donor)
+    // ============================
+    userType: {
+      type: String,
+      enum: ["campaign_creator", "donor", "both"], // "both" if user can do both
+      default: "campaign_creator",
+    },
+
+    // ============================
     // ✅ GOOGLE LOGIN FIELDS (ADDED)
     // ============================
     googleId: {
