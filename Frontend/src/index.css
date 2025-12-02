@@ -3,6 +3,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CRITICAL: Completely hide all Clerk phone number fields */
+/* This prevents "illegal arguments undefined number" errors */
+[data-clerk-element="phoneInputBox"],
+[data-clerk-element="phoneInput"],
+[data-clerk-element="formFieldInput__phoneNumber"],
+[data-clerk-element="formFieldLabel__phoneNumber"],
+[data-clerk-element="formField__phoneNumber"],
+.cl-phoneInputBox,
+.cl-phoneInput,
+.cl-formFieldInput__phoneNumber,
+.cl-formFieldLabel__phoneNumber,
+.cl-formField__phoneNumber,
+input[type="tel"],
+input[name*="phone"],
+input[id*="phone"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
 /* Prevent horizontal overflow globally */
 @layer base {
   html,

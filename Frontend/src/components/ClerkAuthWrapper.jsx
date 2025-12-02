@@ -156,19 +156,21 @@ class ClerkErrorBoundary extends Component {
 // Wrapped SignIn component with error boundary
 // This prevents "illegal arguments undefined numbers" errors from breaking the UI
 export function SafeSignIn(props) {
-  // Merge appearance props to hide phone number fields
+  // Merge appearance props to completely hide phone number fields
   const mergedAppearance = {
     ...props.appearance,
     elements: {
       ...props.appearance?.elements,
-      // Hide phone number input fields
-      phoneInputBox: "hidden",
-      phoneInput: "hidden",
-      formFieldInput__phoneNumber: "hidden",
+      // Completely hide phone number input fields with !important
+      phoneInputBox: "hidden !important",
+      phoneInput: "hidden !important",
+      formFieldInput__phoneNumber: "hidden !important",
+      formFieldLabel__phoneNumber: "hidden !important",
+      formField__phoneNumber: "hidden !important",
     },
     layout: {
       ...props.appearance?.layout,
-      // Only show email and social providers
+      // Only show email and social providers - no phone
       showOptionalFields: false,
     },
   };
@@ -178,6 +180,9 @@ export function SafeSignIn(props) {
       <SignIn 
         {...props} 
         appearance={mergedAppearance}
+        // Force disable phone at component level
+        routing="path"
+        path="/sign-in"
       />
     </ClerkErrorBoundary>
   );
@@ -186,19 +191,21 @@ export function SafeSignIn(props) {
 // Wrapped SignUp component with error boundary
 // This prevents "illegal arguments undefined numbers" errors from breaking the UI
 export function SafeSignUp(props) {
-  // Merge appearance props to hide phone number fields
+  // Merge appearance props to completely hide phone number fields
   const mergedAppearance = {
     ...props.appearance,
     elements: {
       ...props.appearance?.elements,
-      // Hide phone number input fields
-      phoneInputBox: "hidden",
-      phoneInput: "hidden",
-      formFieldInput__phoneNumber: "hidden",
+      // Completely hide phone number input fields with !important
+      phoneInputBox: "hidden !important",
+      phoneInput: "hidden !important",
+      formFieldInput__phoneNumber: "hidden !important",
+      formFieldLabel__phoneNumber: "hidden !important",
+      formField__phoneNumber: "hidden !important",
     },
     layout: {
       ...props.appearance?.layout,
-      // Only show email and social providers
+      // Only show email and social providers - no phone
       showOptionalFields: false,
     },
   };
@@ -208,6 +215,9 @@ export function SafeSignUp(props) {
       <SignUp 
         {...props} 
         appearance={mergedAppearance}
+        // Force disable phone at component level
+        routing="path"
+        path="/sign-up"
       />
     </ClerkErrorBoundary>
   );

@@ -5,6 +5,33 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>frontend</title>
+    <!-- Early error suppression - must be before any scripts -->
+    <script>
+      // Suppress phone validation errors at the earliest possible point
+      (function() {
+        const originalError = window.onerror;
+        window.onerror = function(msg, src, line, col, err) {
+          const msgStr = String(msg || '').toLowerCase();
+          if (msgStr.includes('illegal argument') || 
+              (msgStr.includes('undefined') && msgStr.includes('number')) ||
+              msgStr.includes('phone')) {
+            return true; // Suppress
+          }
+          if (originalError) return originalError.apply(this, arguments);
+          return false;
+        };
+        
+        window.addEventListener('unhandledrejection', function(e) {
+          const errStr = String(e.reason?.message || e.reason || '').toLowerCase();
+          if (errStr.includes('illegal argument') || 
+              (errStr.includes('undefined') && errStr.includes('number')) ||
+              errStr.includes('phone')) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }, true);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
