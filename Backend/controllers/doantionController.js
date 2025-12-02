@@ -442,3 +442,429 @@ export const getCampaignDonations = async (req, res) => {
     });
   }
 };
+
+// Get all committed payments for admin (legacy - keeping for backward compatibility)
+export const getCommittedPayments = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search = "", status = "all" } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build query for committed payments
+    const query = {
+      paymentMethod: "commitment",
+      paymentStatus: { $in: ["pending", "processing"] }
+    };
+
+    // Filter by status
+    if (status !== "all") {
+      query.paymentStatus = status;
+    }
+
+    // Add search filter
+    if (search) {
+      query.$or = [
+        { donorName: { $regex: search, $options: "i" } },
+        { donorEmail: { $regex: search, $options: "i" } },
+        { receiptNumber: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const [donations, total] = await Promise.all([
+      Donation.find(query)
+        .populate({
+          path: "campaignId",
+          select: "title beneficiaryName category",
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Donation.countDocuments(query),
+    ]);
+
+    return res.json({
+      success: true,
+      donations,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (err) {
+    console.error("Get Committed Payments Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch committed payments.",
+      error: err.message,
+    });
+  }
+};
+
+// Get all donations for admin with comprehensive filters
+export const getAllDonationsAdmin = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      search = "",
+      status = "all",
+      paymentMethod = "all",
+      campaignId = "",
+      dateFrom = "",
+      dateTo = "",
+      minAmount = "",
+      maxAmount = "",
+      riskLevel = "all",
+      isSuspicious = "",
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const query = {};
+
+    // Status filter
+    if (status !== "all") {
+      query.paymentStatus = status;
+    }
+
+    // Payment method filter
+    if (paymentMethod !== "all") {
+      query.paymentMethod = paymentMethod;
+    }
+
+    // Campaign filter
+    if (campaignId) {
+      query.campaignId = campaignId;
+    }
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      query.createdAt = {};
+      if (dateFrom) {
+        query.createdAt.$gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        query.createdAt.$lte = new Date(dateTo);
+      }
+    }
+
+    // Amount range filter
+    if (minAmount || maxAmount) {
+      query.amount = {};
+      if (minAmount) {
+        query.amount.$gte = Number(minAmount);
+      }
+      if (maxAmount) {
+        query.amount.$lte = Number(maxAmount);
+      }
+    }
+
+    // Risk level filter
+    if (riskLevel !== "all") {
+      query.riskLevel = riskLevel;
+    }
+
+    // Suspicious filter
+    if (isSuspicious !== "") {
+      query.isSuspicious = isSuspicious === "true";
+    }
+
+    // Search filter
+    if (search) {
+      query.$or = [
+        { donorName: { $regex: search, $options: "i" } },
+        { donorEmail: { $regex: search, $options: "i" } },
+        { receiptNumber: { $regex: search, $options: "i" } },
+        { razorpayOrderId: { $regex: search, $options: "i" } },
+        { razorpayPaymentId: { $regex: search, $options: "i" } },
+        { message: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Sort
+    const sort = {};
+    sort[sortBy] = sortOrder === "asc" ? 1 : -1;
+
+    const [donations, total] = await Promise.all([
+      Donation.find(query)
+        .populate({
+          path: "campaignId",
+          select: "title beneficiaryName category goalAmount currentAmount",
+        })
+        .populate({
+          path: "donorId",
+          select: "name email phone",
+          options: { strictPopulate: false },
+        })
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Donation.countDocuments(query),
+    ]);
+
+    return res.json({
+      success: true,
+      donations,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (err) {
+    console.error("Get All Donations Admin Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch donations.",
+      error: err.message,
+    });
+  }
+};
+
+// Get donation statistics for admin
+export const getDonationStats = async (req, res) => {
+  try {
+    const { dateFrom = "", dateTo = "" } = req.query;
+    const dateFilter = {};
+    if (dateFrom || dateTo) {
+      dateFilter.createdAt = {};
+      if (dateFrom) dateFilter.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) dateFilter.createdAt.$lte = new Date(dateTo);
+    }
+
+    const [
+      totalDonations,
+      totalAmount,
+      pendingCount,
+      successCount,
+      failedCount,
+      committedCount,
+      suspiciousCount,
+      donationsByStatus,
+      donationsByMethod,
+      topCampaigns,
+      recentDonations,
+    ] = await Promise.all([
+      Donation.countDocuments(dateFilter),
+      Donation.aggregate([
+        { $match: { ...dateFilter, paymentStatus: "success" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      Donation.countDocuments({ ...dateFilter, paymentStatus: "pending" }),
+      Donation.countDocuments({ ...dateFilter, paymentStatus: "success" }),
+      Donation.countDocuments({ ...dateFilter, paymentStatus: "failed" }),
+      Donation.countDocuments({ ...dateFilter, paymentMethod: "commitment" }),
+      Donation.countDocuments({ ...dateFilter, isSuspicious: true }),
+      Donation.aggregate([
+        { $match: dateFilter },
+        { $group: { _id: "$paymentStatus", count: { $sum: 1 } } },
+      ]),
+      Donation.aggregate([
+        { $match: dateFilter },
+        { $group: { _id: "$paymentMethod", count: { $sum: 1 } } },
+      ]),
+      Donation.aggregate([
+        { $match: { ...dateFilter, paymentStatus: "success" } },
+        {
+          $group: {
+            _id: "$campaignId",
+            totalAmount: { $sum: "$amount" },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { totalAmount: -1 } },
+        { $limit: 10 },
+        {
+          $lookup: {
+            from: "campaigns",
+            localField: "_id",
+            foreignField: "_id",
+            as: "campaign",
+          },
+        },
+        { $unwind: "$campaign" },
+        {
+          $project: {
+            campaignTitle: "$campaign.title",
+            totalAmount: 1,
+            count: 1,
+          },
+        },
+      ]),
+      Donation.find(dateFilter)
+        .populate("campaignId", "title")
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean(),
+    ]);
+
+    return res.json({
+      success: true,
+      stats: {
+        totalDonations,
+        totalAmount: totalAmount[0]?.total || 0,
+        pendingCount,
+        successCount,
+        failedCount,
+        committedCount,
+        suspiciousCount,
+        donationsByStatus: donationsByStatus.reduce((acc, item) => {
+          acc[item._id || "unknown"] = item.count;
+          return acc;
+        }, {}),
+        donationsByMethod: donationsByMethod.reduce((acc, item) => {
+          acc[item._id || "unknown"] = item.count;
+          return acc;
+        }, {}),
+        topCampaigns,
+        recentDonations,
+      },
+    });
+  } catch (err) {
+    console.error("Get Donation Stats Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch donation statistics.",
+      error: err.message,
+    });
+  }
+};
+
+// Update donation status (mark as paid, verify, etc.)
+export const updateDonationStatus = async (req, res) => {
+  try {
+    const { donationId } = req.params;
+    const { paymentStatus, paymentReceived, adminVerified, reviewNotes, paymentNotes } = req.body;
+    const adminId = req.adminId || req.admin?.id;
+
+    const update = {};
+    if (paymentStatus) update.paymentStatus = paymentStatus;
+    if (paymentReceived !== undefined) {
+      update.paymentReceived = paymentReceived;
+      if (paymentReceived) {
+        update.paymentReceivedAt = new Date();
+        update.paymentVerifiedBy = adminId;
+      }
+    }
+    if (adminVerified !== undefined) {
+      update.adminVerified = adminVerified;
+      update.reviewedBy = adminId;
+      update.reviewedAt = new Date();
+    }
+    if (reviewNotes !== undefined) update.reviewNotes = reviewNotes;
+    if (paymentNotes !== undefined) update.paymentNotes = paymentNotes;
+
+    const donation = await Donation.findByIdAndUpdate(
+      donationId,
+      { $set: update },
+      { new: true }
+    )
+      .populate("campaignId", "title beneficiaryName")
+      .lean();
+
+    if (!donation) {
+      return res.status(404).json({
+        success: false,
+        message: "Donation not found.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      donation,
+      message: "Donation updated successfully.",
+    });
+  } catch (err) {
+    console.error("Update Donation Status Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update donation.",
+      error: err.message,
+    });
+  }
+};
+
+// Flag donation as suspicious
+export const flagDonation = async (req, res) => {
+  try {
+    const { donationId } = req.params;
+    const { reason } = req.body;
+    const adminId = req.adminId || req.admin?.id;
+
+    const donation = await Donation.findByIdAndUpdate(
+      donationId,
+      {
+        $set: {
+          isSuspicious: true,
+          flaggedBy: adminId,
+          flaggedAt: new Date(),
+          suspiciousReason: reason || donation.suspiciousReason || "Flagged by admin",
+        },
+      },
+      { new: true }
+    ).lean();
+
+    if (!donation) {
+      return res.status(404).json({
+        success: false,
+        message: "Donation not found.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      donation,
+      message: "Donation flagged successfully.",
+    });
+  } catch (err) {
+    console.error("Flag Donation Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to flag donation.",
+      error: err.message,
+    });
+  }
+};
+
+// Get single donation details
+export const getDonationDetails = async (req, res) => {
+  try {
+    const { donationId } = req.params;
+
+    const donation = await Donation.findById(donationId)
+      .populate({
+        path: "campaignId",
+        select: "title beneficiaryName category goalAmount currentAmount description images",
+      })
+      .populate({
+        path: "donorId",
+        select: "name email phone",
+        options: { strictPopulate: false },
+      })
+      .lean();
+
+    if (!donation) {
+      return res.status(404).json({
+        success: false,
+        message: "Donation not found.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      donation,
+    });
+  } catch (err) {
+    console.error("Get Donation Details Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch donation details.",
+      error: err.message,
+    });
+  }
+};

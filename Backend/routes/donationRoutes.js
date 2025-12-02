@@ -1,5 +1,16 @@
 import express from "express";
-import { createDonation, getCampaignDonations, commitDonation, commitGuestDonation } from "../controllers/doantionController.js";
+import { 
+  createDonation, 
+  getCampaignDonations, 
+  commitDonation, 
+  commitGuestDonation, 
+  getCommittedPayments,
+  getAllDonationsAdmin,
+  getDonationStats,
+  updateDonationStatus,
+  flagDonation,
+  getDonationDetails
+} from "../controllers/doantionController.js";
 import {
   createPaymentOrder,
   verifyPayment,
@@ -7,6 +18,7 @@ import {
   getDonationStatus,
 } from "../controllers/paymentController.js";
 import { donorAuth } from "../middlewares/donorAuth.js";
+import { adminAuth } from "../middlewares/adminAuth.js";
 
 const router = express.Router();
 
@@ -27,5 +39,13 @@ router.get("/my-donations", donorAuth, getDonorDonations);
 
 // Public route - view donations for a campaign
 router.get("/campaign/:campaignId", getCampaignDonations);
+
+// Admin routes - Comprehensive donation management
+router.get("/admin/all", adminAuth, getAllDonationsAdmin);
+router.get("/admin/stats", adminAuth, getDonationStats);
+router.get("/admin/committed", adminAuth, getCommittedPayments); // Legacy
+router.get("/admin/:donationId", adminAuth, getDonationDetails);
+router.put("/admin/:donationId/status", adminAuth, updateDonationStatus);
+router.post("/admin/:donationId/flag", adminAuth, flagDonation);
 
 export default router;
