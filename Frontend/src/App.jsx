@@ -1,7 +1,8 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
 // Clerk
-import { SignedIn, SignedOut, RedirectToSignIn, SignIn, SignUp } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+import { SafeSignIn, SafeSignUp } from "./components/ClerkAuthWrapper";
 
 // Layout
 import Navbar from "./components/Navbar";
@@ -82,7 +83,7 @@ export default function App() {
           <Layout>
             <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
               <div className="w-full max-w-md">
-                <SignIn
+                <SafeSignIn
                   path="/sign-in"
                   routing="path"
                   afterSignInUrl="/"
@@ -109,7 +110,7 @@ export default function App() {
           <Layout>
             <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
               <div className="w-full max-w-md">
-                <SignUp
+                <SafeSignUp
                   path="/sign-up"
                   routing="path"
                   afterSignUpUrl="/"
@@ -158,7 +159,7 @@ export default function App() {
           <Layout>
             <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 bg-[#F1FAFA]">
               <div className="w-full max-w-md">
-                <SignIn
+                <SafeSignIn
                   path="/donor/sign-in"
                   routing="path"
                   afterSignInUrl="/auth/google/success"
@@ -183,7 +184,7 @@ export default function App() {
           <Layout>
             <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 bg-[#F1FAFA]">
               <div className="w-full max-w-md">
-                <SignUp
+                <SafeSignUp
                   path="/donor/sign-up"
                   routing="path"
                   afterSignUpUrl="/auth/google/success"

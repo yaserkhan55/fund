@@ -31,6 +31,10 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     signUpUrl="/sign-up"
     afterSignInUrl="/"
     afterSignUpUrl="/"
+    // Disable phone number authentication globally to prevent errors
+    localization={{
+      locale: "en-US",
+    }}
   >
     <BrowserRouter>
       {/* ⭐ wrap your entire app so SignINButton & SignUpButton work */}
