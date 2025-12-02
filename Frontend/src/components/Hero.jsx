@@ -1,45 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import FlowChart from "./FlowChart";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function Hero() {
-  const { isSignedIn, getToken } = useAuth();
   const [stats, setStats] = useState({
     livesSaved: 0,
     contributors: 0,
     trustedCampaigns: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [isCampaignCreator, setIsCampaignCreator] = useState(false);
 
   useEffect(() => {
     fetchStats();
-    checkIfCampaignCreator();
-  }, [isSignedIn]);
-
-  const checkIfCampaignCreator = async () => {
-    if (isSignedIn) {
-      try {
-        const token = await getToken().catch(() => localStorage.getItem("token"));
-        if (token) {
-          const res = await axios.get(`${API_URL}/api/campaigns/my`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.data?.campaigns && res.data.campaigns.length > 0) {
-            setIsCampaignCreator(true);
-          }
-        }
-      } catch (error) {
-        setIsCampaignCreator(false);
-      }
-    } else {
-      setIsCampaignCreator(false);
-    }
-  };
+  }, []);
 
   const fetchStats = async () => {
     try {
@@ -75,19 +51,11 @@ export default function Hero() {
 
         {/* LEFT SIDE */}      <div className="flex-1">
           <h1 className="text-4xl md:text-5xl font-bold text-[#003D3B] leading-tight">
-            {isCampaignCreator ? (
-              "Support Other Campaigns"
-            ) : (
-              <>
-                Become a <br /> Changemaker!
-              </>
-            )}
+            Become a <br /> Changemaker!
           </h1>
 
           <p className="text-gray-700 text-lg mt-4">
-            {isCampaignCreator 
-              ? "Discover and support campaigns from other creators" 
-              : "Start your journey with your first contribution."}
+            Start your journey with your first contribution.
           </p>
 
           <div className="flex flex-wrap gap-4 mt-6">
@@ -99,21 +67,13 @@ export default function Hero() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                {isCampaignCreator ? "Explore Campaigns" : "Donate Now"}
+                Donate Now
                 <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </Link>
-            {isCampaignCreator && (
-              <Link
-                to="/dashboard"
-                className="inline-block border-2 border-[#00B5B8] text-[#00B5B8] hover:bg-[#E6F7F7] font-semibold px-8 py-3.5 rounded-xl transition"
-              >
-                My Campaigns
-              </Link>
-            )}
           </div>
 
           {/* STATS */}

@@ -1,47 +1,19 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function BrowseFundraisers() {
   const navigate = useNavigate();
-  const { isSignedIn, getToken } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [featuredCampaigns, setFeaturedCampaigns] = useState([]);
-  const [isCampaignCreator, setIsCampaignCreator] = useState(false);
-  const [myCampaignIds, setMyCampaignIds] = useState([]);
 
   const categories = ["all", "medical", "education", "emergency"];
-
-  // Check if user is a campaign creator
-  useEffect(() => {
-    const checkIfCampaignCreator = async () => {
-      if (isSignedIn) {
-        try {
-          const token = await getToken().catch(() => localStorage.getItem("token"));
-          if (token) {
-            const res = await axios.get(`${API_URL}/api/campaigns/my`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            if (res.data?.campaigns && res.data.campaigns.length > 0) {
-              setIsCampaignCreator(true);
-              setMyCampaignIds(res.data.campaigns.map(c => c._id));
-            }
-          }
-        } catch (error) {
-          // User is not a campaign creator or not logged in
-          setIsCampaignCreator(false);
-        }
-      }
-    };
-    checkIfCampaignCreator();
-  }, [isSignedIn, getToken]);
 
   useEffect(() => {
     fetchAllCampaigns();
@@ -79,13 +51,6 @@ export default function BrowseFundraisers() {
   const filteredAndSortedCampaigns = useMemo(() => {
     let filtered = [...campaigns];
 
-    // If user is a campaign creator, exclude their own campaigns
-    if (isCampaignCreator && myCampaignIds.length > 0) {
-      filtered = filtered.filter(
-        (c) => !myCampaignIds.includes(c._id)
-      );
-    }
-
     // Filter by category
     if (selectedCategory !== "all") {
       filtered = filtered.filter(
@@ -121,7 +86,7 @@ export default function BrowseFundraisers() {
     });
 
     return filtered;
-  }, [campaigns, selectedCategory, searchQuery, sortBy, isCampaignCreator, myCampaignIds]);
+  }, [campaigns, selectedCategory, searchQuery, sortBy]);
 
   if (loading) {
     return (
@@ -149,21 +114,11 @@ export default function BrowseFundraisers() {
             Back to Home
           </button>
           <h1 className="text-4xl md:text-5xl font-bold text-[#003d3b] mb-2">
-            {isCampaignCreator ? "Explore Other Campaigns" : "Browse Fundraisers"}
+            Browse Fundraisers
           </h1>
           <p className="text-gray-600 text-lg">
-            {isCampaignCreator 
-              ? "Discover campaigns from other creators and support them" 
-              : "Discover campaigns that need your support"}
+            Discover campaigns that need your support
           </p>
-          {isCampaignCreator && (
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                💡 <strong>Tip:</strong> You're viewing campaigns from other creators. Your own campaigns are hidden here. 
-                <Link to="/dashboard" className="text-blue-600 hover:underline ml-1">View your campaigns</Link>
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Featured/Urgent Section */}
@@ -171,14 +126,8 @@ export default function BrowseFundraisers() {
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-[#003d3b]">
-                  {isCampaignCreator ? "Urgent Campaigns to Support" : "Urgent Campaigns"}
-                </h2>
-                <p className="text-gray-600 text-sm">
-                  {isCampaignCreator 
-                    ? "Support other creators' campaigns that need help" 
-                    : "Campaigns that need immediate support"}
-                </p>
+                <h2 className="text-2xl font-bold text-[#003d3b]">Urgent Campaigns</h2>
+                <p className="text-gray-600 text-sm">Campaigns that need immediate support</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -329,33 +278,20 @@ export default function BrowseFundraisers() {
                 />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-[#003d3b] mb-2">
-              {isCampaignCreator ? "No other campaigns found" : "No campaigns found"}
-            </h3>
+            <h3 className="text-2xl font-bold text-[#003d3b] mb-2">No campaigns found</h3>
             <p className="text-gray-600 mb-6">
-              {isCampaignCreator 
-                ? "There are no other campaigns to explore right now. Check back later!" 
-                : "Try adjusting your search or filter criteria"}
+              Try adjusting your search or filter criteria
             </p>
-            {isCampaignCreator ? (
-              <Link
-                to="/dashboard"
-                className="inline-block px-6 py-2 bg-[#00B5B8] text-white font-semibold rounded-xl hover:bg-[#009EA1] transition"
-              >
-                View My Campaigns
-              </Link>
-            ) : (
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCategory("all");
-                  setSortBy("newest");
-                }}
-                className="px-6 py-2 bg-[#00B5B8] text-white font-semibold rounded-xl hover:bg-[#009EA1] transition"
-              >
-                Clear Filters
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedCategory("all");
+                setSortBy("newest");
+              }}
+              className="px-6 py-2 bg-[#00B5B8] text-white font-semibold rounded-xl hover:bg-[#009EA1] transition"
+            >
+              Clear Filters
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
