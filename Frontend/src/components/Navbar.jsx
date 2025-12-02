@@ -16,110 +16,41 @@ export default function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [isDonorLoggedIn, setIsDonorLoggedIn] = useState(false);
-  const [userType, setUserType] = useState(null);
 
   const menuRef = useRef(null);
   const notificationRef = useRef(null);
 
-  // Check user type from Clerk metadata
-  useEffect(() => {
-    if (isSignedIn && clerkUser) {
-      const clerkUserType = clerkUser.publicMetadata?.userType || 
-                           clerkUser.privateMetadata?.userType ||
-                           "campaign_creator";
-      setUserType(clerkUserType);
-      
-      // Set isDonorLoggedIn based on userType
-      const isDonor = clerkUserType === "donor" || clerkUserType === "both";
-      setIsDonorLoggedIn(isDonor || !!localStorage.getItem("donorToken"));
-    } else {
-      setUserType(null);
-      setIsDonorLoggedIn(!!localStorage.getItem("donorToken"));
-    }
-  }, [isSignedIn, clerkUser]);
-
-  // Check if donor is logged in and listen for changes
-  // Enhanced for mobile - ensures Donor Dashboard shows after authentication
+  // Simple check - just see if donor token exists (for donor dashboard)
+  // All authenticated users can create campaigns
   useEffect(() => {
     const checkDonorLogin = () => {
       const donorToken = localStorage.getItem("donorToken");
-      // Also check userType from Clerk
-      const clerkUserType = clerkUser?.publicMetadata?.userType || 
-                           clerkUser?.privateMetadata?.userType;
-      const isDonor = clerkUserType === "donor" || clerkUserType === "both";
-      const nowLoggedIn = !!donorToken || isDonor;
-      // Always update state to ensure UI reflects current status
-      setIsDonorLoggedIn(nowLoggedIn);
+      setIsDonorLoggedIn(!!donorToken);
     };
 
-    // Check on mount immediately
+    // Check on mount
     checkDonorLogin();
 
-    // Listen for storage changes (when donor logs in/out in another tab)
+    // Listen for storage changes
     window.addEventListener("storage", checkDonorLogin);
     
     // Listen for custom event when donor logs in
-    const handleDonorLogin = (e) => {
-      // Force check immediately and multiple times for mobile
-      const checkAndUpdate = () => {
-        const donorToken = localStorage.getItem("donorToken");
-        const isLoggedIn = !!donorToken;
-        setIsDonorLoggedIn(isLoggedIn);
-        // Force re-render on mobile
-        if (isLoggedIn) {
-          // Trigger a state update to ensure UI updates
-          setTimeout(() => setIsDonorLoggedIn(true), 0);
-        }
-      };
-      
-      // Check immediately
-      checkAndUpdate();
-      
-      // Check multiple times with increasing delays to ensure it's caught on mobile
-      [50, 100, 200, 300, 500, 800, 1000, 1500, 2000].forEach(delay => {
-        setTimeout(checkAndUpdate, delay);
-      });
+    const handleDonorLogin = () => {
+      checkDonorLogin();
     };
     
     window.addEventListener("donorLogin", handleDonorLogin);
     window.addEventListener("donorLogout", handleDonorLogin);
 
-    // Check periodically (for same-tab login) - more frequent for mobile
-    const interval = setInterval(() => {
-      const donorToken = localStorage.getItem("donorToken");
-      const nowLoggedIn = !!donorToken;
-      setIsDonorLoggedIn(nowLoggedIn); // Always update to ensure state is current
-    }, 100); // Check every 100ms for better mobile responsiveness
-
-    // Also check when visibility changes (mobile app switching)
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        checkDonorLogin();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    // Check periodically
+    const interval = setInterval(checkDonorLogin, 500);
 
     return () => {
       window.removeEventListener("storage", checkDonorLogin);
       window.removeEventListener("donorLogin", handleDonorLogin);
       window.removeEventListener("donorLogout", handleDonorLogin);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearInterval(interval);
     };
-  }, []); // Remove isDonorLoggedIn dependency to always check
-
-  // Listen for userType updates from LoginSuccess component
-  useEffect(() => {
-    const handleUserTypeUpdate = (event) => {
-      if (event.detail?.userType) {
-        setUserType(event.detail.userType);
-        // Also update isDonorLoggedIn based on new userType
-        const isDonor = event.detail.userType === "donor" || event.detail.userType === "both";
-        setIsDonorLoggedIn(isDonor);
-      }
-    };
-    window.addEventListener("userTypeUpdated", handleUserTypeUpdate);
-    return () => window.removeEventListener("userTypeUpdated", handleUserTypeUpdate);
   }, []);
 
   // Sync Clerk user with donor backend if signed in but no donorToken
@@ -296,30 +227,27 @@ export default function Navbar() {
 
         {/* Desktop Right Side */}
         <div className="hidden md:flex items-center space-x-2 lg:space-x-4 flex-shrink-0">
+          {/* Show Create Campaign button for all authenticated users */}
           <SignedIn>
-            {/* Show Create Campaign button ONLY for campaign creators */}
-            {(userType === "campaign_creator" || userType === "both") && (
-              <Link
-                to="/create-campaign"
-                className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
-              >
-                Create Campaign
-              </Link>
-            )}
-
-            {/* Show Donor Dashboard button ONLY for donors */}
-            {(userType === "donor" || userType === "both") && (
-              <Link
-                to="/donor/dashboard"
-                className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap"
-              >
-                Donor Dashboard
-              </Link>
-            )}
+            <Link
+              to="/create-campaign"
+              className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
+            >
+              Create Campaign
+            </Link>
           </SignedIn>
 
+          {/* Show Donor Dashboard if donor is logged in */}
+          {isDonorLoggedIn && (
+            <Link
+              to="/donor/dashboard"
+              className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap"
+            >
+              Donor Dashboard
+            </Link>
+          )}
+
           <SignedOut>
-            {/* Generic sign in button for non-authenticated users */}
             <Link
               to="/sign-in"
               className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
@@ -580,31 +508,17 @@ export default function Navbar() {
           </Link>
 
           <SignedIn>
-            {/* Show Create Campaign button ONLY for campaign creators in mobile menu */}
-            {(userType === "campaign_creator" || userType === "both") && (
-              <Link
-                to="/create-campaign"
-                onClick={() => setOpen(false)}
-                className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
-              >
-                Create Campaign
-              </Link>
-            )}
-
-            {/* Show Donor Dashboard button ONLY for donors in mobile menu */}
-            {(userType === "donor" || userType === "both") && (
-              <Link
-                to="/donor/dashboard"
-                onClick={() => setOpen(false)}
-                className="block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white text-center py-3 rounded-xl font-semibold shadow hover:from-[#009EA1] hover:to-[#008B8E] transition"
-              >
-                Donor Dashboard
-              </Link>
-            )}
+            {/* Show Create Campaign button for all authenticated users */}
+            <Link
+              to="/create-campaign"
+              onClick={() => setOpen(false)}
+              className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
+            >
+              Create Campaign
+            </Link>
           </SignedIn>
 
           <SignedOut>
-            {/* Generic sign in button for non-authenticated users */}
             <Link
               to="/sign-in"
               onClick={() => setOpen(false)}
@@ -613,6 +527,17 @@ export default function Navbar() {
               Sign In
             </Link>
           </SignedOut>
+
+          {/* Show Donor Dashboard if donor is logged in */}
+          {isDonorLoggedIn && (
+            <Link
+              to="/donor/dashboard"
+              onClick={() => setOpen(false)}
+              className="block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white text-center py-3 rounded-xl font-semibold shadow hover:from-[#009EA1] hover:to-[#008B8E] transition"
+            >
+              Donor Dashboard
+            </Link>
+          )}
 
         </div>
       </div>

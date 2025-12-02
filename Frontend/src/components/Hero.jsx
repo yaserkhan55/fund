@@ -58,87 +58,29 @@ export default function Hero() {
             Choose your path and make a difference today.
           </p>
 
-          {/* Two Clear Signup Options */}
-          <div className="mt-8 space-y-4">
-            <h3 className="text-xl font-semibold text-[#003D3B] mb-4">
-              What would you like to do?
-            </h3>
-            
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Option 1: Create Fundraiser */}
-              <Link
-                to="/sign-up"
-                onClick={() => {
-                  // Clear any donor flow flags
-                  sessionStorage.removeItem("donorFlow");
-                  // Set campaign creator flow
-                  sessionStorage.setItem("userFlow", "campaign_creator");
-                }}
-                className="group relative p-6 bg-white border-2 border-[#00B5B8] rounded-xl hover:border-[#009EA1] hover:shadow-lg transition-all transform hover:scale-105"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-lg font-bold text-[#003D3B] mb-2 group-hover:text-[#00B5B8] transition-colors">
-                      I want to create a fundraiser
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      Start a campaign to raise funds for your cause
-                    </p>
-                  </div>
-                  <svg className="w-5 h-5 text-[#00B5B8] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </Link>
-
-              {/* Option 2: Donate */}
-              <Link
-                to="/sign-up"
-                onClick={() => {
-                  // Set donor flow
-                  sessionStorage.setItem("donorFlow", "true");
-                  sessionStorage.setItem("userFlow", "donor");
-                }}
-                className="group relative p-6 bg-white border-2 border-[#00B5B8] rounded-xl hover:border-[#009EA1] hover:shadow-lg transition-all transform hover:scale-105"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-lg font-bold text-[#003D3B] mb-2 group-hover:text-[#00B5B8] transition-colors">
-                      I want to donate
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      Support campaigns and make a difference
-                    </p>
-                  </div>
-                  <svg className="w-5 h-5 text-[#00B5B8] group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </Link>
-            </div>
-
-            {/* Browse campaigns link (for existing users) */}
-            <div className="pt-4">
-              <Link
-                to="/browse"
-                className="inline-flex items-center gap-2 text-[#00B5B8] hover:text-[#009EA1] font-medium transition-colors"
-              >
-                <span>Or browse existing campaigns</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {/* Simple Sign Up Button */}
+          <div className="flex flex-wrap gap-4 mt-6">
+            <Link
+              to="/sign-up"
+              className="group relative inline-flex items-center gap-2 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white font-bold px-8 py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden"
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Get Started
+                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </Link>
-            </div>
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            </Link>
+            <Link
+              to="/browse"
+              className="inline-block border-2 border-[#00B5B8] text-[#00B5B8] hover:bg-[#E6F7F7] font-semibold px-8 py-3.5 rounded-xl transition"
+            >
+              Browse Campaigns
+            </Link>
           </div>
 
           {/* STATS */}

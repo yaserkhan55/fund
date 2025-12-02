@@ -105,31 +105,15 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
 
       // Check if we have Clerk user data
       if (currentIsSignedIn && currentUser) {
-        // Check user flow from homepage selection or other indicators
-        const userFlow = sessionStorage.getItem("userFlow"); // "campaign_creator" or "donor"
+        // Check if user wants to donate (from donation flow)
         const donorFlowFlag = sessionStorage.getItem("donorFlow");
-        
-        // Determine if this is a donor flow
-        const isDonorFlow = userFlow === "donor" ||
-                           location.state?.isDonor || 
+        const isDonorFlow = location.state?.isDonor || 
                            donorFlowFlag === "true" ||
                            window.location.pathname.includes("/donor/") ||
                            document.referrer.includes("donation") ||
                            document.referrer.includes("donor");
-        
-        // Clear userFlow after reading (one-time use)
-        if (userFlow) {
-          sessionStorage.removeItem("userFlow");
-        }
-        
-        console.log("LoginSuccess - Donor Flow Check:", {
-          isDonorFlow,
-          donorFlowFlag,
-          pathname: window.location.pathname,
-          referrer: document.referrer,
-          hasUser: !!currentUser
-        });
 
+        // If user came from donation flow, also sync with donor backend
         if (isDonorFlow) {
           // Sync with donor backend
           try {
@@ -310,23 +294,7 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
           }
         }
 
-        // Regular user sync (campaign creator) - optional, don't block if it fails
-        // IMPORTANT: If this is NOT a donor flow, clear any leftover donorToken
-        // Check if this is a donor flow (re-check to ensure we have the right context)
-        const checkIsDonorFlow = location.state?.isDonor || 
-                                 sessionStorage.getItem("donorFlow") === "true" ||
-                                 window.location.pathname.includes("/donor/") ||
-                                 document.referrer.includes("donation") ||
-                                 document.referrer.includes("donor");
-        
-        if (!checkIsDonorFlow) {
-          // Clear donorToken for regular users to prevent Donor Dashboard from showing
-          localStorage.removeItem("donorToken");
-          localStorage.removeItem("donorData");
-          // Dispatch event to update navbar
-          window.dispatchEvent(new CustomEvent("donorLogout"));
-        }
-        
+        // Regular user sync - simple authentication, no userType restrictions
         try {
           const userEmail = currentUser.primaryEmailAddress?.emailAddress || 
                           currentUser.emailAddresses?.[0]?.emailAddress ||
@@ -341,27 +309,17 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
                            currentUser.profileImageUrl ||
                            "";
 
-          // Determine userType based on flow
-          const userType = isDonorFlow ? "donor" : "campaign_creator";
-          
+          // Simple sync - all users can create campaigns AND donate
           const response = await axios.post(`${API_URL}/api/auth/clerk-sync`, {
             clerkId: currentUser.id,
             email: userEmail,
             name: userName,
             imageUrl: userImage,
-            userType: userType, // Set user type based on flow
           });
 
           if (response.data.success && response.data.token) {
             localStorage.setItem("token", response.data.token);
             // ⚠️ REMOVED setLoginData - using ONLY Clerk
-            
-            // Dispatch userType update event for navbar
-            if (response.data.user?.userType) {
-              window.dispatchEvent(new CustomEvent("userTypeUpdated", {
-                detail: { userType: response.data.user.userType }
-              }));
-            }
           }
         } catch (error) {
           // User sync is optional - user might just want to be a donor

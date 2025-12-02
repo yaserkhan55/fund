@@ -26,7 +26,6 @@ import DonorDashboard from "./pages/DonorDashboard";
 
 // Auth
 import LoginSuccess from "./components/LoginSuccess";
-import SignUpHeader from "./components/SignUpHeader";
 
 // Admin
 import AdminLogin from "./pages/AdminLogin";
@@ -111,7 +110,6 @@ export default function App() {
           <Layout>
             <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
               <div className="w-full max-w-md">
-                <SignUpHeader />
                 <SafeSignUp
                   path="/sign-up"
                   routing="path"
