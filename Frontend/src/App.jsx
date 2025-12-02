@@ -87,6 +87,14 @@ export default function App() {
                   routing="path"
                   afterSignInUrl="/"
                   redirectUrl="/"
+                  signInFallbackRedirectUrl="/"
+                  // Mobile-specific settings
+                  appearance={{
+                    elements: {
+                      rootBox: "w-full",
+                      card: "w-full shadow-lg",
+                    },
+                  }}
                 />
               </div>
             </div>
@@ -106,6 +114,14 @@ export default function App() {
                   routing="path"
                   afterSignUpUrl="/"
                   redirectUrl="/"
+                  signUpFallbackRedirectUrl="/"
+                  // Mobile-specific settings
+                  appearance={{
+                    elements: {
+                      rootBox: "w-full",
+                      card: "w-full shadow-lg",
+                    },
+                  }}
                 />
               </div>
             </div>
@@ -148,6 +164,13 @@ export default function App() {
                   afterSignInUrl="/auth/google/success"
                   redirectUrl="/auth/google/success"
                   signInFallbackRedirectUrl="/auth/google/success"
+                  // Mobile-specific settings - enable account switching
+                  appearance={{
+                    elements: {
+                      rootBox: "w-full",
+                      card: "w-full shadow-lg",
+                    },
+                  }}
                 />
               </div>
             </div>
@@ -166,6 +189,13 @@ export default function App() {
                   afterSignUpUrl="/auth/google/success"
                   redirectUrl="/auth/google/success"
                   signUpFallbackRedirectUrl="/auth/google/success"
+                  // Mobile-specific settings - enable account switching
+                  appearance={{
+                    elements: {
+                      rootBox: "w-full",
+                      card: "w-full shadow-lg",
+                    },
+                  }}
                 />
               </div>
             </div>

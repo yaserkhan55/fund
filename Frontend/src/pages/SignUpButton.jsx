@@ -54,9 +54,13 @@ export default function Register() {
 
         <div className="text-center text-gray-500 my-4">OR</div>
 
-        {/* ⭐ CLERK SignUp: handles Google + email sign-up/magic-link */}
+        {/* ⭐ CLERK SignUp: handles Google + email sign-up/magic-link - Mobile optimized */}
         <div className="flex justify-center mb-4">
-          <SignUpButton mode="redirect" redirectUrl="/auth/google/success">
+          <SignUpButton 
+            mode="redirect" 
+            redirectUrl="/auth/google/success"
+            signUpFallbackRedirectUrl="/auth/google/success"
+          >
             <button className="w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg flex items-center justify-center gap-2">
               <img src="https://developers.google.com/identity/images/g-logo.png" className="w-5 h-5" alt="Google" />
               Sign Up with Google

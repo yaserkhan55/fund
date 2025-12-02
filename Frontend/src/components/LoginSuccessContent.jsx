@@ -6,6 +6,9 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
+// Mobile detection helper
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -341,8 +344,36 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
         setHasProcessed(true);
         navigate("/");
       }
-    } catch (err) {
+      } catch (err) {
       console.error("Auth error:", err);
+      
+      // Mobile-specific error handling
+      if (isMobile) {
+        console.error("Mobile auth error details:", {
+          message: err.message,
+          stack: err.stack,
+          userAgent: navigator.userAgent,
+        });
+        
+        // Try to recover on mobile by checking if user is actually signed in
+        try {
+          const { getClerk } = await import("@clerk/clerk-react");
+          const clerk = getClerk();
+          if (clerk && clerk.user) {
+            console.log("Mobile recovery: User found via Clerk instance, retrying...");
+            // Retry after a short delay
+            setTimeout(() => {
+              if (!hasProcessed) {
+                handleAuth();
+              }
+            }, 1000);
+            return;
+          }
+        } catch (recoveryErr) {
+          console.error("Mobile recovery failed:", recoveryErr);
+        }
+      }
+      
       setLoading(false);
       setHasProcessed(true);
       navigate("/");

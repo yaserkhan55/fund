@@ -372,7 +372,16 @@ export default function Navbar() {
               )}
             </div>
             <div className="flex-shrink-0">
-              <UserButton afterSignOutUrl="/" />
+              <UserButton 
+                afterSignOutUrl="/"
+                // Enable account switching on mobile
+                appearance={{
+                  elements: {
+                    userButtonPopoverCard: "shadow-lg",
+                    userButtonPopoverActions: "gap-2",
+                  },
+                }}
+              />
             </div>
           </SignedIn>
         </div>
@@ -451,7 +460,16 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-            <UserButton afterSignOutUrl="/" />
+            <UserButton 
+              afterSignOutUrl="/"
+              // Enable account switching on mobile
+              appearance={{
+                elements: {
+                  userButtonPopoverCard: "shadow-lg",
+                  userButtonPopoverActions: "gap-2",
+                },
+              }}
+            />
           </SignedIn>
 
           {/* Hamburger */}

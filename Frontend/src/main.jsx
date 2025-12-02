@@ -22,8 +22,15 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       elements: {
         formButtonPrimary: "bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E]",
         socialButtonsBlockButton: "bg-white border border-[#00897b] text-[#00897b] hover:bg-gray-50",
+        rootBox: "w-full",
+        card: "w-full shadow-lg",
       },
     }}
+    // Mobile-friendly URLs - enables account switching and proper redirects
+    signInUrl="/sign-in"
+    signUpUrl="/sign-up"
+    afterSignInUrl="/"
+    afterSignUpUrl="/"
   >
     <BrowserRouter>
       {/* ⭐ wrap your entire app so SignINButton & SignUpButton work */}
