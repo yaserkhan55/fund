@@ -227,13 +227,13 @@ export default function Navbar() {
 
         {/* Desktop Right Side */}
         <div className="hidden md:flex items-center space-x-2 lg:space-x-4 flex-shrink-0">
-          {/* Show Create Campaign button for all authenticated users */}
+          {/* Show Start Fundraiser button for all authenticated users */}
           <SignedIn>
             <Link
               to="/create-campaign"
-              className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
+              className="bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all text-sm lg:text-base whitespace-nowrap"
             >
-              Create Campaign
+              Start Fundraiser
             </Link>
           </SignedIn>
 
@@ -250,15 +250,21 @@ export default function Navbar() {
           <SignedOut>
             <Link
               to="/sign-up"
-              className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
+              className="bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all text-sm lg:text-base whitespace-nowrap"
             >
               Sign Up
             </Link>
             <Link
               to="/sign-in"
-              className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
+              className="bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all text-sm lg:text-base whitespace-nowrap"
             >
               Login
+            </Link>
+            <Link
+              to="/sign-up"
+              className="bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all text-sm lg:text-base whitespace-nowrap"
+            >
+              Start Fundraiser
             </Link>
           </SignedOut>
 
@@ -378,6 +384,23 @@ export default function Navbar() {
 
         {/* Mobile Right Area */}
         <div className="md:hidden flex items-center gap-2 flex-shrink-0">
+          {/* Start Fundraiser button for mobile */}
+          <SignedIn>
+            <Link
+              to="/create-campaign"
+              className="bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white px-3 py-1.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all text-sm whitespace-nowrap"
+            >
+              Start Fundraiser
+            </Link>
+          </SignedIn>
+          <SignedOut>
+            <Link
+              to="/sign-up"
+              className="bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white px-3 py-1.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all text-sm whitespace-nowrap"
+            >
+              Start Fundraiser
+            </Link>
+          </SignedOut>
           <SignedIn>
             {/* Mobile Dashboard Icon */}
             <Link
@@ -514,13 +537,13 @@ export default function Navbar() {
           </Link>
 
           <SignedIn>
-            {/* Show Create Campaign button for all authenticated users */}
+            {/* Show Start Fundraiser button for all authenticated users */}
             <Link
               to="/create-campaign"
               onClick={() => setOpen(false)}
-              className="block bg-[#00B5B8] text-white text-center py-3 rounded-xl font-semibold shadow"
+              className="block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white text-center py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
             >
-              Create Campaign
+              Start Fundraiser
             </Link>
           </SignedIn>
 
@@ -528,16 +551,23 @@ export default function Navbar() {
             <Link
               to="/sign-up"
               onClick={() => setOpen(false)}
-              className="block border border-[#00B5B8] text-[#00B5B8] text-center py-3 rounded-xl font-semibold"
+              className="block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white text-center py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
             >
               Sign Up
             </Link>
             <Link
               to="/sign-in"
               onClick={() => setOpen(false)}
-              className="block border border-[#00B5B8] text-[#00B5B8] text-center py-3 rounded-xl font-semibold"
+              className="block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white text-center py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
             >
               Login
+            </Link>
+            <Link
+              to="/sign-up"
+              onClick={() => setOpen(false)}
+              className="block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white text-center py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
+            >
+              Start Fundraiser
             </Link>
           </SignedOut>
 
