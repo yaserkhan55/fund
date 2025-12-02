@@ -221,56 +221,76 @@ export default function DonationModal({ campaignId, onClose }) {
               </label>
             </div>
 
-            {/* COMMIT BUTTON */}
-            <button
-              className="group relative w-full bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white py-3.5 rounded-xl font-bold text-lg hover:from-[#009EA1] hover:to-[#008B8E] transition-all duration-300 shadow-lg hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
-              onClick={handleDonation}
-              disabled={loading || !amount || Number(amount) < 1 || success}
-            >
-              {/* Animated background gradient */}
-              <div className="absolute inset-0 bg-gradient-to-r from-[#009EA1] to-[#00B5B8] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              
-              {/* Shimmer effect */}
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-              
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                {loading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Committing...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Commit Donation
-                  </>
-                )}
-              </span>
-            </button>
+            {/* TWO BUTTONS: Commit Payment & Pay Immediately */}
+            <div className="space-y-3">
+              {/* COMMIT PAYMENT BUTTON - Works Now */}
+              <button
+                className="group relative w-full bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white py-3.5 rounded-xl font-bold text-lg hover:from-[#009EA1] hover:to-[#008B8E] transition-all duration-300 shadow-lg hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
+                onClick={handleDonation}
+                disabled={loading || !amount || Number(amount) < 1 || success}
+              >
+                {/* Animated background gradient */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#009EA1] to-[#00B5B8] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+                
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {loading ? (
+                    <>
+                      <svg
+                        className="animate-spin h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Committing...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Commit Payment
+                    </>
+                  )}
+                </span>
+              </button>
 
-            <p className="text-xs text-center text-gray-500">
-              Your commitment will be recorded. You will be contacted for payment processing.
-            </p>
+              {/* PAY IMMEDIATELY BUTTON - Disabled for now */}
+              <button
+                className="w-full border-2 border-gray-300 text-gray-500 py-3.5 rounded-xl font-bold text-lg cursor-not-allowed opacity-50 relative"
+                disabled={true}
+                title="Coming soon - Payment gateway integration in progress"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Pay Immediately
+                  <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">Coming Soon</span>
+                </span>
+              </button>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+              <p className="text-xs text-blue-800 text-center">
+                <strong>Commit Payment:</strong> You commit to pay ₹{Number(amount) || 0} later. Admin will contact you for payment.
+              </p>
+            </div>
           </div>
         )}
       </div>

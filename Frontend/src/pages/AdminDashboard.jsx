@@ -44,6 +44,24 @@ export default function AdminDashboard() {
   const [activityPage, setActivityPage] = useState(1);
   const [activityPagination, setActivityPagination] = useState({ page: 1, limit: 50, total: 0, pages: 1 });
   const [pendingResponsesCount, setPendingResponsesCount] = useState(0);
+  
+  // Donations Management states
+  const [donations, setDonations] = useState([]);
+  const [donationPage, setDonationPage] = useState(1);
+  const [donationSearch, setDonationSearch] = useState("");
+  const [donationStatus, setDonationStatus] = useState("all");
+  const [donationPaymentMethod, setDonationPaymentMethod] = useState("all");
+  const [donationRiskLevel, setDonationRiskLevel] = useState("all");
+  const [donationIsSuspicious, setDonationIsSuspicious] = useState("");
+  const [donationDateFrom, setDonationDateFrom] = useState("");
+  const [donationDateTo, setDonationDateTo] = useState("");
+  const [donationMinAmount, setDonationMinAmount] = useState("");
+  const [donationMaxAmount, setDonationMaxAmount] = useState("");
+  const [donationPagination, setDonationPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
+  const [donationStats, setDonationStats] = useState(null);
+  const [selectedDonation, setSelectedDonation] = useState(null);
+  const [donationModalOpen, setDonationModalOpen] = useState(false);
+  const [donationActionLoading, setDonationActionLoading] = useState(null);
 
   const token = localStorage.getItem("adminToken");
 
@@ -84,6 +102,206 @@ export default function AdminDashboard() {
       setStats(data.stats);
     } catch (err) {
       console.error("Error loading stats:", err);
+    }
+  };
+
+  // Load all donations with filters
+  const loadDonations = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const url = new URL(`${API_URL}/api/donations/admin/all`);
+      url.searchParams.set("page", donationPage);
+      url.searchParams.set("limit", "20");
+      if (donationSearch) url.searchParams.set("search", donationSearch);
+      if (donationStatus !== "all") url.searchParams.set("status", donationStatus);
+      if (donationPaymentMethod !== "all") url.searchParams.set("paymentMethod", donationPaymentMethod);
+      if (donationRiskLevel !== "all") url.searchParams.set("riskLevel", donationRiskLevel);
+      if (donationIsSuspicious !== "") url.searchParams.set("isSuspicious", donationIsSuspicious);
+      if (donationDateFrom) url.searchParams.set("dateFrom", donationDateFrom);
+      if (donationDateTo) url.searchParams.set("dateTo", donationDateTo);
+      if (donationMinAmount) url.searchParams.set("minAmount", donationMinAmount);
+      if (donationMaxAmount) url.searchParams.set("maxAmount", donationMaxAmount);
+
+      const res = await fetch(url.toString(), { headers: authHeaders(false) });
+
+      if (res.status === 401) {
+        setError("Unauthorized — login again.");
+        localStorage.removeItem("adminToken");
+        navigate("/admin/login");
+        return;
+      }
+
+      if (!res.ok) throw new Error("Failed to load donations");
+
+      const data = await res.json();
+      if (data.success) {
+        setDonations(data.donations || []);
+        if (data.pagination) {
+          setDonationPagination(data.pagination);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading donations:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load donation statistics
+  const loadDonationStats = async () => {
+    try {
+      const url = new URL(`${API_URL}/api/donations/admin/stats`);
+      if (donationDateFrom) url.searchParams.set("dateFrom", donationDateFrom);
+      if (donationDateTo) url.searchParams.set("dateTo", donationDateTo);
+
+      const res = await fetch(url.toString(), { headers: authHeaders(false) });
+      if (!res.ok) throw new Error("Failed to load donation stats");
+
+      const data = await res.json();
+      if (data.success) {
+        setDonationStats(data.stats);
+      }
+    } catch (err) {
+      console.error("Error loading donation stats:", err);
+    }
+  };
+
+  // Load single donation details
+  const loadDonationDetails = async (donationId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/donations/admin/${donationId}`, {
+        headers: authHeaders(false),
+      });
+      if (!res.ok) throw new Error("Failed to load donation details");
+
+      const data = await res.json();
+      if (data.success) {
+        setSelectedDonation(data.donation);
+        setDonationModalOpen(true);
+      }
+    } catch (err) {
+      console.error("Error loading donation details:", err);
+      setError(err.message);
+    }
+  };
+
+  // Update donation status
+  const updateDonation = async (donationId, updates) => {
+    setDonationActionLoading(donationId);
+    try {
+      const res = await fetch(`${API_URL}/api/donations/admin/${donationId}/status`, {
+        method: "PUT",
+        headers: authHeaders(true),
+        body: JSON.stringify(updates),
+      });
+
+      if (!res.ok) throw new Error("Failed to update donation");
+
+      const data = await res.json();
+      if (data.success) {
+        await loadDonations();
+        await loadDonationStats();
+        if (selectedDonation?._id === donationId) {
+          setSelectedDonation(data.donation);
+        }
+        setError("");
+      }
+    } catch (err) {
+      console.error("Error updating donation:", err);
+      setError(err.message);
+    } finally {
+      setDonationActionLoading(null);
+    }
+  };
+
+  // Flag donation as suspicious
+  const flagDonation = async (donationId, reason) => {
+    setDonationActionLoading(donationId);
+    try {
+      const res = await fetch(`${API_URL}/api/donations/admin/${donationId}/flag`, {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({ reason }),
+      });
+
+      if (!res.ok) throw new Error("Failed to flag donation");
+
+      const data = await res.json();
+      if (data.success) {
+        await loadDonations();
+        if (selectedDonation?._id === donationId) {
+          setSelectedDonation(data.donation);
+        }
+        setError("");
+      }
+    } catch (err) {
+      console.error("Error flagging donation:", err);
+      setError(err.message);
+    } finally {
+      setDonationActionLoading(null);
+    }
+  };
+
+  // Export donations to CSV
+  const exportDonations = async () => {
+    try {
+      const url = new URL(`${API_URL}/api/donations/admin/all`);
+      url.searchParams.set("limit", "10000"); // Get all
+      if (donationSearch) url.searchParams.set("search", donationSearch);
+      if (donationStatus !== "all") url.searchParams.set("status", donationStatus);
+      if (donationPaymentMethod !== "all") url.searchParams.set("paymentMethod", donationPaymentMethod);
+      if (donationDateFrom) url.searchParams.set("dateFrom", donationDateFrom);
+      if (donationDateTo) url.searchParams.set("dateTo", donationDateTo);
+
+      const res = await fetch(url.toString(), { headers: authHeaders(false) });
+      if (!res.ok) throw new Error("Failed to export donations");
+
+      const data = await res.json();
+      if (data.success && data.donations) {
+        // Convert to CSV
+        const headers = [
+          "Receipt #",
+          "Date",
+          "Donor Name",
+          "Email",
+          "Campaign",
+          "Amount",
+          "Status",
+          "Payment Method",
+          "Message",
+          "Risk Level",
+          "Suspicious",
+        ];
+        const rows = data.donations.map((d) => [
+          d.receiptNumber || "N/A",
+          new Date(d.createdAt).toLocaleString(),
+          d.isAnonymous ? "Anonymous" : (d.donorName || "N/A"),
+          d.donorEmail || "N/A",
+          d.campaignId?.title || "N/A",
+          d.amount,
+          d.paymentStatus,
+          d.paymentMethod,
+          d.message || "",
+          d.riskLevel || "low",
+          d.isSuspicious ? "Yes" : "No",
+        ]);
+
+        const csv = [
+          headers.join(","),
+          ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+        ].join("\n");
+
+        const blob = new Blob([csv], { type: "text/csv" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `donations_${new Date().toISOString().split("T")[0]}.csv`;
+        link.click();
+      }
+    } catch (err) {
+      console.error("Error exporting donations:", err);
+      setError("Failed to export donations");
     }
   };
 
@@ -335,13 +553,16 @@ export default function AdminDashboard() {
         loadCampaignsWithResponses();
       } else if (activeTab === "activity") {
         loadActivityLog();
+      } else if (activeTab === "donations") {
+        loadDonations();
+        loadDonationStats();
       } else {
         load(activeTab);
       }
     }, campaignSearch || contactSearch ? 500 : 0); // 500ms delay for search, immediate for other changes
 
     return () => clearTimeout(timer);
-  }, [activeTab, userPage, userSearch, campaignPage, campaignSearch, contactPage, contactSearch]);
+  }, [activeTab, userPage, userSearch, campaignPage, campaignSearch, contactPage, contactSearch, donationPage, donationSearch, donationStatus, donationPaymentMethod, donationRiskLevel, donationIsSuspicious, donationDateFrom, donationDateTo, donationMinAmount, donationMaxAmount]);
 
   // Auto-refresh dashboard and pending campaigns
   useEffect(() => {
@@ -949,6 +1170,7 @@ export default function AdminDashboard() {
         { key: "rejected", label: "Rejected", icon: "❌" },
         { key: "users", label: "Users", icon: "👥" },
         { key: "contacts", label: "Contact Queries", icon: "📧" },
+        { key: "donations", label: "Donations", icon: "💰" },
         { key: "activity", label: "Activity Log", icon: "📋" },
       ].map((t) => (
         <button
@@ -959,6 +1181,16 @@ export default function AdminDashboard() {
             setCampaignSearch("");
             setContactPage(1);
             setContactSearch("");
+            setDonationPage(1);
+            setDonationSearch("");
+            setDonationStatus("all");
+            setDonationPaymentMethod("all");
+            setDonationRiskLevel("all");
+            setDonationIsSuspicious("");
+            setDonationDateFrom("");
+            setDonationDateTo("");
+            setDonationMinAmount("");
+            setDonationMaxAmount("");
           }}
           className={`px-6 py-3 rounded-xl font-semibold transition flex items-center gap-2 ${
             activeTab === t.key
@@ -975,6 +1207,9 @@ export default function AdminDashboard() {
         onClick={() => {
           if (activeTab === "dashboard") {
             loadStats();
+          } else if (activeTab === "donations") {
+            loadDonations();
+            loadDonationStats();
           } else {
             load(activeTab);
           }
@@ -1148,6 +1383,483 @@ export default function AdminDashboard() {
             ) : (
               <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-[#E0F2F2]">
                 <p className="text-gray-500 text-lg">No pending user responses</p>
+              </div>
+            )}
+          </div>
+        )}
+        {activeTab === "donations" && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-[#003d3b] mb-2">💰 Donations Management</h2>
+                  <p className="text-gray-600">Comprehensive view of all donations with detailed information and management tools</p>
+                </div>
+                <button
+                  onClick={exportDonations}
+                  className="px-6 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export CSV
+                </button>
+              </div>
+            </div>
+
+            {/* Statistics Cards */}
+            {donationStats && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl shadow-lg p-6 border border-[#E0F2F2]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Total Donations</p>
+                      <p className="text-2xl font-bold text-[#003d3b]">{donationStats.totalDonations}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">💰</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl shadow-lg p-6 border border-[#E0F2F2]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Total Amount</p>
+                      <p className="text-2xl font-bold text-[#00B5B8]">{formatCurrency(donationStats.totalAmount)}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">💵</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl shadow-lg p-6 border border-[#E0F2F2]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Pending</p>
+                      <p className="text-2xl font-bold text-yellow-600">{donationStats.pendingCount}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">⏳</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl shadow-lg p-6 border border-[#E0F2F2]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Suspicious</p>
+                      <p className="text-2xl font-bold text-red-600">{donationStats.suspiciousCount}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">⚠️</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Advanced Filters */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+              <h3 className="text-lg font-bold text-[#003d3b] mb-4">Filters & Search</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <input
+                  type="text"
+                  placeholder="Search by name, email, receipt #..."
+                  value={donationSearch}
+                  onChange={(e) => setDonationSearch(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && loadDonations()}
+                  className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                />
+                <select
+                  value={donationStatus}
+                  onChange={(e) => setDonationStatus(e.target.value)}
+                  className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="success">Success</option>
+                  <option value="failed">Failed</option>
+                  <option value="refunded">Refunded</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <select
+                  value={donationPaymentMethod}
+                  onChange={(e) => setDonationPaymentMethod(e.target.value)}
+                  className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                >
+                  <option value="all">All Methods</option>
+                  <option value="commitment">Commitment</option>
+                  <option value="razorpay">Razorpay</option>
+                  <option value="upi">UPI</option>
+                  <option value="card">Card</option>
+                  <option value="netbanking">Net Banking</option>
+                </select>
+                <select
+                  value={donationRiskLevel}
+                  onChange={(e) => setDonationRiskLevel(e.target.value)}
+                  className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                >
+                  <option value="all">All Risk Levels</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                <select
+                  value={donationIsSuspicious}
+                  onChange={(e) => setDonationIsSuspicious(e.target.value)}
+                  className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                >
+                  <option value="">All</option>
+                  <option value="true">Suspicious Only</option>
+                  <option value="false">Not Suspicious</option>
+                </select>
+                <input
+                  type="date"
+                  placeholder="From Date"
+                  value={donationDateFrom}
+                  onChange={(e) => setDonationDateFrom(e.target.value)}
+                  className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                />
+                <input
+                  type="date"
+                  placeholder="To Date"
+                  value={donationDateTo}
+                  onChange={(e) => setDonationDateTo(e.target.value)}
+                  className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                />
+                <input
+                  type="number"
+                  placeholder="Min Amount"
+                  value={donationMinAmount}
+                  onChange={(e) => setDonationMinAmount(e.target.value)}
+                  className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                />
+                <input
+                  type="number"
+                  placeholder="Max Amount"
+                  value={donationMaxAmount}
+                  onChange={(e) => setDonationMaxAmount(e.target.value)}
+                  className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={loadDonations}
+                  className="px-6 py-3 bg-[#00B5B8] text-white font-semibold rounded-xl hover:bg-[#009EA1] transition"
+                >
+                  Apply Filters
+                </button>
+                <button
+                  onClick={() => {
+                    setDonationSearch("");
+                    setDonationStatus("all");
+                    setDonationPaymentMethod("all");
+                    setDonationRiskLevel("all");
+                    setDonationIsSuspicious("");
+                    setDonationDateFrom("");
+                    setDonationDateTo("");
+                    setDonationMinAmount("");
+                    setDonationMaxAmount("");
+                    setDonationPage(1);
+                    loadDonations();
+                  }}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+
+            {/* Donations Table */}
+            {loading ? (
+              <div className="text-center py-20">
+                <div className="w-16 h-16 border-4 border-[#00B5B8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading donations...</p>
+              </div>
+            ) : donations.length > 0 ? (
+              <div className="bg-white rounded-2xl shadow-lg border border-[#E0F2F2] overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-[#00B5B8] text-white">
+                      <tr>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Receipt #</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Donor</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Campaign</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Amount</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Status</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Method</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Risk</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Date</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {donations.map((donation) => (
+                        <tr key={donation._id} className={`hover:bg-[#E6F7F7] transition ${donation.isSuspicious ? "bg-red-50" : ""}`}>
+                          <td className="px-4 py-4">
+                            <span className="font-mono text-xs text-gray-600">
+                              {donation.receiptNumber || "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div>
+                              <span className="font-semibold text-[#003d3b] text-sm block">
+                                {donation.isAnonymous ? "Anonymous" : (donation.donorName || donation.donorId?.name || "N/A")}
+                              </span>
+                              <span className="text-gray-500 text-xs">
+                                {donation.donorEmail || donation.donorId?.email || "N/A"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-gray-700 text-sm max-w-xs truncate block" title={donation.campaignId?.title || ""}>
+                              {donation.campaignId?.title || "Campaign Deleted"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="font-bold text-[#00B5B8]">
+                              {formatCurrency(donation.amount)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              donation.paymentStatus === "pending"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : donation.paymentStatus === "processing"
+                                ? "bg-blue-100 text-blue-800"
+                                : donation.paymentStatus === "success"
+                                ? "bg-green-100 text-green-800"
+                                : donation.paymentStatus === "failed"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}>
+                              {donation.paymentStatus || "pending"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-gray-600 text-xs capitalize">
+                              {donation.paymentMethod || "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-1">
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                donation.riskLevel === "critical"
+                                  ? "bg-red-100 text-red-800"
+                                  : donation.riskLevel === "high"
+                                  ? "bg-orange-100 text-orange-800"
+                                  : donation.riskLevel === "medium"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-green-100 text-green-800"
+                              }`}>
+                                {donation.riskLevel || "low"}
+                              </span>
+                              {donation.isSuspicious && (
+                                <span className="text-red-500" title="Flagged as suspicious">⚠️</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-gray-600 text-xs">
+                              {formatDate(donation.createdAt)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => loadDonationDetails(donation._id)}
+                                className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition"
+                                title="View Details"
+                              >
+                                👁️
+                              </button>
+                              {donation.paymentStatus === "pending" && (
+                                <button
+                                  onClick={() => updateDonation(donation._id, { paymentStatus: "success", paymentReceived: true })}
+                                  disabled={donationActionLoading === donation._id}
+                                  className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition disabled:opacity-50"
+                                  title="Mark as Paid"
+                                >
+                                  ✓
+                                </button>
+                              )}
+                              {!donation.isSuspicious && (
+                                <button
+                                  onClick={() => flagDonation(donation._id, "Flagged by admin")}
+                                  disabled={donationActionLoading === donation._id}
+                                  className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition disabled:opacity-50"
+                                  title="Flag as Suspicious"
+                                >
+                                  ⚠️
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Pagination */}
+                {donationPagination.pages > 1 && (
+                  <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Page {donationPagination.page} of {donationPagination.pages} ({donationPagination.total} total)
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setDonationPage(Math.max(1, donationPage - 1));
+                        }}
+                        disabled={donationPage === 1}
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDonationPage(Math.min(donationPagination.pages, donationPage + 1));
+                        }}
+                        disabled={donationPage === donationPagination.pages}
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-[#E0F2F2]">
+                <p className="text-gray-500 text-lg">No donations found</p>
+              </div>
+            )}
+
+            {/* Donation Details Modal */}
+            {donationModalOpen && selectedDonation && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-[9999] px-4">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-2xl font-bold text-[#003d3b]">Donation Details</h3>
+                    <button
+                      onClick={() => {
+                        setDonationModalOpen(false);
+                        setSelectedDonation(null);
+                      }}
+                      className="text-gray-400 hover:text-[#00B5B8] text-2xl font-light transition"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-semibold text-[#003d3b] mb-2">Donor Information</h4>
+                      <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+                        <p><strong>Name:</strong> {selectedDonation.isAnonymous ? "Anonymous" : (selectedDonation.donorName || selectedDonation.donorId?.name || "N/A")}</p>
+                        <p><strong>Email:</strong> {selectedDonation.donorEmail || selectedDonation.donorId?.email || "N/A"}</p>
+                        <p><strong>Phone:</strong> {selectedDonation.donorPhone || selectedDonation.donorId?.phone || "N/A"}</p>
+                        <p><strong>Anonymous:</strong> {selectedDonation.isAnonymous ? "Yes" : "No"}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-[#003d3b] mb-2">Campaign Information</h4>
+                      <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+                        <p><strong>Title:</strong> {selectedDonation.campaignId?.title || "N/A"}</p>
+                        <p><strong>Beneficiary:</strong> {selectedDonation.campaignId?.beneficiaryName || "N/A"}</p>
+                        <p><strong>Category:</strong> {selectedDonation.campaignId?.category || "N/A"}</p>
+                        <p><strong>Goal:</strong> {formatCurrency(selectedDonation.campaignId?.goalAmount || 0)}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-[#003d3b] mb-2">Payment Details</h4>
+                      <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+                        <p><strong>Amount:</strong> {formatCurrency(selectedDonation.amount)}</p>
+                        <p><strong>Status:</strong> <span className={`px-2 py-1 rounded text-xs ${selectedDonation.paymentStatus === "success" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>{selectedDonation.paymentStatus}</span></p>
+                        <p><strong>Method:</strong> {selectedDonation.paymentMethod || "N/A"}</p>
+                        <p><strong>Receipt #:</strong> {selectedDonation.receiptNumber || "N/A"}</p>
+                        <p><strong>Payment Received:</strong> {selectedDonation.paymentReceived ? "Yes" : "No"}</p>
+                        {selectedDonation.paymentReceivedAt && (
+                          <p><strong>Received At:</strong> {formatDate(selectedDonation.paymentReceivedAt)}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-[#003d3b] mb-2">Security & Risk</h4>
+                      <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+                        <p><strong>Risk Level:</strong> <span className={`px-2 py-1 rounded text-xs ${selectedDonation.riskLevel === "critical" ? "bg-red-100 text-red-800" : selectedDonation.riskLevel === "high" ? "bg-orange-100 text-orange-800" : "bg-green-100 text-green-800"}`}>{selectedDonation.riskLevel || "low"}</span></p>
+                        <p><strong>Fraud Score:</strong> {selectedDonation.fraudScore || 0}/100</p>
+                        <p><strong>Suspicious:</strong> {selectedDonation.isSuspicious ? "Yes ⚠️" : "No"}</p>
+                        {selectedDonation.suspiciousReason && (
+                          <p><strong>Reason:</strong> {selectedDonation.suspiciousReason}</p>
+                        )}
+                        <p><strong>IP Address:</strong> {selectedDonation.ipAddress || "N/A"}</p>
+                        <p><strong>Donations from IP (24h):</strong> {selectedDonation.donationCountFromIP || 1}</p>
+                      </div>
+                    </div>
+
+                    {selectedDonation.message && (
+                      <div className="md:col-span-2">
+                        <h4 className="font-semibold text-[#003d3b] mb-2">Message</h4>
+                        <div className="bg-gray-50 rounded-lg p-4 text-sm">
+                          {selectedDonation.message}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="md:col-span-2">
+                      <h4 className="font-semibold text-[#003d3b] mb-2">Timestamps</h4>
+                      <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+                        <p><strong>Created:</strong> {new Date(selectedDonation.createdAt).toLocaleString()}</p>
+                        {selectedDonation.updatedAt && (
+                          <p><strong>Updated:</strong> {new Date(selectedDonation.updatedAt).toLocaleString()}</p>
+                        )}
+                        {selectedDonation.flaggedAt && (
+                          <p><strong>Flagged At:</strong> {new Date(selectedDonation.flaggedAt).toLocaleString()}</p>
+                        )}
+                        {selectedDonation.reviewedAt && (
+                          <p><strong>Reviewed At:</strong> {new Date(selectedDonation.reviewedAt).toLocaleString()}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex gap-2 flex-wrap">
+                    {selectedDonation.paymentStatus === "pending" && (
+                      <button
+                        onClick={() => updateDonation(selectedDonation._id, { paymentStatus: "success", paymentReceived: true })}
+                        disabled={donationActionLoading === selectedDonation._id}
+                        className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+                      >
+                        Mark as Paid
+                      </button>
+                    )}
+                    {!selectedDonation.isSuspicious && (
+                      <button
+                        onClick={() => flagDonation(selectedDonation._id, "Flagged by admin")}
+                        disabled={donationActionLoading === selectedDonation._id}
+                        className="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                      >
+                        Flag as Suspicious
+                      </button>
+                    )}
+                    {selectedDonation.donorEmail && (
+                      <a
+                        href={`mailto:${selectedDonation.donorEmail}`}
+                        className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
+                      >
+                        Contact Donor
+                      </a>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
