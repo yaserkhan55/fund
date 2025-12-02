@@ -1,63 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState } from "react";
 import axios from "axios";
-import { useAuth } from "@clerk/clerk-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function DonationModal({ campaignId, onClose }) {
-  const navigate = useNavigate();
-  const { isSignedIn, user } = useAuth();
   const [amount, setAmount] = useState("");
+  const [donorName, setDonorName] = useState("");
+  const [donorEmail, setDonorEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [isDonorLoggedIn, setIsDonorLoggedIn] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Check if donor is logged in (either via token or Google)
-  useEffect(() => {
-    const donorToken = localStorage.getItem("donorToken");
-    setIsDonorLoggedIn(!!donorToken || isSignedIn);
-  }, [isSignedIn]);
-
-  // Handle Google authentication sync
-  useEffect(() => {
-    if (isSignedIn && user && !localStorage.getItem("donorToken")) {
-      const syncDonorWithGoogle = async () => {
-        try {
-          setGoogleLoading(true);
-          const response = await axios.post(`${API_URL}/api/donors/google-auth`, {
-            email: user.primaryEmailAddress?.emailAddress,
-            name: user.fullName || user.firstName || "Donor",
-            clerkId: user.id,
-            imageUrl: user.imageUrl,
-          });
-
-          if (response.data.success) {
-            localStorage.setItem("donorToken", response.data.token);
-            localStorage.setItem("donorData", JSON.stringify(response.data.donor));
-            
-            // Dispatch event to notify navbar
-            window.dispatchEvent(new CustomEvent("donorLogin", { detail: { token: response.data.token } }));
-            
-            setIsDonorLoggedIn(true);
-          }
-        } catch (error) {
-          console.error("Google auth sync error:", error);
-          setError("Failed to sync Google account. Please try again.");
-        } finally {
-          setGoogleLoading(false);
-        }
-      };
-
-      syncDonorWithGoogle();
-    }
-  }, [isSignedIn, user]);
-
-  // Quick amount buttons - More realistic amounts
+  // Quick amount buttons
   const quickAmounts = [
     { label: "₹100", value: 100 },
     { label: "₹500", value: 500 },
@@ -71,7 +27,6 @@ export default function DonationModal({ campaignId, onClose }) {
   const handleAmountClick = (value) => {
     if (value === "other") {
       setAmount("");
-      // Focus on input
       setTimeout(() => {
         const input = document.querySelector('input[type="number"]');
         if (input) input.focus();
@@ -90,40 +45,19 @@ export default function DonationModal({ campaignId, onClose }) {
       return;
     }
 
-    // Check if donor is logged in
-    if (!isDonorLoggedIn) {
-      // Redirect to donor login with return path
-      navigate("/donor/login", {
-        state: { from: window.location.pathname, action: "donate", campaignId },
-      });
-      onClose();
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("donorToken");
-      if (!token) {
-        setError("Please login to commit donation");
-        navigate("/donor/login", {
-          state: { from: window.location.pathname, action: "donate", campaignId },
-        });
-        onClose();
-        return;
-      }
-
-      // Create donation commitment (without payment)
+      // Use guest donation endpoint (no authentication required)
       const response = await axios.post(
-        `${API_URL}/api/donations/commit`,
+        `${API_URL}/api/donations/commit-guest`,
         {
           campaignId,
           amount: Number(amount),
           message: message.trim(),
-          isAnonymous,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
+          isAnonymous: isAnonymous || false,
+          donorName: isAnonymous ? "" : (donorName.trim() || ""),
+          donorEmail: donorEmail.trim() || "",
         }
       );
 
@@ -142,14 +76,6 @@ export default function DonationModal({ campaignId, onClose }) {
       
       if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
         setError("Network error. Please check your connection and try again.");
-      } else if (err.response?.status === 401) {
-        setError("Please login to commit donation");
-        setTimeout(() => {
-          navigate("/donor/login", {
-            state: { from: window.location.pathname, action: "donate", campaignId },
-          });
-          onClose();
-        }, 1500);
       } else {
         setError(err.response?.data?.message || err.message || "Failed to commit donation. Please try again.");
       }
@@ -158,12 +84,12 @@ export default function DonationModal({ campaignId, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-[9999] px-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in max-h-[90vh] overflow-y-auto">
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-2xl font-bold text-[#003d3b]">Commit Donation</h2>
-            <p className="text-sm text-gray-500 mt-1">Pledge your support to this campaign</p>
+            <p className="text-sm text-gray-500 mt-1">Support this campaign - No login required</p>
           </div>
           <button
             className="text-gray-400 hover:text-[#00B5B8] text-2xl font-light transition"
@@ -196,87 +122,7 @@ export default function DonationModal({ campaignId, onClose }) {
           </div>
         )}
 
-        {!isDonorLoggedIn ? (
-          /* NOT LOGGED IN - Show login prompt */
-          <div className="space-y-4">
-            <div className="bg-[#E6F8F8] border border-[#00B5B8]/30 rounded-xl p-6 text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-[#00B5B8] to-[#009EA1] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-bold text-[#003d3b] mb-2">
-                Login to Commit Donation
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Create a donor account or login to commit your donation
-              </p>
-              
-              {/* Google Authentication - Link to full Clerk pages */}
-              <div className="mb-4">
-                <Link
-                  to="/donor/sign-up"
-                  onClick={(e) => {
-                    console.log("Navigating to /donor/sign-up from modal");
-                    sessionStorage.setItem("donorFlow", "true");
-                    sessionStorage.setItem("donationReturnUrl", window.location.pathname);
-                    onClose();
-                  }}
-                  className="block w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold mb-2 hover:bg-gray-50 transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
-                  <span>Sign up with Google</span>
-                </Link>
-                <Link
-                  to="/donor/sign-in"
-                  onClick={(e) => {
-                    console.log("Navigating to /donor/sign-in from modal");
-                    sessionStorage.setItem("donorFlow", "true");
-                    sessionStorage.setItem("donationReturnUrl", window.location.pathname);
-                    onClose();
-                  }}
-                  className="block w-full bg-white border border-[#00897b] text-[#00897b] py-3 rounded-lg text-center font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" className="w-5 h-5" />
-                  <span>Login with Google</span>
-                </Link>
-              </div>
-
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-[#E6F8F8] text-gray-500">OR</span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    navigate("/donor/register");
-                    onClose();
-                  }}
-                  className="flex-1 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white py-2.5 rounded-xl font-semibold hover:from-[#009EA1] hover:to-[#008B8E] transition"
-                >
-                  Register
-                </button>
-                <button
-                  onClick={() => {
-                    navigate("/donor/login", {
-                      state: { from: window.location.pathname, action: "donate", campaignId },
-                    });
-                    onClose();
-                  }}
-                  className="flex-1 border-2 border-[#00B5B8] text-[#00B5B8] py-2.5 rounded-xl font-semibold hover:bg-[#E6F7F7] transition"
-                >
-                  Login
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* LOGGED IN - Show donation form */
+        {!success && (
           <div className="space-y-5">
             {/* AMOUNT INPUT */}
             <div>
@@ -291,7 +137,7 @@ export default function DonationModal({ campaignId, onClose }) {
                 placeholder="Enter amount"
                 min="1"
               />
-              {/* Quick Amount Buttons - More functional */}
+              {/* Quick Amount Buttons */}
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3">
                 {quickAmounts.map((item) => (
                   <button
@@ -311,6 +157,39 @@ export default function DonationModal({ campaignId, onClose }) {
                 ))}
               </div>
             </div>
+
+            {/* DONOR NAME (Optional) */}
+            {!isAnonymous && (
+              <div>
+                <label className="block text-sm font-semibold text-[#003d3b] mb-2">
+                  Your Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                  value={donorName}
+                  onChange={(e) => setDonorName(e.target.value)}
+                  placeholder="Enter your name (optional)"
+                />
+              </div>
+            )}
+
+            {/* DONOR EMAIL (Optional) */}
+            {!isAnonymous && (
+              <div>
+                <label className="block text-sm font-semibold text-[#003d3b] mb-2">
+                  Your Email (Optional)
+                </label>
+                <input
+                  type="email"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                  value={donorEmail}
+                  onChange={(e) => setDonorEmail(e.target.value)}
+                  placeholder="Enter your email for receipt (optional)"
+                />
+                <p className="text-xs text-gray-500 mt-1">We'll send you a receipt if provided</p>
+              </div>
+            )}
 
             {/* MESSAGE (Optional) */}
             <div>

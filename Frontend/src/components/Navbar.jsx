@@ -15,57 +15,10 @@ export default function Navbar() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
-  const [isDonorLoggedIn, setIsDonorLoggedIn] = useState(false);
-
   const menuRef = useRef(null);
   const notificationRef = useRef(null);
 
-  // Simple check - just see if donor token exists (for donor dashboard)
-  // All authenticated users can create campaigns
-  useEffect(() => {
-    const checkDonorLogin = () => {
-      const donorToken = localStorage.getItem("donorToken");
-      setIsDonorLoggedIn(!!donorToken);
-    };
-
-    // Check on mount
-    checkDonorLogin();
-
-    // Listen for storage changes
-    window.addEventListener("storage", checkDonorLogin);
-    
-    // Listen for custom event when donor logs in
-    const handleDonorLogin = () => {
-      checkDonorLogin();
-    };
-    
-    window.addEventListener("donorLogin", handleDonorLogin);
-    window.addEventListener("donorLogout", handleDonorLogin);
-
-    // Check periodically
-    const interval = setInterval(checkDonorLogin, 500);
-
-    return () => {
-      window.removeEventListener("storage", checkDonorLogin);
-      window.removeEventListener("donorLogin", handleDonorLogin);
-      window.removeEventListener("donorLogout", handleDonorLogin);
-      clearInterval(interval);
-    };
-  }, []);
-
-  // Sync Clerk user with donor backend if signed in but no donorToken
-  // Note: This is handled by LoginSuccess component, so we just check the flag
-  useEffect(() => {
-    // LoginSuccess component handles the actual sync
-    // We just need to check if donor flow is active
-    if (isSignedIn && !isDonorLoggedIn) {
-      const shouldSync = sessionStorage.getItem("donorFlow") === "true";
-      if (shouldSync) {
-        // LoginSuccess will handle the sync when user navigates there
-        // No need to do anything here
-      }
-    }
-  }, [isSignedIn, isDonorLoggedIn]);
+  // Donor authentication removed - guest donations don't require login
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -237,15 +190,6 @@ export default function Navbar() {
             </Link>
           </SignedIn>
 
-          {/* Show Donor Dashboard if donor is logged in */}
-          {isDonorLoggedIn && (
-            <Link
-              to="/donor/dashboard"
-              className="bg-[#00B5B8] text-white px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#009f9f] text-sm lg:text-base whitespace-nowrap"
-            >
-              Donor Dashboard
-            </Link>
-          )}
 
           <SignedOut>
             <Link
@@ -546,17 +490,6 @@ export default function Navbar() {
               Login
             </Link>
           </SignedOut>
-
-          {/* Show Donor Dashboard if donor is logged in */}
-          {isDonorLoggedIn && (
-            <Link
-              to="/donor/dashboard"
-              onClick={() => setOpen(false)}
-              className="block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white text-center py-3 rounded-xl font-semibold shadow hover:from-[#009EA1] hover:to-[#008B8E] transition"
-            >
-              Donor Dashboard
-            </Link>
-          )}
 
         </div>
       </div>

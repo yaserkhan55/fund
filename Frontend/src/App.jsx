@@ -18,11 +18,8 @@ import CategoryPage from "./pages/CategoryPage";   // ✅ ADDED
 import BrowseFundraisers from "./pages/BrowseFundraisers";   // ✅ ADDED
 import CreatorDashboard from "./pages/CreatorDashboard";
 
-// Donor Pages
-import DonorRegister from "./pages/DonorRegister";
-import DonorLogin from "./pages/DonorLogin";
-import DonorVerifyOTP from "./pages/DonorVerifyOTP";
-import DonorDashboard from "./pages/DonorDashboard";
+// Donor Pages (Optional - for future use)
+// import DonorDashboard from "./pages/DonorDashboard";
 
 // Auth
 import LoginSuccess from "./components/LoginSuccess";
@@ -136,89 +133,7 @@ export default function App() {
         element={<LoginSuccess />}
       />
 
-      {/* DONOR ROUTES */}
-      <Route
-        path="/donor/register"
-        element={
-          <Layout>
-            <DonorRegister />
-          </Layout>
-        }
-      />
-      <Route
-        path="/donor/login"
-        element={
-          <Layout>
-            <DonorLogin />
-          </Layout>
-        }
-      />
-      <Route
-        path="/donor/sign-in"
-        element={
-          <Layout>
-            <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 bg-[#F1FAFA]">
-              <div className="w-full max-w-md">
-                <SafeSignIn
-                  path="/donor/sign-in"
-                  routing="path"
-                  afterSignInUrl="/auth/google/success"
-                  redirectUrl="/auth/google/success"
-                  signInFallbackRedirectUrl="/auth/google/success"
-                  // Mobile-specific settings - enable account switching
-                  appearance={{
-                    elements: {
-                      rootBox: "w-full",
-                      card: "w-full shadow-lg",
-                    },
-                  }}
-                />
-              </div>
-            </div>
-          </Layout>
-        }
-      />
-      <Route
-        path="/donor/sign-up"
-        element={
-          <Layout>
-            <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 bg-[#F1FAFA]">
-              <div className="w-full max-w-md">
-                <SafeSignUp
-                  path="/donor/sign-up"
-                  routing="path"
-                  afterSignUpUrl="/auth/google/success"
-                  redirectUrl="/auth/google/success"
-                  signUpFallbackRedirectUrl="/auth/google/success"
-                  // Mobile-specific settings - enable account switching
-                  appearance={{
-                    elements: {
-                      rootBox: "w-full",
-                      card: "w-full shadow-lg",
-                    },
-                  }}
-                />
-              </div>
-            </div>
-          </Layout>
-        }
-      />
-      <Route
-        path="/donor/verify-otp"
-        element={
-          <Layout>
-            <DonorVerifyOTP />
-          </Layout>
-        }
-      />
-      <Route
-        path="/donor/dashboard"
-        element={
-          <Layout>
-            <DonorDashboard />
-          </Layout>
-        }
-      />
+      {/* DONOR ROUTES REMOVED - Guest donations don't require authentication */}
 
       {/* BROWSE FUNDRAISERS — ✅ ADDED */}
       <Route

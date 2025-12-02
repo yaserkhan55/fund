@@ -74,15 +74,6 @@ export default function Hero() {
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </Link>
-            <Link
-              to="/donor/register"
-              onClick={() => {
-                sessionStorage.setItem("donorFlow", "true");
-              }}
-              className="inline-block border-2 border-[#00B5B8] text-[#00B5B8] hover:bg-[#E6F7F7] font-semibold px-8 py-3.5 rounded-xl transition"
-            >
-              Become a Donor
-            </Link>
           </div>
 
           {/* STATS */}
