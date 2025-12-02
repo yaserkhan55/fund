@@ -249,6 +249,12 @@ export default function Navbar() {
 
           <SignedOut>
             <Link
+              to="/sign-up"
+              className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
+            >
+              Sign Up
+            </Link>
+            <Link
               to="/sign-in"
               className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
             >
@@ -519,6 +525,13 @@ export default function Navbar() {
           </SignedIn>
 
           <SignedOut>
+            <Link
+              to="/sign-up"
+              onClick={() => setOpen(false)}
+              className="block border border-[#00B5B8] text-[#00B5B8] text-center py-3 rounded-xl font-semibold"
+            >
+              Sign Up
+            </Link>
             <Link
               to="/sign-in"
               onClick={() => setOpen(false)}
