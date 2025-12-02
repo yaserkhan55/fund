@@ -252,7 +252,7 @@ export default function Navbar() {
               to="/sign-in"
               className="border border-[#00B5B8] text-[#00B5B8] px-2 lg:px-3 py-1.5 rounded-xl font-semibold hover:bg-[#E6F7F7] text-sm lg:text-base whitespace-nowrap"
             >
-              Sign In
+              Login
             </Link>
           </SignedOut>
 
@@ -524,7 +524,7 @@ export default function Navbar() {
               onClick={() => setOpen(false)}
               className="block border border-[#00B5B8] text-[#00B5B8] text-center py-3 rounded-xl font-semibold"
             >
-              Sign In
+              Login
             </Link>
           </SignedOut>
 

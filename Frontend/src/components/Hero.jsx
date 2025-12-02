@@ -58,7 +58,7 @@ export default function Hero() {
             Choose your path and make a difference today.
           </p>
 
-          {/* Simple Sign Up Button */}
+          {/* Sign Up and Login Buttons */}
           <div className="flex flex-wrap gap-4 mt-6">
             <Link
               to="/sign-up"
@@ -68,7 +68,7 @@ export default function Hero() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Get Started
+                Sign Up
                 <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
@@ -76,10 +76,10 @@ export default function Hero() {
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </Link>
             <Link
-              to="/browse"
+              to="/sign-in"
               className="inline-block border-2 border-[#00B5B8] text-[#00B5B8] hover:bg-[#E6F7F7] font-semibold px-8 py-3.5 rounded-xl transition"
             >
-              Browse Campaigns
+              Login
             </Link>
           </div>
 
