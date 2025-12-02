@@ -1,12 +1,18 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
 import api from "../lib/api";
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function TrendingFundraisers() {
+  const { isSignedIn, getToken } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [itemsPerView, setItemsPerView] = useState(3);
+  const [myCampaignIds, setMyCampaignIds] = useState([]);
   const navigate = useNavigate();
 
   const resolveImg = (img) => {
@@ -16,6 +22,28 @@ export default function TrendingFundraisers() {
     return `${base}/${img.replace(/^\/+/, "")}`;
   };
 
+  // Check if user is a campaign creator
+  useEffect(() => {
+    const checkIfCampaignCreator = async () => {
+      if (isSignedIn) {
+        try {
+          const token = await getToken().catch(() => localStorage.getItem("token"));
+          if (token) {
+            const res = await axios.get(`${API_URL}/api/campaigns/my`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.data?.campaigns && res.data.campaigns.length > 0) {
+              setMyCampaignIds(res.data.campaigns.map(c => c._id));
+            }
+          }
+        } catch (error) {
+          // User is not a campaign creator
+        }
+      }
+    };
+    checkIfCampaignCreator();
+  }, [isSignedIn, getToken]);
+
   useEffect(() => {
     async function load() {
       try {
@@ -23,7 +51,13 @@ export default function TrendingFundraisers() {
         const arr = Array.isArray(res.data.campaigns)
           ? res.data.campaigns
           : [];
-        setCampaigns(arr);
+        
+        // Exclude user's own campaigns if they are a campaign creator
+        const filtered = myCampaignIds.length > 0
+          ? arr.filter(c => !myCampaignIds.includes(c._id))
+          : arr;
+        
+        setCampaigns(filtered);
       } catch (e) {
         console.error("Failed to load trending:", e);
         setCampaigns([]);
@@ -32,7 +66,7 @@ export default function TrendingFundraisers() {
       }
     }
     load();
-  }, []);
+  }, [myCampaignIds]);
 
   // Calculate items per view based on screen size
   useEffect(() => {
