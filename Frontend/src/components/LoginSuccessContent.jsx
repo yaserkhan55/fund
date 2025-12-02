@@ -1,7 +1,6 @@
 // LoginSuccessContent.jsx - Content component that receives Clerk data as props
-import { useEffect, useContext, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
@@ -12,7 +11,7 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setLoginData } = useContext(AuthContext);
+  // ⚠️ REMOVED AuthContext dependency - using ONLY Clerk
   const [loading, setLoading] = useState(true);
   const [hasProcessed, setHasProcessed] = useState(false);
 
@@ -28,9 +27,7 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
       if (token) {
         // Legacy token-based login
         localStorage.setItem("token", token);
-        if (setLoginData) {
-          setLoginData(token, null);
-        }
+        // ⚠️ REMOVED setLoginData - using ONLY Clerk
         navigate("/");
         setLoading(false);
         setHasProcessed(true);
@@ -326,9 +323,7 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
 
           if (response.data.success && response.data.token) {
             localStorage.setItem("token", response.data.token);
-            if (setLoginData) {
-              setLoginData(response.data.token, response.data.user);
-            }
+            // ⚠️ REMOVED setLoginData - using ONLY Clerk
           }
         } catch (error) {
           // User sync is optional - user might just want to be a donor
@@ -394,7 +389,7 @@ export default function LoginSuccessContent({ isSignedIn, user, isClerkLoaded })
       setHasProcessed(true);
       navigate("/");
     }
-  }, [navigate, location, setLoginData, isSignedIn, user, hasProcessed]);
+  }, [navigate, location, isSignedIn, user, hasProcessed]);
 
   // Effect that triggers when user becomes available
   // This effect watches for when Clerk provides the user object
