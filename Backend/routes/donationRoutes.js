@@ -1,5 +1,5 @@
 import express from "express";
-import { createDonation, getCampaignDonations, commitDonation } from "../controllers/doantionController.js";
+import { createDonation, getCampaignDonations, commitDonation, commitGuestDonation } from "../controllers/doantionController.js";
 import {
   createPaymentOrder,
   verifyPayment,
@@ -13,7 +13,10 @@ const router = express.Router();
 // Legacy route (for backward compatibility)
 router.post("/create", createDonation);
 
-// Donation commitment route (without payment)
+// Guest donation route (NO AUTHENTICATION REQUIRED)
+router.post("/commit-guest", commitGuestDonation);
+
+// Authenticated donation route (optional - for future use)
 router.post("/commit", donorAuth, commitDonation);
 
 // New payment gateway routes (for donors) - DISABLED FOR NOW

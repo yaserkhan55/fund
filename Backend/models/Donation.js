@@ -2,11 +2,12 @@ import mongoose from "mongoose";
 
 const donationSchema = new mongoose.Schema(
   {
-    // Donor reference (separate from campaign creators)
+    // Donor reference (optional - for guest donations)
     donorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Donor",
-      required: true,
+      required: false, // Made optional for guest donations
+      default: null,
     },
     campaignId: {
       type: mongoose.Schema.Types.ObjectId,
