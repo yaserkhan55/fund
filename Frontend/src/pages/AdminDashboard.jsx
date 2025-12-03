@@ -62,6 +62,14 @@ export default function AdminDashboard() {
   const [selectedDonation, setSelectedDonation] = useState(null);
   const [donationModalOpen, setDonationModalOpen] = useState(false);
   const [donationActionLoading, setDonationActionLoading] = useState(null);
+  
+  // Separate states for commit and immediate donations
+  const [commitDonations, setCommitDonations] = useState([]);
+  const [immediateDonations, setImmediateDonations] = useState([]);
+  const [commitDonationPage, setCommitDonationPage] = useState(1);
+  const [immediateDonationPage, setImmediateDonationPage] = useState(1);
+  const [commitDonationPagination, setCommitDonationPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
+  const [immediateDonationPagination, setImmediateDonationPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
 
   const token = localStorage.getItem("adminToken");
 
@@ -105,7 +113,85 @@ export default function AdminDashboard() {
     }
   };
 
-  // Load all donations with filters
+  // Load commit donations (paymentMethod: "commitment")
+  const loadCommitDonations = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const url = new URL(`${API_URL}/api/donations/admin/all`);
+      url.searchParams.set("page", commitDonationPage);
+      url.searchParams.set("limit", "20");
+      url.searchParams.set("paymentMethod", "commitment");
+      if (donationSearch) url.searchParams.set("search", donationSearch);
+      if (donationStatus !== "all") url.searchParams.set("status", donationStatus);
+
+      const res = await fetch(url.toString(), { headers: authHeaders(false) });
+
+      if (res.status === 401) {
+        setError("Unauthorized — login again.");
+        localStorage.removeItem("adminToken");
+        navigate("/admin/login");
+        return;
+      }
+
+      if (!res.ok) throw new Error("Failed to load commit donations");
+
+      const data = await res.json();
+      if (data.success) {
+        setCommitDonations(data.donations || []);
+        if (data.pagination) {
+          setCommitDonationPagination(data.pagination);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading commit donations:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load immediate donations (paymentMethod != "commitment")
+  const loadImmediateDonations = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const url = new URL(`${API_URL}/api/donations/admin/all`);
+      url.searchParams.set("page", immediateDonationPage);
+      url.searchParams.set("limit", "20");
+      // Exclude commitment payments
+      if (donationSearch) url.searchParams.set("search", donationSearch);
+      if (donationStatus !== "all") url.searchParams.set("status", donationStatus);
+
+      const res = await fetch(url.toString(), { headers: authHeaders(false) });
+
+      if (res.status === 401) {
+        setError("Unauthorized — login again.");
+        localStorage.removeItem("adminToken");
+        navigate("/admin/login");
+        return;
+      }
+
+      if (!res.ok) throw new Error("Failed to load immediate donations");
+
+      const data = await res.json();
+      if (data.success) {
+        // Filter out commitment payments
+        const immediate = (data.donations || []).filter(d => d.paymentMethod !== "commitment");
+        setImmediateDonations(immediate);
+        if (data.pagination) {
+          setImmediateDonationPagination(data.pagination);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading immediate donations:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load all donations with filters (legacy - keeping for compatibility)
   const loadDonations = async () => {
     setLoading(true);
     setError("");
@@ -201,7 +287,13 @@ export default function AdminDashboard() {
 
       const data = await res.json();
       if (data.success) {
-        await loadDonations();
+        // Reload appropriate section based on payment method
+        const donation = data.donation;
+        if (donation.paymentMethod === "commitment") {
+          await loadCommitDonations();
+        } else {
+          await loadImmediateDonations();
+        }
         await loadDonationStats();
         if (selectedDonation?._id === donationId) {
           setSelectedDonation(data.donation);
@@ -553,6 +645,12 @@ export default function AdminDashboard() {
         loadCampaignsWithResponses();
       } else if (activeTab === "activity") {
         loadActivityLog();
+      } else if (activeTab === "commit-donations") {
+        loadCommitDonations();
+        loadDonationStats();
+      } else if (activeTab === "immediate-donations") {
+        loadImmediateDonations();
+        loadDonationStats();
       } else if (activeTab === "donations") {
         loadDonations();
         loadDonationStats();
@@ -1170,7 +1268,8 @@ export default function AdminDashboard() {
         { key: "rejected", label: "Rejected", icon: "❌" },
         { key: "users", label: "Users", icon: "👥" },
         { key: "contacts", label: "Contact Queries", icon: "📧" },
-        { key: "donations", label: "Donations", icon: "💰" },
+        { key: "commit-donations", label: "Commit Donations", icon: "💳" },
+        { key: "immediate-donations", label: "Immediate Donations", icon: "💰" },
         { key: "activity", label: "Activity Log", icon: "📋" },
       ].map((t) => (
         <button
@@ -1207,6 +1306,12 @@ export default function AdminDashboard() {
         onClick={() => {
           if (activeTab === "dashboard") {
             loadStats();
+          } else if (activeTab === "commit-donations") {
+            loadCommitDonations();
+            loadDonationStats();
+          } else if (activeTab === "immediate-donations") {
+            loadImmediateDonations();
+            loadDonationStats();
           } else if (activeTab === "donations") {
             loadDonations();
             loadDonationStats();
@@ -1864,6 +1969,333 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
+
+        {/* Commit Donations Section */}
+        {activeTab === "commit-donations" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+              <h2 className="text-2xl font-bold text-[#003d3b] mb-2">💳 Commit Donations</h2>
+              <p className="text-gray-600">View and manage payment commitments. Users commit to pay later, then pay personally to admin.</p>
+            </div>
+
+            {/* Search and Filter */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+              <div className="flex flex-col md:flex-row gap-4">
+                <input
+                  type="text"
+                  placeholder="Search by name, email, receipt #..."
+                  value={donationSearch}
+                  onChange={(e) => setDonationSearch(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && loadCommitDonations()}
+                  className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                />
+                <select
+                  value={donationStatus}
+                  onChange={(e) => setDonationStatus(e.target.value)}
+                  className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="success">Success</option>
+                  <option value="failed">Failed</option>
+                </select>
+                <button
+                  onClick={loadCommitDonations}
+                  className="px-6 py-3 bg-[#00B5B8] text-white font-semibold rounded-xl hover:bg-[#009EA1] transition"
+                >
+                  Search
+                </button>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-20">
+                <div className="w-16 h-16 border-4 border-[#00B5B8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading commit donations...</p>
+              </div>
+            ) : commitDonations.length > 0 ? (
+              <div className="bg-white rounded-2xl shadow-lg border border-[#E0F2F2] overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-[#00B5B8] text-white">
+                      <tr>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Receipt #</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Donor</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Campaign</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Amount</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Status</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Date</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {commitDonations.map((donation) => (
+                        <tr key={donation._id} className="hover:bg-[#E6F7F7] transition">
+                          <td className="px-4 py-4">
+                            <span className="font-mono text-xs text-gray-600">
+                              {donation.receiptNumber || "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div>
+                              <span className="font-semibold text-[#003d3b] text-sm block">
+                                {donation.isAnonymous ? "Anonymous" : (donation.donorName || "N/A")}
+                              </span>
+                              <span className="text-gray-500 text-xs">
+                                {donation.donorEmail || "N/A"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-gray-700 text-sm max-w-xs truncate block" title={donation.campaignId?.title || ""}>
+                              {donation.campaignId?.title || "Campaign Deleted"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="font-bold text-[#00B5B8]">
+                              {formatCurrency(donation.amount)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              donation.paymentStatus === "pending"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : donation.paymentStatus === "success"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}>
+                              {donation.paymentStatus || "pending"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-gray-600 text-xs">
+                              {formatDate(donation.createdAt)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => loadDonationDetails(donation._id)}
+                                className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition"
+                                title="View Details"
+                              >
+                                👁️
+                              </button>
+                              {donation.paymentStatus === "pending" && (
+                                <button
+                                  onClick={() => updateDonation(donation._id, { paymentStatus: "success", paymentReceived: true })}
+                                  disabled={donationActionLoading === donation._id}
+                                  className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition disabled:opacity-50"
+                                  title="Approve Payment"
+                                >
+                                  ✓
+                                </button>
+                              )}
+                              {donation.paymentStatus === "pending" && (
+                                <button
+                                  onClick={() => updateDonation(donation._id, { paymentStatus: "failed", adminRejected: true, rejectionReason: "Payment not received" })}
+                                  disabled={donationActionLoading === donation._id}
+                                  className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition disabled:opacity-50"
+                                  title="Reject"
+                                >
+                                  ✗
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {commitDonationPagination.pages > 1 && (
+                  <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Page {commitDonationPagination.page} of {commitDonationPagination.pages} ({commitDonationPagination.total} total)
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCommitDonationPage(Math.max(1, commitDonationPage - 1))}
+                        disabled={commitDonationPage === 1}
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => setCommitDonationPage(Math.min(commitDonationPagination.pages, commitDonationPage + 1))}
+                        disabled={commitDonationPage === commitDonationPagination.pages}
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-[#E0F2F2]">
+                <p className="text-gray-500 text-lg">No commit donations found</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Immediate Donations Section */}
+        {activeTab === "immediate-donations" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+              <h2 className="text-2xl font-bold text-[#003d3b] mb-2">💰 Immediate Donations</h2>
+              <p className="text-gray-600">View and manage immediate payment transactions (Razorpay, UPI, Card, etc.)</p>
+            </div>
+
+            {/* Search and Filter */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">
+              <div className="flex flex-col md:flex-row gap-4">
+                <input
+                  type="text"
+                  placeholder="Search by name, email, receipt #..."
+                  value={donationSearch}
+                  onChange={(e) => setDonationSearch(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && loadImmediateDonations()}
+                  className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                />
+                <select
+                  value={donationStatus}
+                  onChange={(e) => setDonationStatus(e.target.value)}
+                  className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="success">Success</option>
+                  <option value="failed">Failed</option>
+                </select>
+                <button
+                  onClick={loadImmediateDonations}
+                  className="px-6 py-3 bg-[#00B5B8] text-white font-semibold rounded-xl hover:bg-[#009EA1] transition"
+                >
+                  Search
+                </button>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-20">
+                <div className="w-16 h-16 border-4 border-[#00B5B8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading immediate donations...</p>
+              </div>
+            ) : immediateDonations.length > 0 ? (
+              <div className="bg-white rounded-2xl shadow-lg border border-[#E0F2F2] overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-[#00B5B8] text-white">
+                      <tr>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Receipt #</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Donor</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Campaign</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Amount</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Method</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Status</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Date</th>
+                        <th className="px-4 py-4 text-left font-semibold text-sm">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {immediateDonations.map((donation) => (
+                        <tr key={donation._id} className="hover:bg-[#E6F7F7] transition">
+                          <td className="px-4 py-4">
+                            <span className="font-mono text-xs text-gray-600">
+                              {donation.receiptNumber || "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div>
+                              <span className="font-semibold text-[#003d3b] text-sm block">
+                                {donation.isAnonymous ? "Anonymous" : (donation.donorName || "N/A")}
+                              </span>
+                              <span className="text-gray-500 text-xs">
+                                {donation.donorEmail || "N/A"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-gray-700 text-sm max-w-xs truncate block" title={donation.campaignId?.title || ""}>
+                              {donation.campaignId?.title || "Campaign Deleted"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="font-bold text-[#00B5B8]">
+                              {formatCurrency(donation.amount)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-gray-600 text-xs capitalize">
+                              {donation.paymentMethod || "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              donation.paymentStatus === "pending"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : donation.paymentStatus === "success"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}>
+                              {donation.paymentStatus || "pending"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="text-gray-600 text-xs">
+                              {formatDate(donation.createdAt)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <button
+                              onClick={() => loadDonationDetails(donation._id)}
+                              className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition"
+                              title="View Details"
+                            >
+                              👁️
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {immediateDonationPagination.pages > 1 && (
+                  <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Page {immediateDonationPagination.page} of {immediateDonationPagination.pages} ({immediateDonationPagination.total} total)
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setImmediateDonationPage(Math.max(1, immediateDonationPage - 1))}
+                        disabled={immediateDonationPage === 1}
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => setImmediateDonationPage(Math.min(immediateDonationPagination.pages, immediateDonationPage + 1))}
+                        disabled={immediateDonationPage === immediateDonationPagination.pages}
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-[#E0F2F2]">
+                <p className="text-gray-500 text-lg">No immediate donations found</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === "activity" && (
           <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2]">

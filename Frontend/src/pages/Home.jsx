@@ -224,17 +224,21 @@ function Home() {
             }));
         });
 
+        // Check for donation actions (approve/reject)
+        const donationActions = notifications.filter(n => n.type === "donation_action" && !n.viewed);
+
         // Combine API notifications with admin actions
         const allNotifications = [...notifications, ...adminActionsFromCampaigns];
         
         if (allNotifications.length > 0 && isMounted) {
-          // Prioritize admin actions (approve/reject), then contact_reply, then others
-          const adminActions = allNotifications.filter(n => n.type === "admin_action" && !n.viewed);
+          // Prioritize: campaign admin actions, donation actions, contact_reply, then others
+          const campaignAdminActions = allNotifications.filter(n => n.type === "admin_action" && !n.viewed);
+          const donationAdminActions = allNotifications.filter(n => n.type === "donation_action" && !n.viewed);
           const contactReplies = allNotifications.filter(n => n.type === "contact_reply" && !n.viewed);
-          const otherNotifications = allNotifications.filter(n => n.type !== "contact_reply" && n.type !== "admin_action" && !n.viewed);
+          const otherNotifications = allNotifications.filter(n => n.type !== "contact_reply" && n.type !== "admin_action" && n.type !== "donation_action" && !n.viewed);
           
-          // Combine: admin actions first, contact replies second, then others
-          const unviewedNotifications = [...adminActions, ...contactReplies, ...otherNotifications];
+          // Combine: campaign actions first, donation actions second, contact replies third, then others
+          const unviewedNotifications = [...campaignAdminActions, ...donationAdminActions, ...contactReplies, ...otherNotifications];
           
           if (unviewedNotifications.length > 0 && isMounted && !showNotificationPopup && !showActionPopup) {
             const latest = unviewedNotifications[0];
@@ -246,6 +250,8 @@ function Home() {
             let notificationKey;
             if (latest.type === "admin_action") {
               notificationKey = `admin_action_${latest.action}_${latest.campaignId}_${latest.id}_${latest.createdAt}`;
+            } else if (latest.type === "donation_action") {
+              notificationKey = `donation_action_${latest.action}_${latest.donationId}_${latest.id}_${latest.createdAt}`;
             } else if (latest.type === "contact_reply") {
               notificationKey = `contact_reply_${latest.contactId}_${latest.createdAt}`;
             } else {
@@ -257,8 +263,8 @@ function Home() {
             const isDismissed = dismissedNotifications.includes(notificationKey);
             
             if (notificationKey && !shownNotifications.includes(notificationKey) && !isDismissed && isMounted) {
-              if (latest.type === "admin_action") {
-                // Show admin action popup
+              if (latest.type === "admin_action" || latest.type === "donation_action") {
+                // Show admin action popup (for both campaign and donation actions)
                 setActiveAction({
                   ...latest,
                   _id: latest.id,
@@ -278,7 +284,7 @@ function Home() {
             } else if (notificationKey && shownNotifications.includes(notificationKey)) {
               // If already shown, don't show again
               if (isMounted) {
-                if (latest.type === "admin_action") {
+                if (latest.type === "admin_action" || latest.type === "donation_action") {
                   setShowActionPopup(false);
                   setActiveAction(null);
                 } else {
@@ -598,12 +604,23 @@ function Home() {
                       token = localStorage.getItem("token");
                     }
                     
-                    if (token && activeAction.campaignId && activeAction._id) {
-                      await axios.put(
-                        `${API_URL}/api/campaigns/${activeAction.campaignId}/admin-actions/${activeAction._id}/view`,
-                        {},
-                        { headers: { Authorization: `Bearer ${token}` } }
-                      );
+                    // Mark as viewed based on type
+                    if (activeAction.type === "donation_action") {
+                      if (token && activeAction.donationId && activeAction._id) {
+                        await axios.put(
+                          `${API_URL}/api/donations/${activeAction.donationId}/admin-actions/${activeAction._id}/view`,
+                          {},
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                      }
+                    } else {
+                      if (token && activeAction.campaignId && activeAction._id) {
+                        await axios.put(
+                          `${API_URL}/api/campaigns/${activeAction.campaignId}/admin-actions/${activeAction._id}/view`,
+                          {},
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                      }
                     }
                   } catch (err) {
                     console.error("Error marking action as viewed:", err);
@@ -635,24 +652,37 @@ function Home() {
                 <h2 className={`text-lg font-bold ${
                   activeAction.action === "approved" ? "text-green-800" : "text-red-800"
                 }`}>
-                  {activeAction.action === "approved" 
-                    ? "Campaign Approved" 
-                    : activeAction.action === "rejected"
-                    ? "Campaign Rejected"
-                    : "Campaign Deleted"}
+                  {activeAction.type === "donation_action" ? (
+                    activeAction.action === "approved" 
+                      ? "Donation Approved! 🎉" 
+                      : "Donation Rejected"
+                  ) : (
+                    activeAction.action === "approved" 
+                      ? "Campaign Approved" 
+                      : activeAction.action === "rejected"
+                      ? "Campaign Rejected"
+                      : "Campaign Deleted"
+                  )}
                 </h2>
-                <p className="text-xs text-gray-600 mt-1">{activeAction.campaignTitle}</p>
+                {activeAction.type === "donation_action" && activeAction.amount && (
+                  <p className="text-sm font-semibold text-[#00B5B8] mt-1">
+                    Amount: ₹{Number(activeAction.amount).toLocaleString('en-IN')}
+                  </p>
+                )}
+                {activeAction.campaignTitle && (
+                  <p className="text-xs text-gray-600 mt-1">{activeAction.campaignTitle}</p>
+                )}
               </div>
             </div>
             
-            {/* Only show the latest message for rejected campaigns */}
+            {/* Show message */}
             {activeAction.message && (
               <div className={`rounded-lg border p-3 text-sm mb-3 ${
                 activeAction.action === "approved" 
-                  ? "border-green-200 bg-white text-green-900" 
-                  : "border-red-200 bg-white text-red-900"
+                  ? "border-green-200 bg-green-50 text-green-900" 
+                  : "border-red-200 bg-red-50 text-red-900"
               }`}>
-                <p className="text-xs">{activeAction.message}</p>
+                <p className="text-sm">{activeAction.message}</p>
               </div>
             )}
 
@@ -668,19 +698,32 @@ function Home() {
                       token = localStorage.getItem("token");
                     }
                     
-                    if (token && activeAction.campaignId && activeAction._id) {
-                      await axios.put(
-                        `${API_URL}/api/campaigns/${activeAction.campaignId}/admin-actions/${activeAction._id}/view`,
-                        {},
-                        { headers: { Authorization: `Bearer ${token}` } }
-                      );
+                    // Mark as viewed based on type
+                    if (activeAction.type === "donation_action") {
+                      if (token && activeAction.donationId && activeAction._id) {
+                        await axios.put(
+                          `${API_URL}/api/donations/${activeAction.donationId}/admin-actions/${activeAction._id}/view`,
+                          {},
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                      }
+                    } else {
+                      if (token && activeAction.campaignId && activeAction._id) {
+                        await axios.put(
+                          `${API_URL}/api/campaigns/${activeAction.campaignId}/admin-actions/${activeAction._id}/view`,
+                          {},
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                      }
                     }
                   } catch (err) {
                     console.error("Error marking action as viewed:", err);
                   }
                   
                   // Mark as dismissed in localStorage
-                  const actionKey = `admin_action_${activeAction.action}_${activeAction.campaignId}_${activeAction._id}_${activeAction.createdAt}`;
+                  const actionKey = activeAction.type === "donation_action"
+                    ? `donation_action_${activeAction.action}_${activeAction.donationId}_${activeAction._id}_${activeAction.createdAt}`
+                    : `admin_action_${activeAction.action}_${activeAction.campaignId}_${activeAction._id}_${activeAction.createdAt}`;
                   const dismissedNotifications = JSON.parse(localStorage.getItem("dismissedNotifications") || "[]");
                   if (!dismissedNotifications.includes(actionKey)) {
                     dismissedNotifications.push(actionKey);
