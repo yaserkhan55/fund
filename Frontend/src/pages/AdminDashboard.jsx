@@ -107,20 +107,19 @@ export default function AdminDashboard() {
     let cleanedPath = img.trim();
     
     // If it's an absolute path, extract the filename from it
-    if (cleanedPath.startsWith("/")) {
-      // Extract filename from absolute path
-      const parts = cleanedPath.split("/");
-      const filename = parts[parts.length - 1];
-      
-      if (filename && filename.includes(".")) {
-        // Construct relative path: uploads/filename.jpg
-        cleanedPath = `uploads/${filename}`;
+    if (cleanedPath.startsWith("/") && !cleanedPath.startsWith("//")) {
+      // Check if it contains "uploads/" - extract everything from "uploads/" onwards
+      const uploadsIndex = cleanedPath.indexOf("uploads/");
+      if (uploadsIndex !== -1) {
+        // Extract from "uploads/" onwards: "uploads/documents-xxx.jpg"
+        cleanedPath = cleanedPath.substring(uploadsIndex);
       } else {
-        // Try to find "uploads/" in the path and get everything after it
-        const uploadsIndex = cleanedPath.indexOf("uploads/");
-        if (uploadsIndex !== -1) {
-          const afterUploads = cleanedPath.substring(uploadsIndex);
-          cleanedPath = afterUploads; // This gives us "uploads/documents-xxx.jpg"
+        // No "uploads/" found, extract just the filename
+        const parts = cleanedPath.split("/").filter(p => p);
+        const filename = parts[parts.length - 1];
+        if (filename && filename.includes(".")) {
+          // Construct relative path: uploads/filename.jpg
+          cleanedPath = `uploads/${filename}`;
         } else {
           return FALLBACK;
         }
@@ -164,6 +163,17 @@ export default function AdminDashboard() {
       return null; // Return null for invalid documents to prevent links
     }
     return resolveImg(doc);
+  };
+
+  const isImageFile = (doc) => {
+    if (!doc || typeof doc !== "string") return false;
+    const lower = doc.toLowerCase();
+    return lower.endsWith(".jpg") || 
+           lower.endsWith(".jpeg") || 
+           lower.endsWith(".png") || 
+           lower.endsWith(".gif") || 
+           lower.endsWith(".webp") ||
+           lower.endsWith(".svg");
   };
 
   const formatDate = (date) => {
@@ -1197,30 +1207,60 @@ export default function AdminDashboard() {
                                 </p>
                                 {resp.note && <p className="mt-1 text-xs text-gray-700">{resp.note}</p>}
                                 {Array.isArray(resp.documents) && resp.documents.length > 0 && (
-                                  <div className="mt-2 flex flex-wrap gap-2">
-                                    {resp.documents
-                                      .filter(isValidDocument)
-                                      .map((doc, docIdx) => {
-                                        const docUrl = resolveDocumentUrl(doc);
-                                        if (!docUrl) return null;
-                                        return (
-                                          <a
-                                            key={`${req._id || idx}-resp-${respIdx}-doc-${docIdx}`}
-                                            href={docUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="rounded-lg border border-sky-200 bg-white px-2 py-1 text-xs font-semibold text-sky-700 hover:border-sky-400"
-                                            onClick={(e) => {
-                                              if (!docUrl || docUrl.includes("undefined")) {
-                                                e.preventDefault();
-                                                alert("Document path is invalid");
-                                              }
-                                            }}
-                                          >
-                                            View file {docIdx + 1}
-                                          </a>
-                                        );
-                                      })}
+                                  <div className="mt-2">
+                                    <p className="text-xs font-semibold text-gray-600 mb-2">Uploaded Files:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {resp.documents
+                                        .filter(isValidDocument)
+                                        .map((doc, docIdx) => {
+                                          const docUrl = resolveDocumentUrl(doc);
+                                          if (!docUrl) return null;
+                                          const isImage = isImageFile(doc);
+                                          return (
+                                            <div key={`${req._id || idx}-resp-${respIdx}-doc-${docIdx}`} className="relative">
+                                              {isImage ? (
+                                                <a
+                                                  href={docUrl}
+                                                  target="_blank"
+                                                  rel="noreferrer"
+                                                  className="block rounded-lg border-2 border-sky-200 bg-white overflow-hidden hover:border-sky-400 transition"
+                                                  onClick={(e) => {
+                                                    if (!docUrl || docUrl.includes("undefined")) {
+                                                      e.preventDefault();
+                                                      alert("Image path is invalid");
+                                                    }
+                                                  }}
+                                                >
+                                                  <img
+                                                    src={docUrl}
+                                                    alt={`Document ${docIdx + 1}`}
+                                                    className="w-24 h-24 object-cover"
+                                                    onError={(e) => {
+                                                      e.target.style.display = "none";
+                                                      e.target.parentElement.innerHTML = `<span class="text-xs text-gray-500 p-2">Image ${docIdx + 1}</span>`;
+                                                    }}
+                                                  />
+                                                </a>
+                                              ) : (
+                                                <a
+                                                  href={docUrl}
+                                                  target="_blank"
+                                                  rel="noreferrer"
+                                                  className="inline-block rounded-lg border border-sky-200 bg-white px-2 py-1 text-xs font-semibold text-sky-700 hover:border-sky-400"
+                                                  onClick={(e) => {
+                                                    if (!docUrl || docUrl.includes("undefined")) {
+                                                      e.preventDefault();
+                                                      alert("Document path is invalid");
+                                                    }
+                                                  }}
+                                                >
+                                                  📄 File {docIdx + 1}
+                                                </a>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -1564,30 +1604,61 @@ export default function AdminDashboard() {
                                   <p className="text-sm text-gray-500 mb-2 italic">No note provided</p>
                                 )}
                                 {resp.documents?.length > 0 && (
-                                  <div className="flex flex-wrap gap-2">
-                                    {resp.documents
-                                      .filter(isValidDocument)
-                                      .map((doc, docIdx) => {
-                                        const docUrl = resolveDocumentUrl(doc);
-                                        if (!docUrl) return null;
-                                        return (
-                                          <a
-                                            key={docIdx}
-                                            href={docUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-xs text-[#00B5B8] hover:underline"
-                                            onClick={(e) => {
-                                              if (!docUrl || docUrl.includes("undefined")) {
-                                                e.preventDefault();
-                                                return false;
-                                              }
-                                            }}
-                                          >
-                                            📄 Document {docIdx + 1}
-                                          </a>
-                                        );
-                                      })}
+                                  <div className="mt-2">
+                                    <p className="text-xs font-semibold text-gray-600 mb-2">Uploaded Files:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {resp.documents
+                                        .filter(isValidDocument)
+                                        .map((doc, docIdx) => {
+                                          const docUrl = resolveDocumentUrl(doc);
+                                          if (!docUrl) return null;
+                                          const isImage = isImageFile(doc);
+                                          return (
+                                            <div key={docIdx} className="relative">
+                                              {isImage ? (
+                                                <a
+                                                  href={docUrl}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="block rounded-lg border-2 border-blue-200 bg-white overflow-hidden hover:border-blue-400 transition shadow-sm"
+                                                  onClick={(e) => {
+                                                    if (!docUrl || docUrl.includes("undefined")) {
+                                                      e.preventDefault();
+                                                      return false;
+                                                    }
+                                                  }}
+                                                >
+                                                  <img
+                                                    src={docUrl}
+                                                    alt={`Uploaded image ${docIdx + 1}`}
+                                                    className="w-20 h-20 object-cover"
+                                                    onError={(e) => {
+                                                      e.target.style.display = "none";
+                                                      const parent = e.target.parentElement;
+                                                      parent.innerHTML = `<div class="w-20 h-20 flex items-center justify-center bg-gray-100 text-xs text-gray-500 rounded-lg">Img ${docIdx + 1}</div>`;
+                                                    }}
+                                                  />
+                                                </a>
+                                              ) : (
+                                                <a
+                                                  href={docUrl}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="inline-block rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-700 hover:border-gray-400"
+                                                  onClick={(e) => {
+                                                    if (!docUrl || docUrl.includes("undefined")) {
+                                                      e.preventDefault();
+                                                      return false;
+                                                    }
+                                                  }}
+                                                >
+                                                  📄 File {docIdx + 1}
+                                                </a>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                    </div>
                                   </div>
                                 )}
                                 <p className="text-xs text-gray-500 mt-2">
@@ -3182,29 +3253,60 @@ export default function AdminDashboard() {
                         <p className="text-sm text-gray-700 mb-2">{resp.note || "No note provided"}</p>
                         {resp.documents?.length > 0 && (
                           <div className="mb-3">
-                            <p className="text-xs font-semibold text-gray-600 mb-1">Documents:</p>
-                            <div className="flex flex-wrap gap-2">
+                            <p className="text-xs font-semibold text-gray-600 mb-2">Uploaded Files:</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                               {resp.documents
                                 .filter(isValidDocument)
                                 .map((doc, docIdx) => {
                                   const docUrl = resolveDocumentUrl(doc);
                                   if (!docUrl) return null;
+                                  const isImage = isImageFile(doc);
                                   return (
-                                    <a
-                                      key={docIdx}
-                                      href={docUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-xs text-[#00B5B8] hover:underline bg-white px-2 py-1 rounded border"
-                                      onClick={(e) => {
-                                        if (!docUrl || docUrl.includes("undefined")) {
-                                          e.preventDefault();
-                                          return false;
-                                        }
-                                      }}
-                                    >
-                                      📄 Document {docIdx + 1}
-                                    </a>
+                                    <div key={docIdx} className="relative group">
+                                      {isImage ? (
+                                        <a
+                                          href={docUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="block rounded-lg border-2 border-blue-200 bg-white overflow-hidden hover:border-blue-400 transition shadow-sm hover:shadow-md"
+                                          onClick={(e) => {
+                                            if (!docUrl || docUrl.includes("undefined")) {
+                                              e.preventDefault();
+                                              return false;
+                                            }
+                                          }}
+                                        >
+                                          <img
+                                            src={docUrl}
+                                            alt={`Uploaded image ${docIdx + 1}`}
+                                            className="w-full h-32 object-cover"
+                                            onError={(e) => {
+                                              e.target.style.display = "none";
+                                              const parent = e.target.parentElement;
+                                              parent.innerHTML = `<div class="w-full h-32 flex items-center justify-center bg-gray-100 text-xs text-gray-500">Image ${docIdx + 1}</div>`;
+                                            }}
+                                          />
+                                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs px-2 py-1 text-center">
+                                            Image {docIdx + 1}
+                                          </div>
+                                        </a>
+                                      ) : (
+                                        <a
+                                          href={docUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center justify-center rounded-lg border-2 border-gray-200 bg-gray-50 px-3 py-4 text-xs font-semibold text-gray-700 hover:border-gray-400 hover:bg-gray-100 transition"
+                                          onClick={(e) => {
+                                            if (!docUrl || docUrl.includes("undefined")) {
+                                              e.preventDefault();
+                                              return false;
+                                            }
+                                          }}
+                                        >
+                                          📄 Document {docIdx + 1}
+                                        </a>
+                                      )}
+                                    </div>
                                   );
                                 })}
                             </div>
