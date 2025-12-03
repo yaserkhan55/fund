@@ -19,6 +19,10 @@ export default function CreatorDashboard() {
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [responseError, setResponseError] = useState("");
   const popupShownRef = useRef(false);
+  const [donorData, setDonorData] = useState([]);
+  const [donorStats, setDonorStats] = useState(null);
+  const [loadingDonors, setLoadingDonors] = useState(false);
+  const [showDonorSection, setShowDonorSection] = useState(false);
 
   const resolveAuthToken = useCallback(async () => {
     let authToken = null;
@@ -65,6 +69,45 @@ export default function CreatorDashboard() {
     
     // Silent refresh every 30 seconds (no loader)
     const interval = setInterval(() => fetchCampaigns(false), 30000);
+    return () => clearInterval(interval);
+  }, [isSignedIn, resolveAuthToken]);
+
+  // Fetch donor data
+  useEffect(() => {
+    if (!isSignedIn) {
+      setDonorData([]);
+      setDonorStats(null);
+      return;
+    }
+
+    const fetchDonorData = async () => {
+      try {
+        setLoadingDonors(true);
+        const authToken = await resolveAuthToken();
+        if (!authToken) {
+          setDonorData([]);
+          return;
+        }
+
+        const res = await axios.get(`${API_URL}/api/campaigns/my/donations`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        
+        if (res.data?.success) {
+          setDonorData(res.data.donations || []);
+          setDonorStats(res.data.donorStats || null);
+        }
+      } catch (err) {
+        console.error("Error fetching donor data:", err);
+        setDonorData([]);
+      } finally {
+        setLoadingDonors(false);
+      }
+    };
+
+    fetchDonorData();
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchDonorData, 60000);
     return () => clearInterval(interval);
   }, [isSignedIn, resolveAuthToken]);
 
@@ -1091,6 +1134,154 @@ export default function CreatorDashboard() {
               );
             })}
           </div>
+        )}
+
+        {/* Donor Data Section */}
+        {hasCampaigns && donorData.length > 0 && (
+          <section className="bg-white rounded-3xl border border-[#CFE7E7] p-6 shadow-lg">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-6">
+              <div>
+                <p className="uppercase text-xs tracking-[0.4em] text-[#00B5B8] font-semibold">
+                  Donor Insights
+                </p>
+                <h2 className="text-2xl font-semibold text-[#003d3b]">
+                  Your Supporters
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  See who supported your campaigns and their giving history
+                </p>
+              </div>
+              {donorStats && (
+                <div className="flex flex-wrap gap-4">
+                  <div className="bg-[#E6F7F7] rounded-xl px-4 py-2">
+                    <p className="text-xs text-gray-600">Total Donors</p>
+                    <p className="text-xl font-bold text-[#003d3b]">{donorStats.uniqueDonors}</p>
+                  </div>
+                  <div className="bg-[#E6F7F7] rounded-xl px-4 py-2">
+                    <p className="text-xs text-gray-600">Total Donations</p>
+                    <p className="text-xl font-bold text-[#003d3b]">{donorStats.totalDonations}</p>
+                  </div>
+                  <div className="bg-[#E6F7F7] rounded-xl px-4 py-2">
+                    <p className="text-xs text-gray-600">Avg Donation</p>
+                    <p className="text-xl font-bold text-[#003d3b]">{formatCurrency(donorStats.averageDonation)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {loadingDonors ? (
+              <div className="text-center py-12">
+                <div className="w-12 h-12 border-4 border-[#00B5B8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading donor data...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {donorData.map((donor, idx) => (
+                  <div
+                    key={donor.email || idx}
+                    className="rounded-2xl border border-gray-100 bg-white p-5 hover:shadow-md transition"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-12 h-12 bg-[#00B5B8]/10 rounded-full flex items-center justify-center">
+                            <span className="text-lg font-bold text-[#00B5B8]">
+                              {donor.name?.charAt(0)?.toUpperCase() || "A"}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-[#003d3b]">
+                              {donor.name || "Anonymous"}
+                            </p>
+                            {donor.email && donor.email !== "anonymous" && (
+                              <p className="text-sm text-gray-500">{donor.email}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-4 mt-3 text-sm">
+                          <div>
+                            <span className="text-gray-600">Total Donated:</span>
+                            <span className="font-semibold text-[#003d3b] ml-2">
+                              {formatCurrency(donor.totalDonated)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Donations:</span>
+                            <span className="font-semibold text-[#003d3b] ml-2">
+                              {donor.donationCount}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      {donor.otherCampaigns && donor.otherCampaigns.length > 0 && (
+                        <div className="md:w-64">
+                          <p className="text-xs font-semibold text-gray-600 mb-2">
+                            Also Supported:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {donor.otherCampaigns.slice(0, 3).map((campaignTitle, i) => (
+                              <span
+                                key={i}
+                                className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-700"
+                              >
+                                {campaignTitle}
+                              </span>
+                            ))}
+                            {donor.otherCampaigns.length > 3 && (
+                              <span className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-700">
+                                +{donor.otherCampaigns.length - 3} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Donation Details */}
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <details className="group">
+                        <summary className="cursor-pointer text-sm font-semibold text-[#00B5B8] hover:text-[#009EA1]">
+                          View Donation Details ({donor.donations.length})
+                        </summary>
+                        <div className="mt-3 space-y-2">
+                          {donor.donations.map((donation) => (
+                            <div
+                              key={donation._id}
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm"
+                            >
+                              <div>
+                                <p className="font-semibold text-[#003d3b]">
+                                  {donation.campaignTitle || "Campaign"}
+                                </p>
+                                {donation.message && (
+                                  <p className="text-xs text-gray-600 mt-1 line-clamp-1">
+                                    "{donation.message}"
+                                  </p>
+                                )}
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {formatRequestTime(donation.createdAt)}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-[#00B5B8]">
+                                  {formatCurrency(donation.amount)}
+                                </p>
+                                {donation.paymentMethod && (
+                                  <p className="text-xs text-gray-500 capitalize">
+                                    {donation.paymentMethod.replace("_", " ")}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         )}
 
         {/* Activity Feed */}
