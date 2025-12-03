@@ -51,3 +51,135 @@ input[id*="phone"] {
 .animate-fadeInUp {
   animation: fadeInUp 0.6s ease forwards;
 }
+
+/* Success Popup Animations */
+@keyframes zoomIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes confetti {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.animate-zoom-in {
+  animation: zoomIn 0.6s ease forwards;
+}
+
+.animate-slide-in-bottom {
+  animation: slideInFromBottom 0.5s ease forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+/* Delay utilities */
+.delay-200 {
+  animation-delay: 0.2s;
+}
+
+.delay-400 {
+  animation-delay: 0.4s;
+}
+
+.delay-600 {
+  animation-delay: 0.6s;
+}
+
+.delay-800 {
+  animation-delay: 0.8s;
+}
+
+.delay-1000 {
+  animation-delay: 1s;
+}
+
+.delay-1200 {
+  animation-delay: 1.2s;
+}
+
+.delay-1400 {
+  animation-delay: 1.4s;
+}
+
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #f0f;
+  position: absolute;
+  left: 50%;
+  animation: confetti 3s ease forwards;
+}
+
+.confetti:nth-child(1) {
+  background: #ff6b6b;
+  left: 10%;
+  animation-delay: 0s;
+  animation-duration: 2.5s;
+}
+
+.confetti:nth-child(2) {
+  background: #4ecdc4;
+  left: 30%;
+  animation-delay: 0.2s;
+  animation-duration: 3s;
+}
+
+.confetti:nth-child(3) {
+  background: #ffe66d;
+  left: 50%;
+  animation-delay: 0.4s;
+  animation-duration: 2.8s;
+}
+
+.confetti:nth-child(4) {
+  background: #95e1d3;
+  left: 70%;
+  animation-delay: 0.6s;
+  animation-duration: 3.2s;
+}
+
+.confetti:nth-child(5) {
+  background: #f38181;
+  left: 90%;
+  animation-delay: 0.8s;
+  animation-duration: 2.7s;
+}

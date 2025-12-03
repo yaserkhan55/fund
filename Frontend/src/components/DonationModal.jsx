@@ -63,12 +63,8 @@ export default function DonationModal({ campaignId, onClose }) {
 
       if (response.data.success) {
         setSuccess(true);
-        // Show success message for 3 seconds then close
-        setTimeout(() => {
-          onClose();
-          // Reload page to update campaign stats
-          window.location.reload();
-        }, 3000);
+        setLoading(false);
+        // Don't auto-close - let user close manually after seeing the celebration
       }
     } catch (err) {
       console.error("Donation commit error:", err);
@@ -83,47 +79,111 @@ export default function DonationModal({ campaignId, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-[9999] px-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in max-h-[90vh] overflow-y-auto">
-        {/* HEADER */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-[#003d3b]">Commit Donation</h2>
-            <p className="text-sm text-gray-500 mt-1">Support this campaign - No login required</p>
-          </div>
-          <button
-            className="text-gray-400 hover:text-[#00B5B8] text-2xl font-light transition"
-            onClick={onClose}
-          >
-            ×
-          </button>
-        </div>
+    <>
+      {/* SUCCESS POPUP - Animated Celebration (Full Screen Overlay) */}
+      {success && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex justify-center items-center z-[10000] animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 animate-zoom-in">
+            {/* Celebration Background */}
+            <div className="relative overflow-hidden rounded-3xl">
+              {/* Animated Gradient Background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600 opacity-20 animate-pulse"></div>
+              
+              {/* Floating Money Icons Animation */}
+              <div className="absolute top-4 left-4 text-4xl animate-bounce" style={{ animationDelay: '0s', animationDuration: '2s' }}>💰</div>
+              <div className="absolute top-8 right-8 text-3xl animate-bounce" style={{ animationDelay: '0.3s', animationDuration: '2.5s' }}>💵</div>
+              <div className="absolute bottom-6 left-8 text-3xl animate-bounce" style={{ animationDelay: '0.6s', animationDuration: '2.2s' }}>💸</div>
+              <div className="absolute bottom-4 right-4 text-4xl animate-bounce" style={{ animationDelay: '0.9s', animationDuration: '2.4s' }}>🎉</div>
 
-        {/* SUCCESS MESSAGE */}
-        {success && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-4 text-center">
-            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              {/* Confetti Effect */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
+                <div className="confetti"></div>
+                <div className="confetti"></div>
+                <div className="confetti"></div>
+                <div className="confetti"></div>
+                <div className="confetti"></div>
+              </div>
+
+              {/* Content */}
+              <div className="relative z-10 p-8 text-center">
+                {/* Success Icon with Animation */}
+                <div className="relative mb-6">
+                  <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-lg animate-zoom-in delay-200">
+                    <svg className="w-12 h-12 text-white animate-zoom-in delay-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  {/* Ripple Effect */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-24 h-24 border-4 border-green-400 rounded-full animate-ping opacity-75"></div>
+                  </div>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-3xl font-bold text-[#003d3b] mb-3 animate-slide-in-bottom delay-600">
+                  Donation Committed! 🎉
+                </h3>
+
+                {/* Amount Display */}
+                <div className="mb-4 animate-slide-in-bottom delay-800">
+                  <div className="inline-block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white px-6 py-3 rounded-2xl shadow-lg">
+                    <p className="text-sm text-white/90 mb-1">Your Commitment</p>
+                    <p className="text-3xl font-bold">₹{Number(amount).toLocaleString('en-IN')}</p>
+                  </div>
+                </div>
+
+                {/* Message */}
+                <p className="text-gray-700 text-base mb-2 animate-slide-in-bottom delay-1000">
+                  Thank you for your generous contribution!
+                </p>
+                <p className="text-sm text-gray-600 mb-6 animate-slide-in-bottom delay-1200">
+                  Your payment commitment has been recorded. Our team will contact you shortly for payment processing.
+                </p>
+
+                {/* Close Button */}
+                <button
+                  onClick={() => {
+                    onClose();
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 300);
+                  }}
+                  className="mt-4 px-8 py-3 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white font-bold rounded-xl hover:from-[#009EA1] hover:to-[#008B8E] transition-all transform hover:scale-105 shadow-lg animate-slide-in-bottom delay-1400"
+                >
+                  Close
+                </button>
+              </div>
             </div>
-            <h3 className="text-lg font-bold text-green-800 mb-2">Thank You!</h3>
-            <p className="text-sm text-green-700">
-              Your donation commitment of ₹{Number(amount).toLocaleString('en-IN')} has been recorded.
-            </p>
-            <p className="text-xs text-green-600 mt-2">You will be contacted for payment processing.</p>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ERROR MESSAGE */}
-        {error && !success && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-        )}
+      {/* Donation Modal */}
+      {!success && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-[9999] px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in max-h-[90vh] overflow-y-auto">
+            {/* HEADER */}
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-[#003d3b]">Commit Donation</h2>
+                <p className="text-sm text-gray-500 mt-1">Support this campaign - No login required</p>
+              </div>
+              <button
+                className="text-gray-400 hover:text-[#00B5B8] text-2xl font-light transition"
+                onClick={onClose}
+              >
+                ×
+              </button>
+            </div>
 
-        {!success && (
-          <div className="space-y-5">
+            {/* ERROR MESSAGE */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-5">
             {/* AMOUNT INPUT */}
             <div>
               <label className="block text-sm font-semibold text-[#003d3b] mb-3">
@@ -291,9 +351,10 @@ export default function DonationModal({ campaignId, onClose }) {
                 <strong>Commit Payment:</strong> You commit to pay ₹{Number(amount) || 0} later. Admin will contact you for payment.
               </p>
             </div>
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }
