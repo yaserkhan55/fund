@@ -60,8 +60,6 @@ function Home() {
   const [latestNotification, setLatestNotification] = useState(null);
   const [showDonationThanksPopup, setShowDonationThanksPopup] = useState(false);
   const [approvedDonation, setApprovedDonation] = useState(null);
-  const [showDonationThanksPopup, setShowDonationThanksPopup] = useState(false);
-  const [approvedDonation, setApprovedDonation] = useState(null);
 
   // Use refs to track if we've already processed notifications (prevents infinite loops)
   const processedRequestsRef = useRef(new Set());
