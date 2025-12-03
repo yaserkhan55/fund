@@ -23,16 +23,26 @@ export default function BrowseFundraisers() {
       const res = await axios.get(`${API_URL}/api/campaigns/approved`);
       const allCampaigns = res.data.campaigns || [];
       
-      // Filter out urgent campaigns (progress < 30%) from main grid
-      // Urgent campaigns only show on home page Trending Fundraisers
-      const nonUrgentCampaigns = allCampaigns.filter((c) => {
+      // Filter logic:
+      // - Trending Fundraisers shows: Urgent campaigns (progress < 30% AND created > 7 days ago)
+      // - Browse Fundraisers shows: All other campaigns (new campaigns, established campaigns with good progress)
+      const browseCampaigns = allCampaigns.filter((c) => {
         const progress = c.goalAmount > 0 
           ? (c.raisedAmount / c.goalAmount) * 100 
           : 0;
-        return progress >= 30; // Only show campaigns with 30% or more progress (non-urgent)
+        
+        const createdAt = new Date(c.createdAt);
+        const daysSinceCreation = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+        const isNewCampaign = daysSinceCreation <= 7; // Campaigns created in last 7 days are considered "new"
+        
+        // Show in Browse Fundraisers if:
+        // 1. It's a new campaign (created within 7 days) - newly created campaigns belong here
+        // 2. It has good progress (>= 30%) - established/active campaigns
+        // Exclude: Old urgent campaigns (low progress AND created > 7 days ago) - these go to Trending
+        return isNewCampaign || progress >= 30;
       });
       
-      setCampaigns(nonUrgentCampaigns);
+      setCampaigns(browseCampaigns);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
       setCampaigns([]);
@@ -116,7 +126,7 @@ export default function BrowseFundraisers() {
             Browse Fundraisers
           </h1>
           <p className="text-gray-600 text-lg">
-            Browse all active fundraising campaigns (Urgent campaigns are shown on the home page)
+            Browse all active fundraising campaigns. New campaigns and established fundraisers appear here.
           </p>
         </div>
 

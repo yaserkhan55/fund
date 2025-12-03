@@ -48,12 +48,21 @@ export default function TrendingFundraisers() {
           ? res.data.campaigns
           : [];
         
-        // Filter to only show urgent campaigns (progress < 30% or very low progress)
+        // Filter to only show urgent campaigns:
+        // - Low progress (< 30%)
+        // - Created more than 7 days ago (not brand new - new campaigns go to Browse Fundraisers)
         const urgentCampaigns = arr.filter((c) => {
           const progress = c.goalAmount > 0 
             ? (c.raisedAmount / c.goalAmount) * 100 
             : 0;
-          return progress < 30; // Only show campaigns with less than 30% progress
+          
+          const createdAt = new Date(c.createdAt);
+          const daysSinceCreation = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+          const isNewCampaign = daysSinceCreation <= 7;
+          
+          // Urgent = low progress AND not a brand new campaign
+          // New campaigns should appear in Browse Fundraisers first
+          return progress < 30 && !isNewCampaign;
         });
         
         setCampaigns(urgentCampaigns);
