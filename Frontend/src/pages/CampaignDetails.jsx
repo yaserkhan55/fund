@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import { FaWhatsapp } from "react-icons/fa";
 import DonationModal from "../components/DonationModal";
@@ -12,6 +13,8 @@ const TABS = [
 
 export default function CampaignDetails() {
   const { id } = useParams();
+  const { isSignedIn } = useAuth();
+  const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
   const [campaign, setCampaign] = useState(null);
@@ -398,8 +401,14 @@ export default function CampaignDetails() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log("Donate button clicked, opening modal");
-                  setShowDonation(true);
+                  console.log("Donate button clicked");
+                  if (!isSignedIn) {
+                    // Store message in localStorage to show on sign-up page
+                    localStorage.setItem("donationAuthMessage", "For donation, first you have to create account");
+                    navigate("/sign-up");
+                  } else {
+                    setShowDonation(true);
+                  }
                 }}
               >
                 {/* Shimmer effect */}

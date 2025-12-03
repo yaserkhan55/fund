@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 import FlowChart from "./FlowChart";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function Hero() {
+  const { isSignedIn } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     livesSaved: 0,
     contributors: 0,
@@ -59,8 +62,16 @@ export default function Hero() {
           </p>
 
           <div className="flex flex-wrap gap-4 mt-6">
-            <Link
-              to="/browse"
+            <button
+              onClick={() => {
+                if (!isSignedIn) {
+                  // Store message in localStorage to show on sign-up page
+                  localStorage.setItem("donationAuthMessage", "For donation, first you have to create account");
+                  navigate("/sign-up");
+                } else {
+                  navigate("/browse");
+                }
+              }}
               className="group relative inline-flex items-center gap-2 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white font-bold px-8 py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105 overflow-hidden"
             >
               <span className="relative z-10 flex items-center gap-2">
@@ -73,7 +84,7 @@ export default function Hero() {
                 </svg>
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </Link>
+            </button>
           </div>
 
           {/* STATS */}

@@ -94,42 +94,42 @@ export default function DonationModal({ campaignId, onClose }) {
               <div className="absolute inset-0 bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600 opacity-10"></div>
 
               {/* Content */}
-              <div className="relative z-10 p-8 text-center">
+              <div className="relative z-10 p-6 text-center">
                 {/* Success Icon with Animation */}
-                <div className="relative mb-6">
-                  <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-lg animate-zoom-in delay-200">
-                    <svg className="w-12 h-12 text-white animate-zoom-in delay-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="relative mb-4">
+                  <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-lg animate-zoom-in delay-200">
+                    <svg className="w-10 h-10 text-white animate-zoom-in delay-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
                   {/* Ripple Effect */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-24 h-24 border-4 border-green-400 rounded-full animate-ping opacity-75"></div>
+                    <div className="w-20 h-20 border-4 border-green-400 rounded-full animate-ping opacity-75"></div>
                   </div>
                 </div>
 
                 {/* Title */}
-                <h3 className="text-3xl font-bold text-[#003d3b] mb-4 animate-slide-in-bottom delay-600">
+                <h3 className="text-2xl font-bold text-[#003d3b] mb-3 animate-slide-in-bottom delay-600">
                   Thank You for Your Commitment!
                 </h3>
 
                 {/* Amount Display */}
-                <div className="mb-6 animate-slide-in-bottom delay-800">
-                  <div className="inline-block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white px-6 py-3 rounded-2xl shadow-lg">
-                    <p className="text-sm text-white/90 mb-1">Committed Amount</p>
-                    <p className="text-3xl font-bold">₹{Number(amount).toLocaleString('en-IN')}</p>
+                <div className="mb-4 animate-slide-in-bottom delay-800">
+                  <div className="inline-block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white px-5 py-2 rounded-2xl shadow-lg">
+                    <p className="text-xs text-white/90 mb-1">Committed Amount</p>
+                    <p className="text-2xl font-bold">₹{Number(amount).toLocaleString('en-IN')}</p>
                   </div>
                 </div>
 
                 {/* Message */}
-                <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4 mb-6 text-left animate-slide-in-bottom delay-1000">
-                  <p className="text-gray-800 text-base leading-relaxed mb-2">
+                <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-3 mb-4 text-left animate-slide-in-bottom delay-1000">
+                  <p className="text-gray-800 text-sm leading-relaxed mb-1">
                     <strong>Your payment commitment has been recorded successfully!</strong>
                   </p>
-                  <p className="text-gray-700 text-sm leading-relaxed">
+                  <p className="text-gray-700 text-xs leading-relaxed">
                     Please note that you have <strong>not paid yet</strong>. Our admin team will contact you shortly to collect the payment. Once you make the payment to the admin personally, they will approve your donation and you will receive a confirmation.
                   </p>
-                  <p className="text-gray-600 text-xs mt-3 italic">
+                  <p className="text-gray-600 text-xs mt-2 italic">
                     We hope you will complete the donation when contacted. Thank you for your support!
                   </p>
                 </div>
@@ -142,7 +142,7 @@ export default function DonationModal({ campaignId, onClose }) {
                       window.location.reload();
                     }, 300);
                   }}
-                  className="mt-4 px-8 py-3 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white font-bold rounded-xl hover:from-[#009EA1] hover:to-[#008B8E] transition-all transform hover:scale-105 shadow-lg animate-slide-in-bottom delay-1400"
+                  className="mt-3 px-6 py-2.5 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white font-bold rounded-xl hover:from-[#009EA1] hover:to-[#008B8E] transition-all transform hover:scale-105 shadow-lg animate-slide-in-bottom delay-1400 text-sm"
                 >
                   Close
                 </button>

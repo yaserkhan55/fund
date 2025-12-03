@@ -412,6 +412,16 @@ export default function Navbar() {
             />
           </SignedIn>
 
+          <SignedOut>
+            {/* Show Start Fundraiser button in mobile navbar when not signed in */}
+            <Link
+              to="/sign-up"
+              className="bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white px-3 py-1.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all text-sm whitespace-nowrap"
+            >
+              Start Fundraiser
+            </Link>
+          </SignedOut>
+
           {/* Hamburger */}
           <button onClick={() => setOpen(!open)}>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#003d3b]"

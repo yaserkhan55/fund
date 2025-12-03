@@ -107,6 +107,19 @@ export default function App() {
           <Layout>
             <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
               <div className="w-full max-w-md">
+                {/* Show message if redirected from donation */}
+                {(() => {
+                  const message = localStorage.getItem("donationAuthMessage");
+                  if (message) {
+                    localStorage.removeItem("donationAuthMessage");
+                    return (
+                      <div className="mb-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4">
+                        <p className="text-blue-800 font-semibold text-sm">{message}</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 <SafeSignUp
                   path="/sign-up"
                   routing="path"
