@@ -1,4 +1,5 @@
 import express from "express";
+import Donation from "../models/Donation.js";
 import { 
   createDonation, 
   getCampaignDonations, 
@@ -39,6 +40,38 @@ router.get("/my-donations", donorAuth, getDonorDonations);
 
 // Public route - view donations for a campaign
 router.get("/campaign/:campaignId", getCampaignDonations);
+
+// Public route - check for approved donations by email (for showing thanks popup)
+router.get("/check-approved/:email", async (req, res) => {
+  try {
+    const { email } = req.params;
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const donations = await Donation.find({
+      donorEmail: email.toLowerCase(),
+      paymentStatus: "success",
+      paymentReceived: true,
+      paymentReceivedAt: { $gte: sevenDaysAgo },
+    })
+      .populate("campaignId", "title")
+      .sort({ paymentReceivedAt: -1 })
+      .limit(10)
+      .lean();
+    
+    return res.json({
+      success: true,
+      donations,
+    });
+  } catch (err) {
+    console.error("Check Approved Donations Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to check approved donations.",
+      error: err.message,
+    });
+  }
+});
 
 // Admin routes - Comprehensive donation management
 router.get("/admin/all", adminAuth, getAllDonationsAdmin);
