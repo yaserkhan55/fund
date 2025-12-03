@@ -329,13 +329,6 @@ export default function Navbar() {
         {/* Mobile Right Area */}
         <div className="md:hidden flex items-center gap-2 flex-shrink-0">
           <SignedIn>
-            {/* Mobile Start Fundraiser Button */}
-            <Link
-              to="/create-campaign"
-              className="bg-white border border-[#00B5B8] text-[#00B5B8] px-2.5 py-1.5 rounded-lg font-semibold transition-all text-xs whitespace-nowrap animate-fundraiser-button hover:bg-[#E6F8F8] hover:border-[#009EA1]"
-            >
-              Start a Fundraiser
-            </Link>
             {/* Mobile Dashboard Icon */}
             <Link
               to="/dashboard"
