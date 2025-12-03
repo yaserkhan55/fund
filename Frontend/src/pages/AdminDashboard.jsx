@@ -104,28 +104,32 @@ export default function AdminDashboard() {
     }
     
     // Handle absolute file system paths (e.g., /opt/render/project/src/Backend/uploads/documents-xxx.jpg)
+    // Also handle relative paths like /uploads/documents-xxx.jpg
     let cleanedPath = img.trim();
     
-    // If it's an absolute path, extract the filename from it
-    if (cleanedPath.startsWith("/") && !cleanedPath.startsWith("//")) {
-      // Check if it contains "uploads/" - extract everything from "uploads/" onwards
+    // If it starts with "/uploads/" (relative path on backend), extract just the "uploads/..." part
+    if (cleanedPath.startsWith("/uploads/")) {
+      cleanedPath = cleanedPath.substring(1); // Remove leading slash: "uploads/documents-xxx.jpg"
+    }
+    // If it's an absolute file system path (contains full server path)
+    else if (cleanedPath.startsWith("/") && !cleanedPath.startsWith("//") && cleanedPath.includes("uploads/")) {
+      // Extract everything from "uploads/" onwards: "uploads/documents-xxx.jpg"
       const uploadsIndex = cleanedPath.indexOf("uploads/");
-      if (uploadsIndex !== -1) {
-        // Extract from "uploads/" onwards: "uploads/documents-xxx.jpg"
-        cleanedPath = cleanedPath.substring(uploadsIndex);
+      cleanedPath = cleanedPath.substring(uploadsIndex);
+    }
+    // If it's an absolute path without "uploads/" in it, extract filename
+    else if (cleanedPath.startsWith("/") && !cleanedPath.startsWith("//")) {
+      const parts = cleanedPath.split("/").filter(p => p);
+      const filename = parts[parts.length - 1];
+      if (filename && filename.includes(".")) {
+        cleanedPath = `uploads/${filename}`;
       } else {
-        // No "uploads/" found, extract just the filename
-        const parts = cleanedPath.split("/").filter(p => p);
-        const filename = parts[parts.length - 1];
-        if (filename && filename.includes(".")) {
-          // Construct relative path: uploads/filename.jpg
-          cleanedPath = `uploads/${filename}`;
-        } else {
-          return FALLBACK;
-        }
+        return FALLBACK;
       }
-    } else {
-      // For relative paths, clean leading slashes
+    }
+    // For relative paths without leading slash
+    else {
+      // Clean leading slashes
       cleanedPath = cleanedPath.replace(/^\/+/, "");
       
       // If path doesn't start with "uploads/", add it
@@ -162,7 +166,17 @@ export default function AdminDashboard() {
     if (!isValidDocument(doc)) {
       return null; // Return null for invalid documents to prevent links
     }
-    return resolveImg(doc);
+    const resolved = resolveImg(doc);
+    // Ensure we always return a full URL, not a relative path
+    if (resolved && !resolved.startsWith("http://") && !resolved.startsWith("https://") && !resolved.startsWith("data:")) {
+      // If it's still a relative path, construct full URL
+      const baseUrl = API_URL?.replace(/\/+$/, "") || "";
+      if (baseUrl) {
+        const cleanPath = resolved.replace(/^\/+/, "");
+        return `${baseUrl}/${cleanPath}`;
+      }
+    }
+    return resolved;
   };
 
   const isImageFile = (doc) => {
