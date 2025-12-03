@@ -79,28 +79,53 @@ export default function AdminDashboard() {
     return h;
   };
 
+  const isValidDocument = (doc) => {
+    if (!doc) return false;
+    if (typeof doc !== "string") return false;
+    const normalized = doc.trim().toLowerCase();
+    return normalized !== "" && 
+           normalized !== "undefined" && 
+           normalized !== "null" &&
+           !normalized.includes("undefined") &&
+           !normalized.includes("null");
+  };
+
   const resolveImg = (img) => {
     const FALLBACK = "https://via.placeholder.com/400x240?text=No+Image";
-    // Handle null, undefined, empty string, or string "undefined"/"null"
-    if (!img || img === "undefined" || img === "null" || typeof img !== "string" || img.trim() === "") {
+    
+    // Validate document first
+    if (!isValidDocument(img)) {
       return FALLBACK;
     }
+    
     // If it's already a full URL, return as is
     if (img.startsWith("http://") || img.startsWith("https://")) {
       return img;
     }
+    
     // Clean the path and construct URL
-    const cleanedPath = img.replace(/^\/+/, "");
-    if (!cleanedPath || cleanedPath === "undefined" || cleanedPath === "null") {
+    const cleanedPath = img.replace(/^\/+/, "").trim();
+    
+    // Double-check after cleaning
+    if (!cleanedPath || cleanedPath === "undefined" || cleanedPath === "null" || cleanedPath.includes("undefined")) {
       return FALLBACK;
     }
+    
     // Ensure API_URL doesn't have trailing slash and path doesn't start with slash
     const baseUrl = API_URL?.replace(/\/+$/, "") || "";
     if (!baseUrl) {
       console.error("API_URL is not defined");
       return FALLBACK;
     }
+    
     return `${baseUrl}/${cleanedPath}`;
+  };
+
+  const resolveDocumentUrl = (doc) => {
+    if (!isValidDocument(doc)) {
+      return null; // Return null for invalid documents to prevent links
+    }
+    return resolveImg(doc);
   };
 
   const formatDate = (date) => {
@@ -1136,18 +1161,28 @@ export default function AdminDashboard() {
                                 {Array.isArray(resp.documents) && resp.documents.length > 0 && (
                                   <div className="mt-2 flex flex-wrap gap-2">
                                     {resp.documents
-                                      .filter((doc) => doc && doc !== "undefined" && doc !== "null" && typeof doc === "string" && doc.trim() !== "")
-                                      .map((doc, docIdx) => (
-                                        <a
-                                          key={`${req._id || idx}-resp-${respIdx}-doc-${docIdx}`}
-                                          href={resolveImg(doc)}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="rounded-lg border border-sky-200 bg-white px-2 py-1 text-xs font-semibold text-sky-700 hover:border-sky-400"
-                                        >
-                                          View file {docIdx + 1}
-                                        </a>
-                                      ))}
+                                      .filter(isValidDocument)
+                                      .map((doc, docIdx) => {
+                                        const docUrl = resolveDocumentUrl(doc);
+                                        if (!docUrl) return null;
+                                        return (
+                                          <a
+                                            key={`${req._id || idx}-resp-${respIdx}-doc-${docIdx}`}
+                                            href={docUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="rounded-lg border border-sky-200 bg-white px-2 py-1 text-xs font-semibold text-sky-700 hover:border-sky-400"
+                                            onClick={(e) => {
+                                              if (!docUrl || docUrl.includes("undefined")) {
+                                                e.preventDefault();
+                                                alert("Document path is invalid");
+                                              }
+                                            }}
+                                          >
+                                            View file {docIdx + 1}
+                                          </a>
+                                        );
+                                      })}
                                   </div>
                                 )}
                               </div>
@@ -1185,18 +1220,22 @@ export default function AdminDashboard() {
                 <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Medical documents</p>
                 <div className="flex gap-2 overflow-x-auto pt-2">
                   {(c.documents?.length ? c.documents : c.medicalDocuments || [])
-                    .filter((doc) => doc && doc !== "undefined" && doc !== "null")
-                    .map((doc, idx) => (
-                      <img
-                        key={`${c._id}-doc-${idx}`}
-                        src={resolveImg(doc)}
-                        alt="Document"
-                        className="h-16 w-16 object-cover rounded border"
-                        onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/64x64?text=No+Image";
-                        }}
-                      />
-                    ))}
+                    .filter(isValidDocument)
+                    .map((doc, idx) => {
+                      const docUrl = resolveDocumentUrl(doc);
+                      if (!docUrl) return null;
+                      return (
+                        <img
+                          key={`${c._id}-doc-${idx}`}
+                          src={docUrl}
+                          alt="Document"
+                          className="h-16 w-16 object-cover rounded border"
+                          onError={(e) => {
+                            e.target.src = "https://via.placeholder.com/64x64?text=No+Image";
+                          }}
+                        />
+                      );
+                    })}
                 </div>
               </div>
             ) : null}
@@ -1485,18 +1524,28 @@ export default function AdminDashboard() {
                                 {resp.documents?.length > 0 && (
                                   <div className="flex flex-wrap gap-2">
                                     {resp.documents
-                                      .filter((doc) => doc && doc !== "undefined" && doc !== "null" && typeof doc === "string" && doc.trim() !== "")
-                                      .map((doc, docIdx) => (
-                                        <a
-                                          key={docIdx}
-                                          href={resolveImg(doc)}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-xs text-[#00B5B8] hover:underline"
-                                        >
-                                          📄 Document {docIdx + 1}
-                                        </a>
-                                      ))}
+                                      .filter(isValidDocument)
+                                      .map((doc, docIdx) => {
+                                        const docUrl = resolveDocumentUrl(doc);
+                                        if (!docUrl) return null;
+                                        return (
+                                          <a
+                                            key={docIdx}
+                                            href={docUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-[#00B5B8] hover:underline"
+                                            onClick={(e) => {
+                                              if (!docUrl || docUrl.includes("undefined")) {
+                                                e.preventDefault();
+                                                return false;
+                                              }
+                                            }}
+                                          >
+                                            📄 Document {docIdx + 1}
+                                          </a>
+                                        );
+                                      })}
                                   </div>
                                 )}
                                 <p className="text-xs text-gray-500 mt-2">
@@ -3094,18 +3143,28 @@ export default function AdminDashboard() {
                             <p className="text-xs font-semibold text-gray-600 mb-1">Documents:</p>
                             <div className="flex flex-wrap gap-2">
                               {resp.documents
-                                .filter((doc) => doc && doc !== "undefined" && doc !== "null" && typeof doc === "string" && doc.trim() !== "")
-                                .map((doc, docIdx) => (
-                                  <a
-                                    key={docIdx}
-                                    href={resolveImg(doc)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-[#00B5B8] hover:underline bg-white px-2 py-1 rounded border"
-                                  >
-                                    📄 Document {docIdx + 1}
-                                  </a>
-                                ))}
+                                .filter(isValidDocument)
+                                .map((doc, docIdx) => {
+                                  const docUrl = resolveDocumentUrl(doc);
+                                  if (!docUrl) return null;
+                                  return (
+                                    <a
+                                      key={docIdx}
+                                      href={docUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-[#00B5B8] hover:underline bg-white px-2 py-1 rounded border"
+                                      onClick={(e) => {
+                                        if (!docUrl || docUrl.includes("undefined")) {
+                                          e.preventDefault();
+                                          return false;
+                                        }
+                                      }}
+                                    >
+                                      📄 Document {docIdx + 1}
+                                    </a>
+                                  );
+                                })}
                             </div>
                           </div>
                         )}
