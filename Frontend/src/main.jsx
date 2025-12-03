@@ -48,6 +48,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     afterSignUpUrl="/auth/google/success"
     signInFallbackRedirectUrl="/auth/google/success"
     signUpFallbackRedirectUrl="/auth/google/success"
+    // Force immediate redirect after sign-up (auto sign-in)
+    forceRedirectUrl="/auth/google/success"
     localization={{
       locale: "en-US",
     }}

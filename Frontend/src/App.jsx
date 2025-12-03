@@ -126,7 +126,8 @@ export default function App() {
                   afterSignUpUrl="/auth/google/success"
                   redirectUrl="/auth/google/success"
                   signUpFallbackRedirectUrl="/auth/google/success"
-                  // Mobile-specific settings
+                  forceRedirectUrl="/auth/google/success"
+                  // Auto sign-in after sign-up - no separate login needed
                   appearance={{
                     elements: {
                       rootBox: "w-full",

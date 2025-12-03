@@ -210,10 +210,19 @@ export function SafeSignUp(props) {
     },
   };
 
+  // Ensure auto sign-in after sign-up
+  const mergedProps = {
+    ...props,
+    afterSignUpUrl: props.afterSignUpUrl || "/auth/google/success",
+    redirectUrl: props.redirectUrl || "/auth/google/success",
+    signUpFallbackRedirectUrl: props.signUpFallbackRedirectUrl || "/auth/google/success",
+    forceRedirectUrl: props.forceRedirectUrl || "/auth/google/success",
+  };
+
   return (
     <ClerkErrorBoundary>
       <SignUp 
-        {...props} 
+        {...mergedProps} 
         appearance={mergedAppearance}
       />
     </ClerkErrorBoundary>
