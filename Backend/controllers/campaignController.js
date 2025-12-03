@@ -4,6 +4,7 @@ import User from "../models/User.js";
 import { notifyOwner } from "../utils/notifyOwner.js";
 import { clerkClient } from "@clerk/express";
 import mongoose from "mongoose";
+import path from "path";
 
 /* =====================================================
    ADMIN: GET ALL CAMPAIGNS
@@ -272,9 +273,22 @@ export const respondToInfoRequest = async (req, res) => {
     const { id, requestId } = req.params;
     const note = (req.body?.note || "").trim();
     const uploadedDocs = Array.isArray(req.files)
-      ? req.files.map(
-          (file) => file.secure_url || file.path || file.url || `/uploads/${file.filename}`
-        )
+      ? req.files.map((file) => {
+          // Prefer Cloudinary URL, then relative URL, then construct from filename
+          if (file.secure_url) return file.secure_url;
+          if (file.url && file.url.startsWith("http")) return file.url;
+          if (file.url && file.url.startsWith("/")) return file.url;
+          // If we have a path, extract just the filename and create relative URL
+          if (file.path) {
+            const filename = file.filename || path.basename(file.path);
+            return `/uploads/${filename}`;
+          }
+          // Fallback: use filename if available
+          if (file.filename) {
+            return `/uploads/${file.filename}`;
+          }
+          return null;
+        }).filter(Boolean) // Remove any null values
       : [];
 
     if (!uploadedDocs.length && !note) {
