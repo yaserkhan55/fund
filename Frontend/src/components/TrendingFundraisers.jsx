@@ -42,11 +42,21 @@ export default function TrendingFundraisers() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await api.get("api/campaigns/approved");
+        // Fetch only urgent campaigns (low progress) for Trending Fundraisers
+        const res = await api.get("api/campaigns/featured?limit=20&sortBy=urgent");
         const arr = Array.isArray(res.data.campaigns)
           ? res.data.campaigns
           : [];
-        setCampaigns(arr);
+        
+        // Filter to only show urgent campaigns (progress < 30% or very low progress)
+        const urgentCampaigns = arr.filter((c) => {
+          const progress = c.goalAmount > 0 
+            ? (c.raisedAmount / c.goalAmount) * 100 
+            : 0;
+          return progress < 30; // Only show campaigns with less than 30% progress
+        });
+        
+        setCampaigns(urgentCampaigns);
       } catch (e) {
         console.error("Failed to load trending:", e);
         setCampaigns([]);
@@ -138,8 +148,13 @@ export default function TrendingFundraisers() {
                 Trending Fundraisers
               </h2>
               <p className="text-gray-600 mt-2 text-sm">
-                View the fundraisers that are most active right now.
+                Urgent campaigns that need immediate support.
               </p>
+              <div className="mt-2">
+                <span className="inline-block bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                  URGENT NEEDED
+                </span>
+              </div>
             </div>
           </div>
 
@@ -188,6 +203,12 @@ export default function TrendingFundraisers() {
                             className="w-full h-full object-cover"
                             onError={(e) => (e.currentTarget.src = "/no-image.png")}
                           />
+                          {/* Urgent Label */}
+                          <div className="absolute top-3 right-3">
+                            <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-pulse">
+                              URGENT
+                            </span>
+                          </div>
                         </div>
 
                         {/* Content Section */}

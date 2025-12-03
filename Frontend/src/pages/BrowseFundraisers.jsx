@@ -11,34 +11,33 @@ export default function BrowseFundraisers() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
-  const [featuredCampaigns, setFeaturedCampaigns] = useState([]);
-
   const categories = ["all", "medical", "education", "emergency"];
 
   useEffect(() => {
     fetchAllCampaigns();
-    fetchFeaturedCampaigns();
   }, []);
 
   const fetchAllCampaigns = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/api/campaigns/approved`);
-      setCampaigns(res.data.campaigns || []);
+      const allCampaigns = res.data.campaigns || [];
+      
+      // Filter out urgent campaigns (progress < 30%) from main grid
+      // Urgent campaigns only show on home page Trending Fundraisers
+      const nonUrgentCampaigns = allCampaigns.filter((c) => {
+        const progress = c.goalAmount > 0 
+          ? (c.raisedAmount / c.goalAmount) * 100 
+          : 0;
+        return progress >= 30; // Only show campaigns with 30% or more progress (non-urgent)
+      });
+      
+      setCampaigns(nonUrgentCampaigns);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
       setCampaigns([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchFeaturedCampaigns = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/api/campaigns/featured?limit=6&sortBy=urgent`);
-      setFeaturedCampaigns(res.data.campaigns || []);
-    } catch (error) {
-      console.error("Error fetching featured campaigns:", error);
     }
   };
 
@@ -117,85 +116,10 @@ export default function BrowseFundraisers() {
             Browse Fundraisers
           </h1>
           <p className="text-gray-600 text-lg">
-            Discover campaigns that need your support
+            Browse all active fundraising campaigns (Urgent campaigns are shown on the home page)
           </p>
         </div>
 
-        {/* Featured/Urgent Section */}
-        {featuredCampaigns.length > 0 && (
-          <section className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-[#003d3b]">Urgent Campaigns</h2>
-                <p className="text-gray-600 text-sm">Campaigns that need immediate support</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredCampaigns.map((campaign) => {
-                const progress =
-                  campaign.goalAmount > 0
-                    ? Math.min((campaign.raisedAmount / campaign.goalAmount) * 100, 100)
-                    : 0;
-                return (
-                  <Link
-                    key={campaign._id}
-                    to={`/campaign/${campaign._id}`}
-                    className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#E0F2F2] hover:shadow-2xl hover:-translate-y-2 hover:border-[#00B5B8] transition-all duration-300 flex flex-col h-full group"
-                  >
-                    <div className="relative w-full h-48 overflow-hidden bg-gray-200 flex-shrink-0">
-                      <img
-                        src={resolveImg(campaign.image)}
-                        alt={campaign.title}
-                        onError={(e) => (e.currentTarget.src = "/no-image.png")}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-3 right-3">
-                        <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-                          URGENT
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-5 flex-grow flex flex-col">
-                      <div className="flex items-center gap-2 mb-2 flex-shrink-0">
-                        {campaign.category && (
-                          <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-full">
-                            {campaign.category}
-                          </span>
-                        )}
-                        {campaign.zakatEligible && (
-                          <span className="text-xs font-semibold text-[#00897B] bg-[#E6F5F3] px-3 py-1 rounded-full">
-                            ✓ Zakat
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="font-bold text-lg text-[#003d3b] mb-2 line-clamp-2 flex-shrink-0 min-h-[3rem]">
-                        {campaign.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow min-h-[2.5rem]">
-                        {campaign.shortDescription || "No description available."}
-                      </p>
-                      <div className="mt-auto flex-shrink-0">
-                        <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
-                          <div
-                            className="h-2 rounded-full bg-[#00B5B8] transition-all"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between text-sm font-semibold text-[#003d3b] mb-3">
-                          <span>₹{(campaign.raisedAmount || 0).toLocaleString()}</span>
-                          <span>of ₹{(campaign.goalAmount || 0).toLocaleString()}</span>
-                        </div>
-                        <div className="text-center bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-2.5 rounded-xl font-semibold transition-all duration-300 group-hover:shadow-lg">
-                          مدد کریں (Help Now)
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-        )}
 
         {/* Filters and Search */}
         <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2] mb-8">
