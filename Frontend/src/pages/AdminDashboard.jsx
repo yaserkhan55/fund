@@ -1718,6 +1718,13 @@ export default function AdminDashboard() {
                               <span className="text-gray-500 text-xs">
                                 {donation.donorEmail || donation.donorId?.email || "N/A"}
                               </span>
+                              {donation.accountHolder && (
+                                <div className="mt-1 pt-1 border-t border-gray-200">
+                                  <span className="text-xs text-blue-600 font-semibold">Account Holder:</span>
+                                  <span className="text-xs text-blue-700 block">{donation.accountHolder.name}</span>
+                                  <span className="text-xs text-blue-600">{donation.accountHolder.email}</span>
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-4">
@@ -1869,6 +1876,14 @@ export default function AdminDashboard() {
                         <p><strong>Email:</strong> {selectedDonation.donorEmail || selectedDonation.donorId?.email || "N/A"}</p>
                         <p><strong>Phone:</strong> {selectedDonation.donorPhone || selectedDonation.donorId?.phone || "N/A"}</p>
                         <p><strong>Anonymous:</strong> {selectedDonation.isAnonymous ? "Yes" : "No"}</p>
+                        {selectedDonation.accountHolder && (
+                          <div className="mt-3 pt-3 border-t border-gray-300">
+                            <p className="font-semibold text-blue-700 mb-2">Account Holder Information:</p>
+                            <p><strong>Account Name:</strong> {selectedDonation.accountHolder.name}</p>
+                            <p><strong>Account Email:</strong> {selectedDonation.accountHolder.email}</p>
+                            <p><strong>Provider:</strong> {selectedDonation.accountHolder.provider || "N/A"}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -2045,6 +2060,13 @@ export default function AdminDashboard() {
                               <span className="text-gray-500 text-xs">
                                 {donation.donorEmail || "N/A"}
                               </span>
+                              {donation.accountHolder && (
+                                <div className="mt-1 pt-1 border-t border-gray-200">
+                                  <span className="text-xs text-blue-600 font-semibold">Account Holder:</span>
+                                  <span className="text-xs text-blue-700 block">{donation.accountHolder.name}</span>
+                                  <span className="text-xs text-blue-600">{donation.accountHolder.email}</span>
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-4">
@@ -2217,6 +2239,13 @@ export default function AdminDashboard() {
                               <span className="text-gray-500 text-xs">
                                 {donation.donorEmail || "N/A"}
                               </span>
+                              {donation.accountHolder && (
+                                <div className="mt-1 pt-1 border-t border-gray-200">
+                                  <span className="text-xs text-blue-600 font-semibold">Account Holder:</span>
+                                  <span className="text-xs text-blue-700 block">{donation.accountHolder.name}</span>
+                                  <span className="text-xs text-blue-600">{donation.accountHolder.email}</span>
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-4">
