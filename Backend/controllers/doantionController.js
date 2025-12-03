@@ -743,12 +743,19 @@ export const updateDonationStatus = async (req, res) => {
     const adminId = req.adminId || req.admin?.id;
 
     const update = {};
+    const adminAction = {};
+    
     if (paymentStatus) update.paymentStatus = paymentStatus;
     if (paymentReceived !== undefined) {
       update.paymentReceived = paymentReceived;
       if (paymentReceived) {
         update.paymentReceivedAt = new Date();
         update.paymentVerifiedBy = adminId;
+        // Add admin action for approval
+        adminAction.action = "approved";
+        adminAction.message = `Your donation of ₹${req.body.amount || 'N/A'} has been approved and payment received. Thank you for your contribution!`;
+        adminAction.createdAt = new Date();
+        adminAction.viewed = false;
       }
     }
     if (adminVerified !== undefined) {
@@ -758,10 +765,37 @@ export const updateDonationStatus = async (req, res) => {
     }
     if (reviewNotes !== undefined) update.reviewNotes = reviewNotes;
     if (paymentNotes !== undefined) update.paymentNotes = paymentNotes;
+    
+    // Handle rejection
+    if (req.body.adminRejected) {
+      update.adminRejected = true;
+      update.rejectionReason = req.body.rejectionReason || "Payment not received";
+      update.paymentStatus = "failed";
+      adminAction.action = "rejected";
+      adminAction.message = `Your donation commitment of ₹${req.body.amount || 'N/A'} has been rejected. Reason: ${update.rejectionReason}`;
+      adminAction.createdAt = new Date();
+      adminAction.viewed = false;
+    }
+
+    // Get donation first to get amount
+    const existingDonation = await Donation.findById(donationId).lean();
+    if (existingDonation && adminAction.action) {
+      // Update message with actual amount
+      if (adminAction.action === "approved") {
+        adminAction.message = `Your donation of ₹${existingDonation.amount.toLocaleString('en-IN')} has been approved and payment received. Thank you for your contribution!`;
+      } else {
+        adminAction.message = `Your donation commitment of ₹${existingDonation.amount.toLocaleString('en-IN')} has been rejected. Reason: ${update.rejectionReason || "Payment not received"}`;
+      }
+    }
+
+    const updateQuery = { $set: update };
+    if (adminAction.action) {
+      updateQuery.$push = { adminActions: adminAction };
+    }
 
     const donation = await Donation.findByIdAndUpdate(
       donationId,
-      { $set: update },
+      updateQuery,
       { new: true }
     )
       .populate("campaignId", "title beneficiaryName")

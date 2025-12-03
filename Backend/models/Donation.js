@@ -211,6 +211,26 @@ const donationSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // Admin actions array (similar to campaigns) for notifications
+    adminActions: [{
+      action: {
+        type: String,
+        enum: ["approved", "rejected"],
+        required: true,
+      },
+      message: {
+        type: String,
+        default: "",
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+      viewed: {
+        type: Boolean,
+        default: false,
+      },
+    }],
     // Payment Tracking
     paymentReceived: {
       type: Boolean,

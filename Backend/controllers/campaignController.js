@@ -726,6 +726,44 @@ export const getUserNotifications = async (req, res) => {
       console.error("[Notifications] Error stack:", error.stack);
     }
 
+    // Get donation notifications (by email for guest donations)
+    try {
+      const userEmail = mongoUser.email?.toLowerCase().trim();
+      if (userEmail) {
+        const donations = await Donation.find({
+          donorEmail: userEmail,
+          adminActions: { $exists: true, $ne: [] }
+        })
+          .populate("campaignId", "title")
+          .lean();
+
+        donations.forEach((donation) => {
+          if (Array.isArray(donation.adminActions)) {
+            donation.adminActions.forEach((action) => {
+              if (!action.viewed) {
+                notifications.push({
+                  id: `${donation._id}_${action._id || action.createdAt}`,
+                  type: "donation_action",
+                  donationId: donation._id.toString(),
+                  campaignId: donation.campaignId?._id?.toString() || "",
+                  campaignTitle: donation.campaignId?.title || "Campaign",
+                  action: action.action,
+                  message: action.message || (action.action === "approved" 
+                    ? `Your donation of ₹${donation.amount.toLocaleString('en-IN')} has been approved!` 
+                    : `Your donation commitment has been rejected.`),
+                  amount: donation.amount,
+                  createdAt: action.createdAt,
+                  viewed: false,
+                });
+              }
+            });
+          }
+        });
+      }
+    } catch (error) {
+      console.error("[Notifications] Error fetching donation notifications:", error);
+    }
+
     // Sort by date (newest first)
     notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -733,9 +771,11 @@ export const getUserNotifications = async (req, res) => {
     const unreadCount = notifications.length;
     
     const contactReplyCount = notifications.filter(n => n.type === "contact_reply").length;
+    const donationActionCount = notifications.filter(n => n.type === "donation_action").length;
     console.log(`[Notifications] ===== FINAL RESULT =====`);
     console.log(`[Notifications] Total notifications: ${notifications.length}`);
     console.log(`[Notifications] Contact reply notifications: ${contactReplyCount}`);
+    console.log(`[Notifications] Donation action notifications: ${donationActionCount}`);
     console.log(`[Notifications] Unread count: ${unreadCount}`);
     if (contactReplyCount > 0) {
       console.log(`[Notifications] Contact reply details:`, notifications.filter(n => n.type === "contact_reply").map(n => ({

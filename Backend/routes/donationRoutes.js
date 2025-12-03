@@ -81,4 +81,39 @@ router.get("/admin/:donationId", adminAuth, getDonationDetails);
 router.put("/admin/:donationId/status", adminAuth, updateDonationStatus);
 router.post("/admin/:donationId/flag", adminAuth, flagDonation);
 
+// Mark donation admin action as viewed
+router.put("/:donationId/admin-actions/:actionId/view", async (req, res) => {
+  try {
+    const { donationId, actionId } = req.params;
+    
+    const donation = await Donation.findById(donationId);
+    if (!donation) {
+      return res.status(404).json({
+        success: false,
+        message: "Donation not found.",
+      });
+    }
+    
+    if (Array.isArray(donation.adminActions)) {
+      const action = donation.adminActions.id(actionId);
+      if (action) {
+        action.viewed = true;
+        await donation.save();
+      }
+    }
+    
+    return res.json({
+      success: true,
+      message: "Action marked as viewed.",
+    });
+  } catch (err) {
+    console.error("Mark Donation Action Viewed Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to mark action as viewed.",
+      error: err.message,
+    });
+  }
+});
+
 export default router;
