@@ -176,13 +176,12 @@ export default function CategoryPage() {
             <Link
               key={c._id}
               to={`/campaign/${c._id}`}
-              className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col block border border-[#E0F2F2] relative group h-full"
-              style={{ minHeight: "480px", maxHeight: "480px" }}
+              className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col border border-[#E0F2F2] relative group"
             >
               {/* Subtle light effect on hover */}
               <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
               
-              <div className="h-40 w-full overflow-hidden bg-gray-200 flex-shrink-0">
+              <div className="h-48 w-full overflow-hidden bg-gray-200 flex-shrink-0">
                 <img
                   src={resolveImg(c.image || c.imageUrl)}
                   alt={c.title}
@@ -191,8 +190,8 @@ export default function CategoryPage() {
                 />
               </div>
 
-              <div className="p-5 flex flex-col flex-grow" style={{ minHeight: "340px" }}>
-                <div className="flex items-center justify-between mb-2 flex-shrink-0">
+              <div className="p-5 flex flex-col flex-grow">
+                <div className="flex items-center gap-2 mb-2 flex-shrink-0 flex-wrap">
                   {c.category && (
                     <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-full">
                       {c.category}
@@ -205,15 +204,15 @@ export default function CategoryPage() {
                   )}
                 </div>
 
-                <h3 className="text-lg font-bold text-[#003d3b] mb-2 line-clamp-2 flex-shrink-0" style={{ minHeight: "3.5rem" }}>
+                <h3 className="text-lg font-bold text-[#003d3b] mb-2 line-clamp-2 flex-shrink-0 min-h-[3.5rem]">
                   {c.title}
                 </h3>
 
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow" style={{ minHeight: "2.5rem" }}>
+                <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow min-h-[2.5rem]">
                   {c.shortDescription || "No description available."}
                 </p>
 
-                <div className="mt-auto flex-shrink-0">
+                <div className="mt-auto pt-4 flex-shrink-0 border-t border-gray-100">
                   <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
                     <div
                       className="h-2 rounded-full transition-all"
@@ -224,12 +223,12 @@ export default function CategoryPage() {
                     ></div>
                   </div>
 
-                  <div className="flex justify-between text-sm font-semibold text-[#003d3b] mb-4">
+                  <div className="flex justify-between text-sm font-semibold text-[#003d3b] mb-3">
                     <span>₹{(c.raisedAmount || 0).toLocaleString()}</span>
                     <span>of ₹{(c.goalAmount || 0).toLocaleString()}</span>
                   </div>
 
-                  <div className="block text-center bg-[#00B5B8] hover:bg-[#009EA1] text-white py-2.5 rounded-xl font-semibold transition">
+                  <div className="w-full text-center bg-[#00B5B8] hover:bg-[#009EA1] text-white py-2.5 rounded-xl font-semibold transition">
                     View Details • مزید معلومات
                   </div>
                 </div>

@@ -23,17 +23,28 @@ export default function BrowseFundraisers() {
       const res = await axios.get(`${API_URL}/api/campaigns/approved`);
       const allCampaigns = res.data.campaigns || [];
       
-      // Show ONLY non-urgent campaigns (urgent ones show in Trending Fundraisers)
-      // Clear separation:
-      // - Trending Fundraisers: Urgent campaigns (progress < 30%)
-      // - Browse Fundraisers: Non-urgent campaigns (progress >= 30%)
-      const browseCampaigns = allCampaigns.filter((c) => {
+      // Browse Fundraisers shows all campaigns EXCEPT urgent ones
+      // Trending Fundraisers shows: Urgent campaigns (progress < 30%), limited to 2-3
+      // Browse Fundraisers shows: All campaigns with progress >= 30% (non-urgent)
+      // If no non-urgent campaigns exist, show all campaigns except the top 3 urgent ones
+      let browseCampaigns = allCampaigns.filter((c) => {
         const progress = c.goalAmount > 0 
           ? (c.raisedAmount / c.goalAmount) * 100 
           : 0;
-        // ONLY show non-urgent campaigns - exclude all urgent campaigns
-        return progress >= 30;
+        return progress >= 30; // Show non-urgent campaigns
       });
+      
+      // If Browse is empty (all campaigns are urgent), show all except the top 3 urgent ones
+      // This ensures Browse always has content and avoids duplicates with Trending
+      if (browseCampaigns.length === 0) {
+        const sortedByProgress = [...allCampaigns].sort((a, b) => {
+          const progressA = a.goalAmount > 0 ? (a.raisedAmount / a.goalAmount) * 100 : 0;
+          const progressB = b.goalAmount > 0 ? (b.raisedAmount / b.goalAmount) * 100 : 0;
+          return progressA - progressB; // Sort by progress ascending (lowest first)
+        });
+        // Skip first 3 most urgent (they're in Trending), show the rest
+        browseCampaigns = sortedByProgress.slice(3);
+      }
       
       setCampaigns(browseCampaigns);
     } catch (error) {
