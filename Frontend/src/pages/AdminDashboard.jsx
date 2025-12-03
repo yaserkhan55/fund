@@ -103,8 +103,43 @@ export default function AdminDashboard() {
       return img;
     }
     
-    // Clean the path and construct URL
-    const cleanedPath = img.replace(/^\/+/, "").trim();
+    // Handle absolute file system paths (e.g., /opt/render/project/src/Backend/uploads/documents-xxx.jpg)
+    let cleanedPath = img.trim();
+    
+    // If it's an absolute path, extract the filename from it
+    if (cleanedPath.startsWith("/")) {
+      // Extract filename from absolute path
+      const parts = cleanedPath.split("/");
+      const filename = parts[parts.length - 1];
+      
+      if (filename && filename.includes(".")) {
+        // Construct relative path: uploads/filename.jpg
+        cleanedPath = `uploads/${filename}`;
+      } else {
+        // Try to find "uploads/" in the path and get everything after it
+        const uploadsIndex = cleanedPath.indexOf("uploads/");
+        if (uploadsIndex !== -1) {
+          const afterUploads = cleanedPath.substring(uploadsIndex);
+          cleanedPath = afterUploads; // This gives us "uploads/documents-xxx.jpg"
+        } else {
+          return FALLBACK;
+        }
+      }
+    } else {
+      // For relative paths, clean leading slashes
+      cleanedPath = cleanedPath.replace(/^\/+/, "");
+      
+      // If path doesn't start with "uploads/", add it
+      if (cleanedPath && !cleanedPath.startsWith("uploads/") && !cleanedPath.startsWith("http")) {
+        // Check if it's just a filename
+        if (!cleanedPath.includes("/")) {
+          cleanedPath = `uploads/${cleanedPath}`;
+        } else if (!cleanedPath.startsWith("uploads")) {
+          // Has path but doesn't start with uploads
+          cleanedPath = `uploads/${cleanedPath}`;
+        }
+      }
+    }
     
     // Double-check after cleaning
     if (!cleanedPath || cleanedPath === "undefined" || cleanedPath === "null" || cleanedPath.includes("undefined")) {
@@ -118,7 +153,10 @@ export default function AdminDashboard() {
       return FALLBACK;
     }
     
-    return `${baseUrl}/${cleanedPath}`;
+    // Ensure cleanedPath doesn't start with slash
+    const finalPath = cleanedPath.replace(/^\/+/, "");
+    
+    return `${baseUrl}/${finalPath}`;
   };
 
   const resolveDocumentUrl = (doc) => {

@@ -114,8 +114,31 @@ export default function CreatorDashboard() {
   const resolveImg = (img) => {
     if (!img) return "/no-image.png";
     if (img.startsWith("http")) return img;
-    const base = import.meta.env.VITE_API_URL;
-    return `${base}/${img.replace(/^\/+/, "")}`;
+    
+    // Handle absolute file system paths (e.g., /opt/render/project/src/Backend/uploads/file.jpg)
+    let cleanedPath = img.trim();
+    
+    // If it's an absolute path (starts with /), extract the relevant part
+    if (cleanedPath.startsWith("/") && cleanedPath.includes("uploads")) {
+      // Extract everything after "uploads/" from absolute paths
+      const uploadsIndex = cleanedPath.indexOf("uploads/");
+      if (uploadsIndex !== -1) {
+        cleanedPath = cleanedPath.substring(uploadsIndex); // Gets "uploads/filename.jpg"
+      } else {
+        // If uploads is not found but path is absolute, try to extract filename
+        const parts = cleanedPath.split("/");
+        const filename = parts[parts.length - 1];
+        if (filename && filename.includes(".")) {
+          cleanedPath = `uploads/${filename}`;
+        }
+      }
+    } else {
+      // For relative paths, clean leading slashes
+      cleanedPath = cleanedPath.replace(/^\/+/, "");
+    }
+    
+    const base = import.meta.env.VITE_API_URL || API_URL;
+    return `${base}/${cleanedPath}`;
   };
 
   const adminRequests = useMemo(() => {
