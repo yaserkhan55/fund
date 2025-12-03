@@ -64,6 +64,10 @@ export default function DonationModal({ campaignId, onClose }) {
       if (response.data.success) {
         setSuccess(true);
         setLoading(false);
+        // Store email in localStorage for checking approved donations later
+        if (donorEmail) {
+          localStorage.setItem("donorEmail", donorEmail);
+        }
         // Don't auto-close - let user close manually after seeing the celebration
       }
     } catch (err) {
@@ -87,22 +91,7 @@ export default function DonationModal({ campaignId, onClose }) {
             {/* Celebration Background */}
             <div className="relative overflow-hidden rounded-3xl">
               {/* Animated Gradient Background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600 opacity-20 animate-pulse"></div>
-              
-              {/* Floating Money Icons Animation */}
-              <div className="absolute top-4 left-4 text-4xl animate-bounce" style={{ animationDelay: '0s', animationDuration: '2s' }}>💰</div>
-              <div className="absolute top-8 right-8 text-3xl animate-bounce" style={{ animationDelay: '0.3s', animationDuration: '2.5s' }}>💵</div>
-              <div className="absolute bottom-6 left-8 text-3xl animate-bounce" style={{ animationDelay: '0.6s', animationDuration: '2.2s' }}>💸</div>
-              <div className="absolute bottom-4 right-4 text-4xl animate-bounce" style={{ animationDelay: '0.9s', animationDuration: '2.4s' }}>🎉</div>
-
-              {/* Confetti Effect */}
-              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
-                <div className="confetti"></div>
-                <div className="confetti"></div>
-                <div className="confetti"></div>
-                <div className="confetti"></div>
-                <div className="confetti"></div>
-              </div>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600 opacity-10"></div>
 
               {/* Content */}
               <div className="relative z-10 p-8 text-center">
@@ -120,25 +109,30 @@ export default function DonationModal({ campaignId, onClose }) {
                 </div>
 
                 {/* Title */}
-                <h3 className="text-3xl font-bold text-[#003d3b] mb-3 animate-slide-in-bottom delay-600">
-                  Donation Committed! 🎉
+                <h3 className="text-3xl font-bold text-[#003d3b] mb-4 animate-slide-in-bottom delay-600">
+                  Thank You for Your Commitment!
                 </h3>
 
                 {/* Amount Display */}
-                <div className="mb-4 animate-slide-in-bottom delay-800">
+                <div className="mb-6 animate-slide-in-bottom delay-800">
                   <div className="inline-block bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white px-6 py-3 rounded-2xl shadow-lg">
-                    <p className="text-sm text-white/90 mb-1">Your Commitment</p>
+                    <p className="text-sm text-white/90 mb-1">Committed Amount</p>
                     <p className="text-3xl font-bold">₹{Number(amount).toLocaleString('en-IN')}</p>
                   </div>
                 </div>
 
                 {/* Message */}
-                <p className="text-gray-700 text-base mb-2 animate-slide-in-bottom delay-1000">
-                  Thank you for your generous contribution!
-                </p>
-                <p className="text-sm text-gray-600 mb-6 animate-slide-in-bottom delay-1200">
-                  Your payment commitment has been recorded. Our team will contact you shortly for payment processing.
-                </p>
+                <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4 mb-6 text-left animate-slide-in-bottom delay-1000">
+                  <p className="text-gray-800 text-base leading-relaxed mb-2">
+                    <strong>Your payment commitment has been recorded successfully!</strong>
+                  </p>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    Please note that you have <strong>not paid yet</strong>. Our admin team will contact you shortly to collect the payment. Once you make the payment to the admin personally, they will approve your donation and you will receive a confirmation.
+                  </p>
+                  <p className="text-gray-600 text-xs mt-3 italic">
+                    We hope you will complete the donation when contacted. Thank you for your support!
+                  </p>
+                </div>
 
                 {/* Close Button */}
                 <button
