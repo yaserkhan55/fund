@@ -42,28 +42,21 @@ export default function TrendingFundraisers() {
   useEffect(() => {
     async function load() {
       try {
-        // Fetch only urgent campaigns (low progress) for Trending Fundraisers
-        const res = await api.get("api/campaigns/featured?limit=20&sortBy=urgent");
+        // Fetch urgent campaigns (low progress) for Trending Fundraisers
+        const res = await api.get("api/campaigns/featured?limit=10&sortBy=urgent");
         const arr = Array.isArray(res.data.campaigns)
           ? res.data.campaigns
           : [];
         
-        // Filter to only show urgent campaigns:
-        // - Low progress (< 30%)
-        // - Created more than 7 days ago (not brand new - new campaigns go to Browse Fundraisers)
-        const urgentCampaigns = arr.filter((c) => {
-          const progress = c.goalAmount > 0 
-            ? (c.raisedAmount / c.goalAmount) * 100 
-            : 0;
-          
-          const createdAt = new Date(c.createdAt);
-          const daysSinceCreation = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
-          const isNewCampaign = daysSinceCreation <= 7;
-          
-          // Urgent = low progress AND not a brand new campaign
-          // New campaigns should appear in Browse Fundraisers first
-          return progress < 30 && !isNewCampaign;
-        });
+        // Filter to show urgent campaigns (progress < 30%) and limit to 2-3 campaigns
+        const urgentCampaigns = arr
+          .filter((c) => {
+            const progress = c.goalAmount > 0 
+              ? (c.raisedAmount / c.goalAmount) * 100 
+              : 0;
+            return progress < 30; // Show urgent campaigns (low progress)
+          })
+          .slice(0, 3); // Limit to 3 campaigns (2-3 as requested)
         
         setCampaigns(urgentCampaigns);
       } catch (e) {
