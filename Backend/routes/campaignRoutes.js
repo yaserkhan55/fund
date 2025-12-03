@@ -12,6 +12,7 @@ import {
   getCampaignById,
   getApprovedCampaigns,
   getMyCampaigns,
+  getMyCampaignDonations,
   adminGetAllCampaigns,
   markAdminActionAsViewed,
   respondToInfoRequest,
@@ -88,6 +89,7 @@ router.get("/featured", getFeaturedCampaigns);
    USER'S OWN CAMPAIGNS
 =========================== */
 router.get("/my", requireAuth(), syncClerkUser, getMyCampaigns);
+router.get("/my/donations", requireAuth(), syncClerkUser, getMyCampaignDonations);
 
 /* ===========================
    GET USER NOTIFICATIONS

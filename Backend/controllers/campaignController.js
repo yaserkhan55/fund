@@ -1156,4 +1156,141 @@ export const createCampaign = async (req, res) => {
   }
 };
 
+/* =====================================================
+   GET DONATIONS WITH DONOR DATA FOR CAMPAIGN OWNER
+   Shows who donated to user's campaigns and their other donations
+===================================================== */
+export const getMyCampaignDonations = async (req, res) => {
+  try {
+    const clerkUserId = req.auth?.userId;
+
+    if (!clerkUserId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    let mongoUser = req.mongoUser;
+    if (!mongoUser) {
+      mongoUser = await User.findOne({ clerkId: clerkUserId });
+    }
+    
+    if (!mongoUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const mongoUserId = mongoUser._id.toString();
+
+    // Get all campaigns owned by this user
+    const userCampaigns = await Campaign.find({
+      $or: [
+        { owner: mongoUser._id },
+        { owner: mongoUserId },
+      ]
+    }).select("_id title").lean();
+
+    if (!userCampaigns || userCampaigns.length === 0) {
+      return res.json({ 
+        success: true, 
+        donations: [],
+        donorStats: {}
+      });
+    }
+
+    const campaignIds = userCampaigns.map(c => c._id);
+
+    // Import Donation model
+    const Donation = (await import("../models/Donation.js")).default;
+
+    // Get all donations for user's campaigns with payment success
+    const donations = await Donation.find({
+      campaignId: { $in: campaignIds },
+      paymentStatus: "success",
+      paymentReceived: true
+    })
+    .populate("campaignId", "title category")
+    .sort({ createdAt: -1 })
+    .lean();
+
+    // Group donations by donor (using email as key)
+    const donorMap = new Map();
+
+    for (const donation of donations) {
+      const donorEmail = donation.donorEmail?.toLowerCase() || "anonymous";
+      const donorName = donation.donorName || donation.isAnonymous ? "Anonymous" : "Guest";
+
+      if (!donorMap.has(donorEmail)) {
+        donorMap.set(donorEmail, {
+          email: donorEmail,
+          name: donorName,
+          totalDonated: 0,
+          donationCount: 0,
+          donations: [],
+          otherCampaigns: new Set()
+        });
+      }
+
+      const donor = donorMap.get(donorEmail);
+      donor.totalDonated += Number(donation.amount || 0);
+      donor.donationCount += 1;
+      donor.donations.push({
+        _id: donation._id,
+        amount: donation.amount,
+        campaignId: donation.campaignId?._id,
+        campaignTitle: donation.campaignId?.title,
+        campaignCategory: donation.campaignId?.category,
+        message: donation.message,
+        createdAt: donation.createdAt,
+        paymentMethod: donation.paymentMethod
+      });
+    }
+
+    // Get all other donations made by these donors (to other campaigns)
+    const donorEmails = Array.from(donorMap.keys()).filter(e => e !== "anonymous");
+    
+    if (donorEmails.length > 0) {
+      const otherDonations = await Donation.find({
+        donorEmail: { $in: donorEmails },
+        campaignId: { $nin: campaignIds }, // Not user's campaigns
+        paymentStatus: "success",
+        paymentReceived: true
+      })
+      .populate("campaignId", "title category")
+      .lean();
+
+      // Add other campaigns to donor data
+      for (const donation of otherDonations) {
+        const donorEmail = donation.donorEmail?.toLowerCase();
+        if (donorMap.has(donorEmail) && donation.campaignId) {
+          donorMap.get(donorEmail).otherCampaigns.add(donation.campaignId.title);
+        }
+      }
+    }
+
+    // Convert to array format
+    const donorData = Array.from(donorMap.values()).map(donor => ({
+      ...donor,
+      otherCampaigns: Array.from(donor.otherCampaigns)
+    }));
+
+    // Calculate stats
+    const totalDonations = donations.length;
+    const totalAmount = donations.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+    const uniqueDonors = donorData.length;
+
+    res.json({
+      success: true,
+      donations: donorData,
+      donorStats: {
+        totalDonations,
+        totalAmount,
+        uniqueDonors,
+        averageDonation: totalDonations > 0 ? Math.round(totalAmount / totalDonations) : 0
+      }
+    });
+
+  } catch (error) {
+    console.error("Error in getMyCampaignDonations:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 

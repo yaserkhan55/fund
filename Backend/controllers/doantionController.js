@@ -606,6 +606,22 @@ export const getAllDonationsAdmin = async (req, res) => {
       Donation.countDocuments(query),
     ]);
 
+    // Find and attach User account information for each donation by matching email
+    const User = (await import("../models/User.js")).default;
+    for (const donation of donations) {
+      if (donation.donorEmail) {
+        const user = await User.findOne({ email: donation.donorEmail.toLowerCase() }).lean();
+        if (user) {
+          donation.accountHolder = {
+            name: user.name,
+            email: user.email,
+            clerkId: user.clerkId,
+            provider: user.provider,
+          };
+        }
+      }
+    }
+
     return res.json({
       success: true,
       donations,
@@ -887,6 +903,20 @@ export const getDonationDetails = async (req, res) => {
         success: false,
         message: "Donation not found.",
       });
+    }
+
+    // Find and attach User account information if email matches
+    if (donation.donorEmail) {
+      const User = (await import("../models/User.js")).default;
+      const user = await User.findOne({ email: donation.donorEmail.toLowerCase() }).lean();
+      if (user) {
+        donation.accountHolder = {
+          name: user.name,
+          email: user.email,
+          clerkId: user.clerkId,
+          provider: user.provider,
+        };
+      }
     }
 
     return res.json({
