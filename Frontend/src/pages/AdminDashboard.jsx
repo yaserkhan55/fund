@@ -1520,7 +1520,11 @@ export default function AdminDashboard() {
                             </p>
                             {req.unviewedResponses.map((resp, respIdx) => (
                               <div key={respIdx} className="bg-white p-3 rounded border border-gray-200">
-                                <p className="text-sm text-gray-700 mb-2">{resp.note || "No note provided"}</p>
+                                {resp.note && resp.note.trim() ? (
+                                  <p className="text-sm text-gray-700 mb-2">{resp.note}</p>
+                                ) : (
+                                  <p className="text-sm text-gray-500 mb-2 italic">No note provided</p>
+                                )}
                                 {resp.documents?.length > 0 && (
                                   <div className="flex flex-wrap gap-2">
                                     {resp.documents
