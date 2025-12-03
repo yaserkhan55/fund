@@ -81,9 +81,26 @@ export default function AdminDashboard() {
 
   const resolveImg = (img) => {
     const FALLBACK = "https://via.placeholder.com/400x240?text=No+Image";
-    if (!img) return FALLBACK;
-    if (img.startsWith("http")) return img;
-    return `${API_URL}/${img.replace(/^\/+/, "")}`;
+    // Handle null, undefined, empty string, or string "undefined"/"null"
+    if (!img || img === "undefined" || img === "null" || typeof img !== "string" || img.trim() === "") {
+      return FALLBACK;
+    }
+    // If it's already a full URL, return as is
+    if (img.startsWith("http://") || img.startsWith("https://")) {
+      return img;
+    }
+    // Clean the path and construct URL
+    const cleanedPath = img.replace(/^\/+/, "");
+    if (!cleanedPath || cleanedPath === "undefined" || cleanedPath === "null") {
+      return FALLBACK;
+    }
+    // Ensure API_URL doesn't have trailing slash and path doesn't start with slash
+    const baseUrl = API_URL?.replace(/\/+$/, "") || "";
+    if (!baseUrl) {
+      console.error("API_URL is not defined");
+      return FALLBACK;
+    }
+    return `${baseUrl}/${cleanedPath}`;
   };
 
   const formatDate = (date) => {
@@ -1118,17 +1135,19 @@ export default function AdminDashboard() {
                                 {resp.note && <p className="mt-1 text-xs text-gray-700">{resp.note}</p>}
                                 {Array.isArray(resp.documents) && resp.documents.length > 0 && (
                                   <div className="mt-2 flex flex-wrap gap-2">
-                                    {resp.documents.map((doc, docIdx) => (
-                                      <a
-                                        key={`${req._id || idx}-resp-${respIdx}-doc-${docIdx}`}
-                                        href={resolveImg(doc)}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="rounded-lg border border-sky-200 bg-white px-2 py-1 text-xs font-semibold text-sky-700 hover:border-sky-400"
-                                      >
-                                        View file {docIdx + 1}
-                                      </a>
-                                    ))}
+                                    {resp.documents
+                                      .filter((doc) => doc && doc !== "undefined" && doc !== "null" && typeof doc === "string" && doc.trim() !== "")
+                                      .map((doc, docIdx) => (
+                                        <a
+                                          key={`${req._id || idx}-resp-${respIdx}-doc-${docIdx}`}
+                                          href={resolveImg(doc)}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="rounded-lg border border-sky-200 bg-white px-2 py-1 text-xs font-semibold text-sky-700 hover:border-sky-400"
+                                        >
+                                          View file {docIdx + 1}
+                                        </a>
+                                      ))}
                                   </div>
                                 )}
                               </div>
@@ -1165,14 +1184,19 @@ export default function AdminDashboard() {
               <div className="mt-3">
                 <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Medical documents</p>
                 <div className="flex gap-2 overflow-x-auto pt-2">
-                  {(c.documents?.length ? c.documents : c.medicalDocuments || []).map((doc, idx) => (
-                    <img
-                      key={`${c._id}-doc-${idx}`}
-                      src={resolveImg(doc)}
-                      alt="Document"
-                      className="h-16 w-16 object-cover rounded border"
-                    />
-                  ))}
+                  {(c.documents?.length ? c.documents : c.medicalDocuments || [])
+                    .filter((doc) => doc && doc !== "undefined" && doc !== "null")
+                    .map((doc, idx) => (
+                      <img
+                        key={`${c._id}-doc-${idx}`}
+                        src={resolveImg(doc)}
+                        alt="Document"
+                        className="h-16 w-16 object-cover rounded border"
+                        onError={(e) => {
+                          e.target.src = "https://via.placeholder.com/64x64?text=No+Image";
+                        }}
+                      />
+                    ))}
                 </div>
               </div>
             ) : null}
@@ -1460,17 +1484,19 @@ export default function AdminDashboard() {
                                 <p className="text-sm text-gray-700 mb-2">{resp.note || "No note provided"}</p>
                                 {resp.documents?.length > 0 && (
                                   <div className="flex flex-wrap gap-2">
-                                    {resp.documents.map((doc, docIdx) => (
-                                      <a
-                                        key={docIdx}
-                                        href={`${API_URL}/${doc}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-xs text-[#00B5B8] hover:underline"
-                                      >
-                                        📄 Document {docIdx + 1}
-                                      </a>
-                                    ))}
+                                    {resp.documents
+                                      .filter((doc) => doc && doc !== "undefined" && doc !== "null" && typeof doc === "string" && doc.trim() !== "")
+                                      .map((doc, docIdx) => (
+                                        <a
+                                          key={docIdx}
+                                          href={resolveImg(doc)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-[#00B5B8] hover:underline"
+                                        >
+                                          📄 Document {docIdx + 1}
+                                        </a>
+                                      ))}
                                   </div>
                                 )}
                                 <p className="text-xs text-gray-500 mt-2">
@@ -3067,17 +3093,19 @@ export default function AdminDashboard() {
                           <div className="mb-3">
                             <p className="text-xs font-semibold text-gray-600 mb-1">Documents:</p>
                             <div className="flex flex-wrap gap-2">
-                              {resp.documents.map((doc, docIdx) => (
-                                <a
-                                  key={docIdx}
-                                  href={`${API_URL}/${doc}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-[#00B5B8] hover:underline bg-white px-2 py-1 rounded border"
-                                >
-                                  📄 Document {docIdx + 1}
-                                </a>
-                              ))}
+                              {resp.documents
+                                .filter((doc) => doc && doc !== "undefined" && doc !== "null" && typeof doc === "string" && doc.trim() !== "")
+                                .map((doc, docIdx) => (
+                                  <a
+                                    key={docIdx}
+                                    href={resolveImg(doc)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-[#00B5B8] hover:underline bg-white px-2 py-1 rounded border"
+                                  >
+                                    📄 Document {docIdx + 1}
+                                  </a>
+                                ))}
                             </div>
                           </div>
                         )}
