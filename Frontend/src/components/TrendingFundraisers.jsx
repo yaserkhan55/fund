@@ -172,17 +172,20 @@ export default function TrendingFundraisers() {
           {!loading && campaigns.length > 0 && (
             <div className="relative">
               {/* Left Arrow */}
-              {campaigns.length > itemsPerView && (
-                <button
-                  onClick={handlePrev}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 sm:-translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-[#00B5B8] hover:text-white transition-all duration-300 border border-gray-200"
-                  aria-label="Previous"
-                >
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-              )}
+              <button
+                onClick={handlePrev}
+                disabled={campaigns.length <= itemsPerView}
+                className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 sm:-translate-x-4 z-10 w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center transition-all duration-300 border-2 border-[#00B5B8] hover:scale-110 ${
+                  campaigns.length > itemsPerView 
+                    ? 'hover:bg-[#00B5B8] hover:text-white cursor-pointer' 
+                    : 'opacity-50 cursor-not-allowed'
+                }`}
+                aria-label="Previous"
+              >
+                <svg className="w-6 h-6 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
 
               {/* Cards Container */}
               <div className="flex gap-4 sm:gap-6 justify-center items-stretch px-4 sm:px-8">
@@ -284,17 +287,20 @@ export default function TrendingFundraisers() {
               </div>
 
               {/* Right Arrow */}
-              {campaigns.length > itemsPerView && (
-                <button
-                  onClick={handleNext}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 sm:translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-[#00B5B8] hover:text-white transition-all duration-300 border border-gray-200"
-                  aria-label="Next"
-                >
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              )}
+              <button
+                onClick={handleNext}
+                disabled={campaigns.length <= itemsPerView}
+                className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 sm:translate-x-4 z-10 w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center transition-all duration-300 border-2 border-[#00B5B8] hover:scale-110 ${
+                  campaigns.length > itemsPerView 
+                    ? 'hover:bg-[#00B5B8] hover:text-white cursor-pointer' 
+                    : 'opacity-50 cursor-not-allowed'
+                }`}
+                aria-label="Next"
+              >
+                <svg className="w-6 h-6 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
           )}
         </div>
