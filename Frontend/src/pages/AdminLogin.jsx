@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com";
 
 export default function AdminLogin() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -35,13 +37,23 @@ export default function AdminLogin() {
           className="w-full p-3 border rounded-lg"
         />
 
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-          className="w-full p-3 border rounded-lg"
-        />
+        <div className="relative">
+          <input
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            className="w-full p-3 border rounded-lg pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+          </button>
+        </div>
 
         <button className="w-full bg-black text-white py-3 rounded-lg">
           Login
