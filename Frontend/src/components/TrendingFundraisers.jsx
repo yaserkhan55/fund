@@ -42,23 +42,20 @@ export default function TrendingFundraisers() {
   useEffect(() => {
     async function load() {
       try {
-        // Fetch urgent campaigns (low progress) for Trending Fundraisers
-        const res = await api.get("api/campaigns/featured?limit=10&sortBy=urgent");
+        // Fetch all approved campaigns
+        const res = await api.get("api/campaigns/approved");
         const arr = Array.isArray(res.data.campaigns)
           ? res.data.campaigns
           : [];
         
-        // Filter to show urgent campaigns (progress < 30%) and limit to 2-3 campaigns
-        const urgentCampaigns = arr
-          .filter((c) => {
-            const progress = c.goalAmount > 0 
-              ? (c.raisedAmount / c.goalAmount) * 100 
-              : 0;
-            return progress < 30; // Show urgent campaigns (low progress)
-          })
-          .slice(0, 3); // Limit to 3 campaigns (2-3 as requested)
+        // Trending Fundraisers shows: Medical-related campaigns AND Emergency campaigns
+        const trendingCampaigns = arr.filter((c) => {
+          const category = (c.category || "").toLowerCase();
+          // Show medical and emergency campaigns
+          return category === "medical" || category === "emergency";
+        });
         
-        setCampaigns(urgentCampaigns);
+        setCampaigns(trendingCampaigns);
       } catch (e) {
         console.error("Failed to load trending:", e);
         setCampaigns([]);
@@ -88,19 +85,34 @@ export default function TrendingFundraisers() {
 
   // Calculate visible campaigns based on activeIndex
   const visibleCampaigns = useMemo(() => {
+    if (campaigns.length === 0) return [];
     const start = activeIndex;
     const end = Math.min(start + itemsPerView, campaigns.length);
     return campaigns.slice(start, end);
   }, [campaigns, activeIndex, itemsPerView]);
 
-  const maxIndex = Math.max(0, campaigns.length - itemsPerView);
+  const maxIndex = useMemo(() => {
+    return Math.max(0, campaigns.length - itemsPerView);
+  }, [campaigns.length, itemsPerView]);
 
   const handlePrev = () => {
-    setActiveIndex((prev) => (prev > 0 ? prev - 1 : maxIndex));
+    if (campaigns.length <= itemsPerView) return; // No need to slide if all fit
+    setActiveIndex((prev) => {
+      if (prev <= 0) {
+        return maxIndex; // Loop to end
+      }
+      return prev - 1;
+    });
   };
 
   const handleNext = () => {
-    setActiveIndex((prev) => (prev < maxIndex ? prev + 1 : 0));
+    if (campaigns.length <= itemsPerView) return; // No need to slide if all fit
+    setActiveIndex((prev) => {
+      if (prev >= maxIndex) {
+        return 0; // Loop to start
+      }
+      return prev + 1;
+    });
   };
 
 
@@ -150,7 +162,7 @@ export default function TrendingFundraisers() {
                 Trending Fundraisers
               </h2>
               <p className="text-gray-600 text-base md:text-lg max-w-2xl mx-auto mb-8 animate-fade-in-delay leading-relaxed">
-                Urgent campaigns that need immediate support.
+                Medical and emergency campaigns that need immediate support.
               </p>
               <div className="mt-6 animate-bounce-gentle">
                 <span className="inline-block bg-gradient-to-r from-red-500 via-red-600 to-red-500 text-white text-sm md:text-base font-bold px-8 py-3 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-110 transition-all duration-300 relative overflow-hidden group">
@@ -188,7 +200,7 @@ export default function TrendingFundraisers() {
               </button>
 
               {/* Cards Container */}
-              <div className="flex gap-4 sm:gap-6 justify-center items-stretch px-4 sm:px-8">
+              <div className="flex gap-4 sm:gap-6 justify-center items-stretch px-4 sm:px-8 overflow-hidden transition-transform duration-500 ease-in-out">
                 {visibleCampaigns.map((c) => {
                   const progress =
                     c.goalAmount > 0
@@ -213,12 +225,22 @@ export default function TrendingFundraisers() {
                             className="w-full h-full object-cover"
                             onError={(e) => (e.currentTarget.src = "/no-image.png")}
                           />
-                          {/* Urgent Label */}
-                          <div className="absolute top-3 right-3">
-                            <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-pulse">
-                              URGENT
-                            </span>
-                          </div>
+                          {/* Urgent Label - Only show for emergency campaigns */}
+                          {(c.category || "").toLowerCase() === "emergency" && (
+                            <div className="absolute top-3 right-3">
+                              <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-pulse">
+                                URGENT
+                              </span>
+                            </div>
+                          )}
+                          {/* Medical Label */}
+                          {(c.category || "").toLowerCase() === "medical" && (
+                            <div className="absolute top-3 right-3">
+                              <span className="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                                MEDICAL
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Content Section */}
