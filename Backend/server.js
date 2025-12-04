@@ -145,6 +145,7 @@ app.use("/api/campaigns", campaignRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/donors", donorRoutes);
 
+
 /* PROTECTED ROUTES */
 app.use("/api/profile", requireAuth(), syncClerkUser, profileRoutes);
 app.use("/api/fundraisers", requireAuth(), syncClerkUser, fundraiserRoutes);
