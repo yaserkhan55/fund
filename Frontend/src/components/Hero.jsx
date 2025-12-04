@@ -12,7 +12,7 @@ export default function Hero() {
   const [stats, setStats] = useState({
     livesSaved: 0,
     contributors: 0,
-    trustedCampaigns: 0,
+    totalCampaigns: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -25,9 +25,9 @@ export default function Hero() {
       const res = await axios.get(`${API_URL}/api/campaigns/stats`);
       if (res.data.success) {
         setStats({
-          livesSaved: res.data.stats.livesSaved || 0,
+          livesSaved: res.data.stats.livesImpacted || res.data.stats.livesSaved || 0,
           contributors: res.data.stats.contributors || 0,
-          trustedCampaigns: res.data.stats.trustedCampaigns || 0,
+          totalCampaigns: res.data.stats.totalCampaigns || 0,
         });
       }
     } catch (error) {
@@ -105,9 +105,9 @@ export default function Hero() {
 
             <div className="text-center">
               <h2 className="text-3xl font-bold text-[#003D3B]">
-                {loading ? "..." : formatNumber(stats.trustedCampaigns)}
+                {loading ? "..." : formatNumber(stats.totalCampaigns)}
               </h2>
-              <p className="text-gray-600">Trusted Campaigns</p>
+              <p className="text-gray-600">Total Campaigns</p>
             </div>
           </div>
         </div>
