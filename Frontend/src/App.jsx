@@ -16,6 +16,7 @@ import EditCampaign from "./pages/EditCampaign";
 import CampaignDetails from "./pages/CampaignDetails";
 import CategoryPage from "./pages/CategoryPage";   // ✅ ADDED
 import BrowseFundraisers from "./pages/BrowseFundraisers";   // ✅ ADDED
+import Resources from "./pages/Resources";   // ✅ ADDED
 import CreatorDashboard from "./pages/CreatorDashboard";
 
 // Donor Pages (Optional - for future use)
@@ -165,6 +166,16 @@ export default function App() {
         element={
           <Layout>
             <CategoryPage />
+          </Layout>
+        }
+      />
+
+      {/* RESOURCES PAGE — ✅ ADDED */}
+      <Route
+        path="/resources"
+        element={
+          <Layout>
+            <Resources />
           </Layout>
         }
       />
