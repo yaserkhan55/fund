@@ -21,7 +21,8 @@ import {
   getUserNotifications,
   markAllNotificationsAsViewed,
   getPlatformStats,
-  getFeaturedCampaigns
+  getFeaturedCampaigns,
+  getSuccessStories
 } from "../controllers/campaignController.js";
 
 // NEW CONTROLLERS (Ketto-style details)
@@ -84,6 +85,11 @@ router.get("/stats", getPlatformStats);
    PUBLIC — Featured/Urgent Campaigns
 =========================== */
 router.get("/featured", getFeaturedCampaigns);
+
+/* ===========================
+   PUBLIC — Success Stories
+=========================== */
+router.get("/success-stories", getSuccessStories);
 
 /* ===========================
    USER'S OWN CAMPAIGNS

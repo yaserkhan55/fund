@@ -42,29 +42,94 @@ export const getApprovedCampaigns = async (req, res) => {
 ===================================================== */
 export const getPlatformStats = async (req, res) => {
   try {
+    const Donation = (await import("../models/Donation.js")).default;
+    
     // Get total approved campaigns
     const totalCampaigns = await Campaign.countDocuments({ status: "approved" });
     
     // Get total raised amount across all approved campaigns
-    const campaigns = await Campaign.find({ status: "approved" }).select("raisedAmount");
+    const campaigns = await Campaign.find({ status: "approved" }).select("raisedAmount goalAmount");
     const totalRaised = campaigns.reduce((sum, c) => sum + (Number(c.raisedAmount) || 0), 0);
+    const totalGoal = campaigns.reduce((sum, c) => sum + (Number(c.goalAmount) || 0), 0);
     
-    // Get total contributors (from donations - we'll need to check if Donation model exists)
-    // For now, estimate based on campaigns (each campaign might have multiple donors)
-    // This is a placeholder - you can enhance this with actual donation data
-    const estimatedContributors = Math.floor(totalCampaigns * 50); // Rough estimate
+    // Get real donation statistics
+    const donationStats = await Donation.aggregate([
+      { $match: { paymentStatus: "success" } },
+      {
+        $group: {
+          _id: null,
+          totalDonations: { $sum: 1 },
+          totalAmount: { $sum: "$amount" },
+          uniqueDonors: { $addToSet: { $ifNull: ["$donorId", "$donorEmail"] } }
+        }
+      }
+    ]);
     
-    // Calculate lives saved (estimate: each campaign helps ~1-3 people on average)
-    const estimatedLivesSaved = Math.floor(totalCampaigns * 1.2);
+    const contributors = donationStats[0]?.uniqueDonors?.length || 0;
+    const totalDonations = donationStats[0]?.totalDonations || 0;
+    
+    // Get successful campaigns (reached 80%+ of goal or completed)
+    const successfulCampaigns = campaigns.filter(c => {
+      const progress = c.goalAmount > 0 ? (c.raisedAmount / c.goalAmount) * 100 : 0;
+      return progress >= 80;
+    }).length;
+    
+    // Calculate average donation
+    const avgDonation = totalDonations > 0 ? totalRaised / totalDonations : 0;
+    
+    // Calculate success rate
+    const successRate = totalCampaigns > 0 ? (successfulCampaigns / totalCampaigns) * 100 : 0;
+    
+    // Estimate lives impacted (each campaign helps 1-3 people on average)
+    const livesImpacted = Math.floor(totalCampaigns * 1.5);
     
     res.json({
       success: true,
       stats: {
-        livesSaved: estimatedLivesSaved,
-        contributors: estimatedContributors,
-        trustedCampaigns: totalCampaigns,
         totalRaised: totalRaised,
+        totalGoal: totalGoal,
+        totalCampaigns: totalCampaigns,
+        successfulCampaigns: successfulCampaigns,
+        contributors: contributors,
+        totalDonations: totalDonations,
+        avgDonation: avgDonation,
+        successRate: successRate,
+        livesImpacted: livesImpacted,
       }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* =====================================================
+   PUBLIC: GET SUCCESS STORIES (Successful Campaigns)
+===================================================== */
+export const getSuccessStories = async (req, res) => {
+  try {
+    const { limit = 6 } = req.query;
+    
+    // Get successful campaigns (progress >= 80% or reached goal)
+    const campaigns = await Campaign.find({ status: "approved" })
+      .populate("owner", "name email")
+      .sort({ raisedAmount: -1 })
+      .limit(parseInt(limit) * 2);
+    
+    const successStories = campaigns
+      .map(c => {
+        const progress = c.goalAmount > 0 ? (c.raisedAmount / c.goalAmount) * 100 : 0;
+        return {
+          ...c.toObject(),
+          progress: progress
+        };
+      })
+      .filter(c => c.progress >= 80) // Only campaigns with 80%+ progress
+      .slice(0, parseInt(limit));
+    
+    res.json({
+      success: true,
+      stories: successStories,
+      count: successStories.length
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
