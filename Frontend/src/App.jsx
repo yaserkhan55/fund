@@ -17,6 +17,7 @@ import CampaignDetails from "./pages/CampaignDetails";
 import CategoryPage from "./pages/CategoryPage";   // ✅ ADDED
 import BrowseFundraisers from "./pages/BrowseFundraisers";   // ✅ ADDED
 import Resources from "./pages/Resources";   // ✅ ADDED
+import Impact from "./pages/Impact";   // ✅ ADDED
 import CreatorDashboard from "./pages/CreatorDashboard";
 
 // Donor Pages (Optional - for future use)
@@ -176,6 +177,16 @@ export default function App() {
         element={
           <Layout>
             <Resources />
+          </Layout>
+        }
+      />
+
+      {/* IMPACT PAGE — ✅ ADDED */}
+      <Route
+        path="/impact"
+        element={
+          <Layout>
+            <Impact />
           </Layout>
         }
       />

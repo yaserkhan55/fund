@@ -176,6 +176,9 @@ export default function Navbar() {
           <Link to="/resources" className="hover:text-[#00B5B8]">
             Resources
           </Link>
+          <Link to="/impact" className="hover:text-[#00B5B8]">
+            Impact
+          </Link>
         </div>
 
         {/* Desktop Right Side */}
@@ -471,6 +474,9 @@ export default function Navbar() {
 
           <Link to="/resources" onClick={() => setOpen(false)} className="block text-lg">
             Resources
+          </Link>
+          <Link to="/impact" onClick={() => setOpen(false)} className="block text-lg">
+            Impact
           </Link>
 
           <SignedIn>
