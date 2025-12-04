@@ -141,20 +141,25 @@ export default function TrendingFundraisers() {
     <>
       <section className="w-full bg-gradient-to-b from-[#E6F8F8] to-white py-16">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
-            <div>
-              <p className="uppercase text-xs tracking-[0.4em] text-[#00B5B8] font-semibold">
+          <div className="flex flex-col items-center justify-center mb-12 text-center px-4">
+            <div className="max-w-3xl mx-auto">
+              <p className="uppercase text-xs md:text-sm tracking-[0.5em] text-[#00B5B8] font-semibold mb-4 animate-pulse-slow">
                 Trending Now
               </p>
-              <h2 className="text-3xl md:text-4xl font-semibold text-[#003D3B]">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#003D3B] mb-5 animate-slide-up leading-tight">
                 Trending Fundraisers
               </h2>
-              <p className="text-gray-600 mt-2 text-sm">
+              <p className="text-gray-600 text-base md:text-lg max-w-2xl mx-auto mb-8 animate-fade-in-delay leading-relaxed">
                 Urgent campaigns that need immediate support.
               </p>
-              <div className="mt-2">
-                <span className="inline-block bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                  URGENT NEEDED
+              <div className="mt-6 animate-bounce-gentle">
+                <span className="inline-block bg-gradient-to-r from-red-500 via-red-600 to-red-500 text-white text-sm md:text-base font-bold px-8 py-3 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-110 transition-all duration-300 relative overflow-hidden group">
+                  <span className="relative z-10 flex items-center gap-2">
+                    <span className="inline-block w-2.5 h-2.5 bg-white rounded-full animate-pulse"></span>
+                    URGENT NEEDED
+                    <span className="inline-block w-2.5 h-2.5 bg-white rounded-full animate-pulse"></span>
+                  </span>
+                  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
                 </span>
               </div>
             </div>
