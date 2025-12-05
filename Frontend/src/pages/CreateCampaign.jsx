@@ -356,6 +356,7 @@ export default function CreateCampaign() {
                     <option value="medical">Medical</option>
                     <option value="education">Education</option>
                     <option value="emergency">Emergency</option>
+                    <option value="animal">Animal Help</option>
                     <option value="other">Other</option>
                   </select>
                 </div>
@@ -673,6 +674,44 @@ export default function CreateCampaign() {
                   <label className="block font-semibold text-[#003D3B] mb-2">
                     Upload Supporting Documents * (Max 10MB each)
                   </label>
+                  
+                  {/* Category-specific document instructions */}
+                  {formData.category === "medical" && (
+                    <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm font-semibold text-blue-800 mb-1">📋 Medical Documents Required:</p>
+                      <p className="text-xs text-blue-700">
+                        Please upload medical reports, prescriptions, hospital bills, discharge summaries, or any relevant medical documents.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {formData.category === "emergency" && (
+                    <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <p className="text-sm font-semibold text-orange-800 mb-1">🚨 Emergency Documents Required:</p>
+                      <p className="text-xs text-orange-700">
+                        Please upload FIR (First Information Report) or Accident Report along with any other relevant emergency documents.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {formData.category === "education" && (
+                    <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm font-semibold text-green-800 mb-1">📚 Education Documents Required:</p>
+                      <p className="text-xs text-green-700">
+                        Please upload admission proof, fee structure, institution documents, or any relevant education-related documents.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {formData.category === "animal" && (
+                    <div className="mb-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <p className="text-sm font-semibold text-purple-800 mb-1">🐾 Animal Help Documents Required:</p>
+                      <p className="text-xs text-purple-700">
+                        Please upload veterinary bills, medical reports, treatment documents, or any relevant documents for animal care.
+                      </p>
+                    </div>
+                  )}
+                  
                   <div
                     onClick={() => docsInputRef.current?.click()}
                     className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-[#00B5B8] transition"
@@ -682,7 +721,11 @@ export default function CreateCampaign() {
                     </svg>
                     <p className="text-gray-600 font-semibold">Click to upload documents</p>
                     <p className="text-sm text-gray-500 mt-1">
-                      Medical reports, prescriptions, bills, etc. (PDF, JPG, PNG)
+                      {formData.category === "medical" ? "Medical reports, prescriptions, bills, etc. (PDF, JPG, PNG)" :
+                       formData.category === "emergency" ? "FIR, Accident reports, etc. (PDF, JPG, PNG)" :
+                       formData.category === "education" ? "Admission proof, fee structure, etc. (PDF, JPG, PNG)" :
+                       formData.category === "animal" ? "Vet bills, medical reports, etc. (PDF, JPG, PNG)" :
+                       "Supporting documents (PDF, JPG, PNG)"}
                     </p>
                   </div>
                   <input
@@ -721,7 +764,11 @@ export default function CreateCampaign() {
                     <p className="text-red-500 text-sm mt-1">{errors.documents}</p>
                   )}
                   <p className="text-xs text-gray-500 mt-2">
-                    Upload discharge summaries, prescriptions, medical bills, or any relevant documents to help verification.
+                    {formData.category === "medical" ? "Upload discharge summaries, prescriptions, medical bills, or any relevant documents to help verification." :
+                     formData.category === "emergency" ? "Upload FIR, accident reports, or any relevant emergency documents to help verification." :
+                     formData.category === "education" ? "Upload admission proof, fee structure, or any relevant education documents to help verification." :
+                     formData.category === "animal" ? "Upload veterinary bills, treatment documents, or any relevant documents to help verification." :
+                     "Upload supporting documents to help verification."}
                   </p>
                 </div>
 
