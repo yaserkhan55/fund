@@ -1111,9 +1111,23 @@ export const createCampaign = async (req, res) => {
         // Cloudinary returns secure_url, or use path/url for local storage
         image = imgFile.secure_url || imgFile.url || imgFile.path;
         
-        // If it's a local path, convert to full URL
-        if (image && !image.startsWith('http') && !image.startsWith('/')) {
-          image = `/uploads/${image}`;
+        // If it's a local path, ensure it starts with /uploads/
+        if (image && !image.startsWith('http')) {
+          // If it doesn't start with /uploads/, add it
+          if (!image.startsWith('/uploads/')) {
+            // If it's just a filename, add /uploads/ prefix
+            if (!image.startsWith('/')) {
+              image = `/uploads/${image}`;
+            } else {
+              // If it's an absolute path like /opt/render/.../uploads/file.jpg, extract just /uploads/file.jpg
+              const uploadsIndex = image.indexOf('/uploads/');
+              if (uploadsIndex !== -1) {
+                image = image.substring(uploadsIndex);
+              } else {
+                image = `/uploads/${image.split('/').pop()}`;
+              }
+            }
+          }
         }
         
         console.log(`📷 Image uploaded: ${image}`);

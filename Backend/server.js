@@ -136,7 +136,26 @@ app.get("/privacy-policy", (req, res) => {
   `);
 });
 
-app.use("/uploads", express.static("uploads"));
+// Serve static files from uploads directory with CORS headers
+app.use("/uploads", (req, res, next) => {
+  // Set CORS headers for static files
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  res.header("Access-Control-Allow-Credentials", "true");
+  
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+}, express.static("uploads", {
+  setHeaders: (res, path) => {
+    // Set cache headers for images
+    if (path.match(/\.(jpg|jpeg|png|gif|webp|svg)$/)) {
+      res.setHeader("Cache-Control", "public, max-age=31536000");
+    }
+  }
+}));
 
 /* PUBLIC ROUTES */
 app.use("/api", authRoutes);
