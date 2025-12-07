@@ -7,7 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com"
 export default function WhatsAppTest() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [recipientNumber, setRecipientNumber] = useState("917058733358");
+  const [recipientNumber, setRecipientNumber] = useState("15550440443"); // Test number: +1 555 044 0443 (use your number: 917058733358 after adding to allowed list)
   const [message, setMessage] = useState("Hello! Your WhatsApp Notification from my website is working 🚀");
 
   const sendTestNotification = async () => {
