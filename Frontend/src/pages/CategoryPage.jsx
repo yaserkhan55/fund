@@ -114,29 +114,36 @@ export default function CategoryPage() {
   }
 
   return (
-    <div className="w-[90%] mx-auto mt-20 mb-20">
-      <div className="flex items-center justify-between mb-6">
+    <div className="w-[90%] max-w-7xl mx-auto mt-24 mb-20 animate-fadeInUp">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-gray-200">
         <div>
-          <h1 className="text-3xl font-bold text-[#003d3b] mb-2">
-            {formatCategoryName(category)} Fundraisers
+          <p className="uppercase text-xs tracking-[0.4em] text-[#00B5B8] font-semibold mb-2">
+            Category
+          </p>
+          <h1 className="text-4xl md:text-5xl font-bold text-[#003d3b] mb-3">
+            {formatCategoryName(category)} <span className="bg-gradient-to-r from-[#00B5B8] to-[#009EA1] bg-clip-text text-transparent">Fundraisers</span>
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-lg">
             {campaigns.length} {campaigns.length === 1 ? "campaign" : "campaigns"} found
           </p>
         </div>
         <button
           onClick={() => navigate("/")}
-          className="px-4 py-2 text-sm font-semibold text-[#00B5B8] hover:text-[#009EA1] transition"
+          className="mt-4 md:mt-0 px-6 py-3 text-sm font-semibold text-[#00B5B8] hover:text-white bg-white hover:bg-gradient-to-r hover:from-[#00B5B8] hover:to-[#009EA1] border-2 border-[#00B5B8] rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2 group"
         >
-          ← Back to Home
+          <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Home
         </button>
       </div>
 
       {campaigns.length === 0 && (
-        <div className="p-10 text-center bg-[#FFFBF0] border border-[#F9A826] rounded-xl">
-          <div className="w-16 h-16 mx-auto mb-4 bg-[#F9A826]/20 rounded-full flex items-center justify-center">
+        <div className="p-12 text-center bg-gradient-to-br from-[#FFFBF0] to-[#FFF8E1] border-2 border-[#F9A826]/30 rounded-2xl shadow-lg">
+          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-[#F9A826]/20 to-[#F9A826]/10 rounded-full flex items-center justify-center animate-pulse-slow">
             <svg
-              className="w-8 h-8 text-[#F9A826]"
+              className="w-10 h-10 text-[#F9A826]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -149,15 +156,15 @@ export default function CategoryPage() {
               />
             </svg>
           </div>
-          <p className="text-[#003d3b] text-lg font-semibold mb-2">
+          <p className="text-[#003d3b] text-xl font-bold mb-3">
             No campaigns found in this category
           </p>
-          <p className="text-gray-600 text-sm mb-4">
-            Check back later or explore other categories
+          <p className="text-gray-600 text-base mb-6 max-w-md mx-auto">
+            Check back later or explore other categories to find campaigns that need your support.
           </p>
           <button
             onClick={() => navigate("/")}
-            className="px-6 py-2 bg-[#00B5B8] text-white font-semibold rounded-xl hover:bg-[#009EA1] transition"
+            className="px-8 py-3 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white font-semibold rounded-xl hover:from-[#009EA1] hover:to-[#008B8E] transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
           >
             Browse All Campaigns
           </button>
@@ -165,8 +172,8 @@ export default function CategoryPage() {
       )}
 
       {campaigns.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {campaigns.map((c) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+        {campaigns.map((c, index) => {
           const progress =
             c.goalAmount > 0
               ? Math.min((c.raisedAmount / c.goalAmount) * 100, 100)
@@ -176,60 +183,82 @@ export default function CategoryPage() {
             <Link
               key={c._id}
               to={`/campaign/${c._id}`}
-              className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col border border-[#E0F2F2] relative group"
+              className="bg-white shadow-lg rounded-2xl overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 flex flex-col border border-gray-100 relative group"
+              style={{ animationDelay: `${index * 0.1}s` }}
             >
               {/* Subtle light effect on hover */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
               
-              <div className="h-48 w-full overflow-hidden bg-gray-200 flex-shrink-0">
+              {/* Image Section */}
+              <div className="h-52 w-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 relative">
                 <img
                   src={resolveImg(c.image || c.imageUrl)}
                   alt={c.title}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                   onError={(e) => (e.currentTarget.src = "/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg")}
                 />
-              </div>
-
-              <div className="p-5 flex flex-col flex-grow">
-                <div className="flex items-center gap-2 mb-2 flex-shrink-0 flex-wrap">
-                  {c.category && (
-                    <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-full">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                
+                {/* Category Badge */}
+                {c.category && (
+                  <div className="absolute top-3 left-3">
+                    <span className="text-xs font-bold text-white uppercase bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
                       {c.category}
                     </span>
-                  )}
-                  {c.zakatEligible && (
-                    <span className="text-xs font-semibold text-[#00897B] bg-[#E6F5F3] px-3 py-1 rounded-full">
-                      ✓ Zakat Eligible
+                  </div>
+                )}
+                
+                {/* Zakat Badge */}
+                {c.zakatEligible && (
+                  <div className="absolute top-3 right-3">
+                    <span className="text-xs font-bold text-white bg-gradient-to-r from-[#00897B] to-[#00695C] px-3 py-1.5 rounded-full shadow-lg">
+                      ✓ Zakat
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
 
-                <h3 className="text-lg font-bold text-[#003d3b] mb-2 line-clamp-2 flex-shrink-0 min-h-[3.5rem]">
+              <div className="p-6 flex flex-col flex-grow">
+                <h3 className="text-lg font-bold text-[#003d3b] mb-3 line-clamp-2 flex-shrink-0 min-h-[3.5rem] group-hover:text-[#00B5B8] transition-colors duration-300">
                   {c.title}
                 </h3>
 
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow min-h-[2.5rem]">
+                <p className="text-sm text-gray-600 mb-5 line-clamp-2 flex-grow min-h-[2.5rem] leading-relaxed">
                   {c.shortDescription || "No description available."}
                 </p>
 
-                <div className="mt-auto pt-4 flex-shrink-0 border-t border-gray-100">
-                  <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
-                    <div
-                      className="h-2 rounded-full transition-all"
-                      style={{
-                        width: `${progress}%`,
-                        background: "#F9A826",
-                      }}
-                    ></div>
+                <div className="mt-auto pt-5 flex-shrink-0 border-t border-gray-100">
+                  {/* Progress Bar */}
+                  <div className="mb-3">
+                    <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden shadow-inner">
+                      <div
+                        className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] relative overflow-hidden"
+                        style={{ width: `${progress}%` }}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1.5 font-medium">{Math.round(progress)}% funded</p>
                   </div>
 
-                  <div className="flex justify-between text-sm font-semibold text-[#003d3b] mb-3">
-                    <span>₹{(c.raisedAmount || 0).toLocaleString()}</span>
-                    <span>of ₹{(c.goalAmount || 0).toLocaleString()}</span>
+                  <div className="flex justify-between items-center text-sm font-bold text-[#003d3b] mb-4">
+                    <div>
+                      <span className="text-lg">₹{(c.raisedAmount || 0).toLocaleString()}</span>
+                      <span className="text-xs text-gray-500 font-normal ml-1">raised</span>
+                    </div>
+                    <span className="text-gray-500 font-medium">
+                      of ₹{(c.goalAmount || 0).toLocaleString()}
+                    </span>
                   </div>
 
-                  <div className="w-full text-center bg-[#00B5B8] hover:bg-[#009EA1] text-white py-2.5 rounded-xl font-semibold transition">
-                    View Details • مزید معلومات
+                  <div className="w-full text-center bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-3 rounded-xl font-semibold transition-all duration-300 transform group-hover:scale-[1.02] shadow-md hover:shadow-lg relative overflow-hidden">
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      View Details
+                      <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -translate-x-full group-hover:translate-x-full"></div>
                   </div>
                 </div>
               </div>

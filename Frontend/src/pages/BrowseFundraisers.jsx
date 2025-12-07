@@ -99,30 +99,35 @@ export default function BrowseFundraisers() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F1FAFA] pt-24 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-[#F1FAFA] via-white to-[#E6F7F7] pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-10 animate-fadeInUp">
           <button
             onClick={() => navigate("/")}
-            className="text-[#00B5B8] hover:text-[#009EA1] font-semibold mb-4 flex items-center gap-2"
+            className="text-[#00B5B8] hover:text-white hover:bg-gradient-to-r hover:from-[#00B5B8] hover:to-[#009EA1] font-semibold mb-6 flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 transform hover:scale-105 group"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
             </svg>
             Back to Home
           </button>
-          <h1 className="text-4xl md:text-5xl font-bold text-[#003d3b] mb-2">
-            Browse Fundraisers
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Browse all active fundraising campaigns
-          </p>
+          <div>
+            <p className="uppercase text-xs tracking-[0.4em] text-[#00B5B8] font-semibold mb-3">
+              Explore Campaigns
+            </p>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#003d3b] mb-3">
+              Browse <span className="bg-gradient-to-r from-[#00B5B8] to-[#009EA1] bg-clip-text text-transparent">Fundraisers</span>
+            </h1>
+            <p className="text-gray-600 text-lg md:text-xl max-w-2xl">
+              Discover and support active fundraising campaigns that need your help
+            </p>
+          </div>
         </div>
 
 
         {/* Filters and Search */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E0F2F2] mb-8">
+        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-gray-100 mb-10 animate-fadeInUp">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search */}
             <div className="flex-1 relative">
@@ -179,17 +184,17 @@ export default function BrowseFundraisers() {
           </div>
 
           {/* Results Count */}
-          <div className="mt-4 text-sm text-gray-600">
-            Showing {filteredAndSortedCampaigns.length} of {campaigns.length} campaigns
+          <div className="mt-6 text-sm text-gray-600 font-medium">
+            Showing <span className="font-bold text-[#00B5B8]">{filteredAndSortedCampaigns.length}</span> of <span className="font-bold text-[#003d3b]">{campaigns.length}</span> campaigns
           </div>
         </div>
 
         {/* Campaigns Grid */}
         {filteredAndSortedCampaigns.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-[#E0F2F2]">
-            <div className="w-20 h-20 bg-[#E6F7F7] rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="bg-white rounded-2xl shadow-xl p-12 text-center border-2 border-gray-100 animate-fadeInUp">
+            <div className="w-24 h-24 bg-gradient-to-br from-[#E6F7F7] to-[#00B5B8]/20 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse-slow">
               <svg
-                className="w-10 h-10 text-[#00B5B8]"
+                className="w-12 h-12 text-[#00B5B8]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -202,8 +207,8 @@ export default function BrowseFundraisers() {
                 />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-[#003d3b] mb-2">No campaigns found</h3>
-            <p className="text-gray-600 mb-6">
+            <h3 className="text-3xl font-bold text-[#003d3b] mb-3">No campaigns found</h3>
+            <p className="text-gray-600 mb-8 text-lg">
               Try adjusting your search or filter criteria
             </p>
             <button
@@ -212,14 +217,14 @@ export default function BrowseFundraisers() {
                 setSelectedCategory("all");
                 setSortBy("newest");
               }}
-              className="px-6 py-2 bg-[#00B5B8] text-white font-semibold rounded-xl hover:bg-[#009EA1] transition"
+              className="px-8 py-3 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white font-semibold rounded-xl hover:from-[#009EA1] hover:to-[#008B8E] transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
             >
               Clear Filters
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredAndSortedCampaigns.map((campaign) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {filteredAndSortedCampaigns.map((campaign, index) => {
               const progress =
                 campaign.goalAmount > 0
                   ? Math.min((campaign.raisedAmount / campaign.goalAmount) * 100, 100)
@@ -228,48 +233,73 @@ export default function BrowseFundraisers() {
                   <Link
                     key={campaign._id}
                     to={`/campaign/${campaign._id}`}
-                    className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#E0F2F2] hover:shadow-2xl hover:-translate-y-2 hover:border-[#00B5B8] transition-all duration-300 flex flex-col h-full group"
+                    className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-2xl hover:-translate-y-2 hover:border-[#00B5B8] transition-all duration-300 flex flex-col h-full group relative"
+                    style={{ animationDelay: `${index * 0.1}s` }}
                   >
-                    <div className="relative w-full h-48 overflow-hidden bg-gray-200 flex-shrink-0">
+                    {/* Subtle hover effect */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
+                    
+                    <div className="relative w-full h-52 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0">
                       <img
                         src={resolveImg(campaign.image)}
                         alt={campaign.title}
                         onError={(e) => (e.currentTarget.src = "/no-image.png")}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />
-                    </div>
-                    <div className="p-5 flex-grow flex flex-col">
-                      <div className="flex items-center gap-2 mb-2 flex-shrink-0">
-                        {campaign.category && (
-                          <span className="text-xs font-semibold text-gray-700 uppercase bg-gray-100 px-3 py-1 rounded-full">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      
+                      {/* Badges */}
+                      {campaign.category && (
+                        <div className="absolute top-3 left-3">
+                          <span className="text-xs font-bold text-white uppercase bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
                             {campaign.category}
                           </span>
-                        )}
-                        {campaign.zakatEligible && (
-                          <span className="text-xs font-semibold text-[#00897B] bg-[#E6F5F3] px-3 py-1 rounded-full">
+                        </div>
+                      )}
+                      {campaign.zakatEligible && (
+                        <div className="absolute top-3 right-3">
+                          <span className="text-xs font-bold text-white bg-gradient-to-r from-[#00897B] to-[#00695C] px-3 py-1.5 rounded-full shadow-lg">
                             ✓ Zakat
                           </span>
-                        )}
-                      </div>
-                      <h3 className="font-bold text-lg text-[#003d3b] mb-2 line-clamp-2 flex-shrink-0 min-h-[3rem]">
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-6 flex-grow flex flex-col relative z-10">
+                      <h3 className="font-bold text-lg text-[#003d3b] mb-3 line-clamp-2 flex-shrink-0 min-h-[3rem] group-hover:text-[#00B5B8] transition-colors duration-300">
                         {campaign.title}
                       </h3>
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow min-h-[2.5rem]">
+                      <p className="text-sm text-gray-600 mb-5 line-clamp-2 flex-grow min-h-[2.5rem] leading-relaxed">
                         {campaign.shortDescription || "No description available."}
                       </p>
-                      <div className="mt-auto flex-shrink-0">
-                        <div className="w-full bg-gray-200 h-2 rounded-full mb-2">
-                          <div
-                            className="h-2 rounded-full bg-[#00B5B8] transition-all"
-                            style={{ width: `${progress}%` }}
-                          />
+                      <div className="mt-auto flex-shrink-0 pt-5 border-t border-gray-100">
+                        <div className="mb-3">
+                          <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden shadow-inner mb-2">
+                            <div
+                              className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] relative overflow-hidden"
+                              style={{ width: `${progress}%` }}
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-500 font-medium">{Math.round(progress)}% funded</p>
                         </div>
-                        <div className="flex justify-between text-sm font-semibold text-[#003d3b] mb-3">
-                          <span>₹{(campaign.raisedAmount || 0).toLocaleString()}</span>
-                          <span>of ₹{(campaign.goalAmount || 0).toLocaleString()}</span>
+                        <div className="flex justify-between items-center text-sm font-bold text-[#003d3b] mb-4">
+                          <div>
+                            <span className="text-lg">₹{(campaign.raisedAmount || 0).toLocaleString()}</span>
+                            <span className="text-xs text-gray-500 font-normal ml-1">raised</span>
+                          </div>
+                          <span className="text-gray-500 font-medium">
+                            of ₹{(campaign.goalAmount || 0).toLocaleString()}
+                          </span>
                         </div>
-                        <div className="text-center bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-2.5 rounded-xl font-semibold transition-all duration-300 group-hover:shadow-lg">
-                          تفصیلات دیکھیں (View Details)
+                        <div className="text-center bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-3 rounded-xl font-semibold transition-all duration-300 transform group-hover:scale-[1.02] shadow-md hover:shadow-lg relative overflow-hidden">
+                          <span className="relative z-10 flex items-center justify-center gap-2">
+                            View Details
+                            <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </span>
+                          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -translate-x-full group-hover:translate-x-full"></div>
                         </div>
                       </div>
                     </div>

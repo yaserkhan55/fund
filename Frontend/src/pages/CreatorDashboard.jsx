@@ -481,65 +481,71 @@ export default function CreatorDashboard() {
     <div className="min-h-screen bg-[#F1FAFA] pt-24 pb-12 overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-[#E6F7F7] via-white to-[#FEF6E6] border border-[#E0F2F2] rounded-3xl p-6 lg:p-10 shadow-lg">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <section className="bg-gradient-to-br from-[#E6F7F7] via-white to-[#FEF6E6] border-2 border-[#E0F2F2] rounded-3xl p-6 lg:p-10 shadow-xl animate-fadeInUp relative overflow-hidden">
+          {/* Subtle background pattern */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#00B5B8]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between relative z-10">
             <div className="flex-1">
-              <p className="text-xs font-semibold tracking-[0.4em] text-[#00B5B8] uppercase">
+              <p className="text-xs font-bold tracking-[0.4em] text-[#00B5B8] uppercase mb-3">
                 Creator workspace
               </p>
-              <h1 className="text-3xl lg:text-4xl font-bold text-[#003d3b] mt-2">
-                My Campaign Dashboard
+              <h1 className="text-4xl lg:text-5xl font-bold text-[#003d3b] mt-2 mb-4">
+                My Campaign <span className="bg-gradient-to-r from-[#00B5B8] to-[#009EA1] bg-clip-text text-transparent">Dashboard</span>
               </h1>
-              <p className="text-gray-600 mt-3 max-w-2xl">
+              <p className="text-gray-600 mt-3 max-w-2xl text-lg leading-relaxed">
                 Monitor every fundraiser, respond to admin checks, and keep your supporters updated
                 in one command centre.
               </p>
-              <div className="flex flex-wrap gap-3 mt-6">
-                <div className="bg-white/80 border border-white rounded-2xl px-5 py-3 shadow-sm">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Live campaigns</p>
-                  <p className="text-2xl font-bold text-[#003d3b]">{metrics.approved}</p>
+              <div className="flex flex-wrap gap-4 mt-8">
+                <div className="bg-white/90 backdrop-blur-sm border-2 border-white rounded-2xl px-6 py-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-1 font-semibold">Live campaigns</p>
+                  <p className="text-3xl font-bold text-[#003d3b] group-hover:text-[#00B5B8] transition-colors duration-300">{metrics.approved}</p>
                 </div>
-                <div className="bg-white/80 border border-white rounded-2xl px-5 py-3 shadow-sm">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Pending review</p>
-                  <p className="text-2xl font-bold text-[#F9A826]">{metrics.pending}</p>
+                <div className="bg-white/90 backdrop-blur-sm border-2 border-white rounded-2xl px-6 py-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-1 font-semibold">Pending review</p>
+                  <p className="text-3xl font-bold text-[#F9A826] group-hover:scale-110 transition-transform duration-300">{metrics.pending}</p>
                 </div>
-                <div className="bg-white/80 border border-white rounded-2xl px-5 py-3 shadow-sm">
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Raised overall</p>
-                  <p className="text-2xl font-bold text-[#00B5B8]">
+                <div className="bg-white/90 backdrop-blur-sm border-2 border-white rounded-2xl px-6 py-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 group">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-1 font-semibold">Raised overall</p>
+                  <p className="text-2xl font-bold bg-gradient-to-r from-[#00B5B8] to-[#009EA1] bg-clip-text text-transparent">
                     {formatCurrency(metrics.totalRaised)}
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-3 mt-6">
+              <div className="flex flex-wrap gap-4 mt-8">
                 <Link
                   to="/create-campaign"
-                  className="inline-flex items-center justify-center rounded-2xl bg-[#00B5B8] px-5 py-3 text-white font-semibold shadow hover:bg-[#009EA1] transition"
+                  className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-[#00B5B8] to-[#009EA1] px-6 py-3.5 text-white font-bold shadow-lg hover:from-[#009EA1] hover:to-[#008B8E] transition-all duration-300 transform hover:scale-105 group relative overflow-hidden"
                 >
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  Launch new campaign
+                  <span className="relative z-10 flex items-center gap-2">
+                    <svg
+                      className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Launch new campaign
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -translate-x-full group-hover:translate-x-full"></div>
                 </Link>
                 <Link
                   to="/how-it-works"
-                  className="inline-flex items-center justify-center rounded-2xl border border-[#00B5B8] px-5 py-3 text-[#00B5B8] font-semibold hover:bg-[#E6F7F7] transition"
+                  className="inline-flex items-center justify-center rounded-2xl border-2 border-[#00B5B8] px-6 py-3.5 text-[#00B5B8] font-bold hover:bg-gradient-to-r hover:from-[#00B5B8] hover:to-[#009EA1] hover:text-white transition-all duration-300 transform hover:scale-105"
                 >
                   View playbook
                 </Link>
               </div>
             </div>
             <div className="w-full lg:w-auto lg:min-w-[280px]">
-              <div className="bg-white rounded-2xl border border-[#E0F2F2] shadow-inner p-5 space-y-4">
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl border-2 border-[#E0F2F2] shadow-xl p-6 space-y-5 hover:shadow-2xl transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase text-gray-500">Last 30 days</p>

@@ -179,23 +179,23 @@ export default function CampaignDetails() {
           )}
         </div>
         <div className="grid md:grid-cols-2 gap-4 mt-6">
-          <div className="p-4 rounded-2xl border border-[#E0F2F2] bg-[#F8FEFE]">
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+          <div className="p-6 rounded-2xl border-2 border-[#E0F2F2] bg-gradient-to-br from-[#F8FEFE] to-white hover:border-[#00B5B8]/40 transition-all duration-300 group">
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-2 font-semibold">
               Beneficiary
             </p>
-            <p className="text-lg font-semibold text-[#003d3b]">
+            <p className="text-xl font-bold text-[#003d3b] group-hover:text-[#00B5B8] transition-colors duration-300">
               {campaign.beneficiaryName}
             </p>
-            <p className="text-sm text-gray-500">{campaign.relation}</p>
+            <p className="text-sm text-gray-600 mt-1 font-medium">{campaign.relation}</p>
           </div>
-          <div className="p-4 rounded-2xl border border-[#E0F2F2] bg-[#F8FEFE]">
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+          <div className="p-6 rounded-2xl border-2 border-[#E0F2F2] bg-gradient-to-br from-[#F8FEFE] to-white hover:border-[#00B5B8]/40 transition-all duration-300 group">
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-2 font-semibold">
               Location
             </p>
-            <p className="text-lg font-semibold text-[#003d3b]">
+            <p className="text-xl font-bold text-[#003d3b] group-hover:text-[#00B5B8] transition-colors duration-300">
               {campaign.city}
             </p>
-            <p className="text-sm text-gray-500">{campaign.category}</p>
+            <p className="text-sm text-gray-600 mt-1 font-medium capitalize">{campaign.category}</p>
           </div>
         </div>
       </div>
@@ -280,22 +280,26 @@ export default function CampaignDetails() {
   }
 
   return (
-    <div className="bg-[#F1FAFA] min-h-screen pb-8">
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+    <div className="bg-gradient-to-br from-[#F1FAFA] via-white to-[#E6F7F7] min-h-screen pb-12">
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 animate-fadeInUp">
         <div className="grid lg:grid-cols-[3fr,2fr] gap-8">
-          <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
-            <div className="relative overflow-hidden bg-gray-100">
+          <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+            <div className="relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
               <img
                 src={heroMedia}
                 alt={campaign.title}
-                className="w-full h-[300px] lg:h-[400px] object-cover"
+                className="w-full h-[300px] lg:h-[450px] object-cover transition-transform duration-500 hover:scale-105"
                 onError={(e) => (e.currentTarget.src = FALLBACK)}
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
               <button
-                className="absolute bottom-4 right-4 px-4 py-2 bg-white rounded-full shadow text-sm font-semibold text-[#003d3b]"
+                className="absolute bottom-6 right-6 px-6 py-3 bg-white/95 backdrop-blur-sm rounded-full shadow-xl text-sm font-bold text-[#003d3b] hover:bg-white transition-all duration-300 transform hover:scale-105 flex items-center gap-2 group"
                 onClick={() => setActiveTab("documents")}
               >
-                View documents
+                <svg className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                View Documents
               </button>
             </div>
             {galleryItems.length > 1 && (
@@ -347,47 +351,59 @@ export default function CampaignDetails() {
             )}
           </div>
 
-          <aside className="bg-white rounded-3xl shadow-lg p-6 lg:sticky lg:top-24 self-start">
-            <div className="flex items-center gap-3 mb-4 text-xs uppercase tracking-[0.3em] text-[#00B5B8]">
-              <span>SEUMP VERIFIED</span>
+          <aside className="bg-white rounded-3xl shadow-xl p-8 lg:sticky lg:top-24 self-start border border-gray-100">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#00B5B8]/10 to-[#009EA1]/10 rounded-full border border-[#00B5B8]/20">
+                <svg className="w-5 h-5 text-[#00B5B8]" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-xs uppercase tracking-[0.2em] text-[#00B5B8] font-bold">SEUMP VERIFIED</span>
+              </div>
             </div>
-            <h1 className="text-3xl font-bold text-[#003d3b]">{campaign.title}</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-[#003d3b] mb-6 leading-tight">{campaign.title}</h1>
 
-            <div className="mt-6">
-              <div className="text-4xl font-bold text-[#003d3b]">
-                {formatCurrency(raised)}
+            <div className="mt-8">
+              <div className="flex items-baseline gap-2 mb-2">
+                <div className="text-5xl font-bold bg-gradient-to-r from-[#00B5B8] to-[#009EA1] bg-clip-text text-transparent">
+                  {formatCurrency(raised)}
+                </div>
               </div>
-              <p className="text-gray-500 text-sm">
-                raised of {formatCurrency(goal)} goal
+              <p className="text-gray-600 text-base mb-6 font-medium">
+                raised of <span className="text-[#003d3b] font-semibold">{formatCurrency(goal)}</span> goal
               </p>
-              <div className="mt-4 h-3 bg-[#E0F2F2] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#00B5B8]"
-                  style={{ width: `${progress}%` }}
-                />
+              <div className="mb-2">
+                <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                  <div
+                    className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] relative overflow-hidden"
+                    style={{ width: `${progress}%` }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2 font-medium">{progress}% funded</p>
               </div>
-              <div className="flex justify-between text-center mt-4">
-                <div>
-                  <p className="text-2xl font-semibold text-[#003d3b]">
+              <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-100">
+                <div className="text-center group">
+                  <p className="text-3xl font-bold text-[#003d3b] group-hover:text-[#00B5B8] transition-colors duration-300">
                     {supporters}
                   </p>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">
+                  <p className="text-xs text-gray-600 uppercase tracking-wide mt-1 font-semibold">
                     Supporters
                   </p>
                 </div>
-                <div>
-                  <p className="text-2xl font-semibold text-[#003d3b]">
+                <div className="text-center group">
+                  <p className="text-3xl font-bold text-[#003d3b] group-hover:text-[#00B5B8] transition-colors duration-300">
                     {daysLabel}
                   </p>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">
+                  <p className="text-xs text-gray-600 uppercase tracking-wide mt-1 font-semibold">
                     Days left
                   </p>
                 </div>
-                <div>
-                  <p className="text-2xl font-semibold text-[#003d3b]">
+                <div className="text-center group">
+                  <p className="text-2xl font-bold text-[#003d3b] group-hover:text-[#00B5B8] transition-colors duration-300">
                     {formatCurrency(amountLeft)}
                   </p>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">
+                  <p className="text-xs text-gray-600 uppercase tracking-wide mt-1 font-semibold">
                     Still needed
                   </p>
                 </div>
@@ -427,21 +443,35 @@ export default function CampaignDetails() {
               </div>
             )}
 
-            <div className="mt-4">
+            <div className="mt-6 space-y-3">
               <button
                 onClick={() => handleShare("whatsapp")}
-                className="w-full py-3 rounded-2xl border border-[#00B5B8] text-[#00B5B8] font-semibold hover:bg-[#E0F7F8] transition flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-xl border-2 border-[#00B5B8] text-[#00B5B8] font-semibold hover:bg-gradient-to-r hover:from-[#00B5B8] hover:to-[#009EA1] hover:text-white transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center gap-2 group"
               >
-                <FaWhatsapp className="text-xl" />
+                <FaWhatsapp className="text-xl group-hover:scale-110 transition-transform duration-300" />
                 Share on WhatsApp
               </button>
+              <button
+                onClick={() => handleShare("copy")}
+                className="w-full py-3 rounded-xl border-2 border-dashed border-[#CFE7E7] text-[#003d3b] font-medium hover:border-[#00B5B8] hover:bg-[#F8FEFE] transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                {copied ? (
+                  <>
+                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Link copied!
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy fundraiser link
+                  </>
+                )}
+              </button>
             </div>
-            <button
-              onClick={() => handleShare("copy")}
-              className="w-full mt-3 py-3 rounded-2xl border border-dashed border-[#CFE7E7] text-[#003d3b] font-medium hover:bg-[#F8FEFE]"
-            >
-              {copied ? "Link copied!" : "Copy fundraiser link"}
-            </button>
 
             <div className="mt-6 p-4 rounded-2xl bg-[#F8FEFE] border border-[#E0F2F2]">
               <p className="text-xs uppercase tracking-[0.3em] text-gray-500">

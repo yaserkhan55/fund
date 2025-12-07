@@ -93,11 +93,14 @@ export default function Impact() {
     <div className="min-h-screen bg-gradient-to-b from-[#F1FAFA] to-white pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-bold text-[#003d3b] mb-4">
-            Our Impact
+        <div className="text-center mb-20 animate-fadeInUp">
+          <p className="uppercase text-xs tracking-[0.4em] text-[#00B5B8] font-semibold mb-4">
+            Making a Difference
+          </p>
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-[#003d3b] mb-6">
+            Our <span className="bg-gradient-to-r from-[#00B5B8] to-[#009EA1] bg-clip-text text-transparent">Impact</span>
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Together, we're making a real difference in people's lives. See the impact of our community.
           </p>
         </div>

@@ -5,6 +5,11 @@ import { useNavigate } from "react-router-dom";
 export default function Resources() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("tips");
+  
+  // Add fade-in animation
+  React.useEffect(() => {
+    document.body.style.opacity = '1';
+  }, []);
 
   const fundraisingTips = [
     {
@@ -105,28 +110,32 @@ export default function Resources() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F1FAFA] to-white pt-24 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#F1FAFA] via-white to-[#E6F7F7] pt-24 pb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 animate-fadeInUp">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-[#003d3b] mb-4">
-            Resources & Help Center
+        <div className="text-center mb-16">
+          <p className="uppercase text-xs tracking-[0.4em] text-[#00B5B8] font-semibold mb-4">
+            Help & Support
+          </p>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#003d3b] mb-6">
+            Resources & <span className="bg-gradient-to-r from-[#00B5B8] to-[#009EA1] bg-clip-text text-transparent">Help Center</span>
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Everything you need to create successful campaigns and make a real impact
           </p>
         </div>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16">
           {quickLinks.map((link, idx) => (
             <Link
               key={idx}
               to={link.link}
-              className="bg-white p-4 rounded-xl shadow-md hover:shadow-xl transition-all text-center border border-gray-100 hover:border-[#00B5B8] group"
+              className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 text-center border-2 border-gray-100 hover:border-[#00B5B8] group transform hover:-translate-y-2"
+              style={{ animationDelay: `${idx * 0.1}s` }}
             >
-              <div className="text-3xl mb-2">{link.icon}</div>
-              <div className="text-sm font-semibold text-[#003d3b] group-hover:text-[#00B5B8] transition">
+              <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300">{link.icon}</div>
+              <div className="text-sm font-bold text-[#003d3b] group-hover:text-[#00B5B8] transition-colors duration-300">
                 {link.title}
               </div>
             </Link>
@@ -134,33 +143,33 @@ export default function Resources() {
         </div>
 
         {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8 justify-center">
+        <div className="flex flex-wrap gap-3 mb-12 justify-center">
           <button
             onClick={() => setActiveTab("tips")}
-            className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+            className={`px-8 py-3.5 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 ${
               activeTab === "tips"
-                ? "bg-[#00B5B8] text-white shadow-lg"
-                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                ? "bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white shadow-xl"
+                : "bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-[#00B5B8]"
             }`}
           >
             Fundraising Tips
           </button>
           <button
             onClick={() => setActiveTab("practices")}
-            className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+            className={`px-8 py-3.5 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 ${
               activeTab === "practices"
-                ? "bg-[#00B5B8] text-white shadow-lg"
-                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                ? "bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white shadow-xl"
+                : "bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-[#00B5B8]"
             }`}
           >
             Best Practices
           </button>
           <button
             onClick={() => setActiveTab("faq")}
-            className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+            className={`px-8 py-3.5 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 ${
               activeTab === "faq"
-                ? "bg-[#00B5B8] text-white shadow-lg"
-                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                ? "bg-gradient-to-r from-[#00B5B8] to-[#009EA1] text-white shadow-xl"
+                : "bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-[#00B5B8]"
             }`}
           >
             FAQ
@@ -184,13 +193,14 @@ export default function Resources() {
                 {fundraisingTips.map((tip, idx) => (
                   <div
                     key={idx}
-                    className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all border border-gray-100 hover:border-[#00B5B8]"
+                    className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-gray-100 hover:border-[#00B5B8] group transform hover:-translate-y-2"
+                    style={{ animationDelay: `${idx * 0.1}s` }}
                   >
-                    <div className="text-4xl mb-3">{tip.icon}</div>
-                    <h3 className="text-xl font-bold text-[#003d3b] mb-2">
+                    <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300">{tip.icon}</div>
+                    <h3 className="text-xl font-bold text-[#003d3b] mb-3 group-hover:text-[#00B5B8] transition-colors duration-300">
                       {tip.title}
                     </h3>
-                    <p className="text-gray-600">{tip.description}</p>
+                    <p className="text-gray-600 leading-relaxed">{tip.description}</p>
                   </div>
                 ))}
               </div>
