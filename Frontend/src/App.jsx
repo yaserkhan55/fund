@@ -19,6 +19,7 @@ import BrowseFundraisers from "./pages/BrowseFundraisers";   // ✅ ADDED
 import Resources from "./pages/Resources";   // ✅ ADDED
 import Impact from "./pages/Impact";   // ✅ ADDED
 import CreatorDashboard from "./pages/CreatorDashboard";
+import WhatsAppTestPage from "./pages/WhatsAppTestPage";
 
 // Donor Pages (Optional - for future use)
 // import DonorDashboard from "./pages/DonorDashboard";
@@ -187,6 +188,16 @@ export default function App() {
         element={
           <Layout>
             <Impact />
+          </Layout>
+        }
+      />
+
+      {/* WHATSAPP TEST PAGE */}
+      <Route
+        path="/whatsapp-test"
+        element={
+          <Layout>
+            <WhatsAppTestPage />
           </Layout>
         }
       />
