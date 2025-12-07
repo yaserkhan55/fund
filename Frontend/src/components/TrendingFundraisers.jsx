@@ -216,15 +216,17 @@ export default function TrendingFundraisers() {
                       key={c._id}
                       className="flex-shrink-0 w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-sm mx-auto"
                     >
-                      <div className="bg-white shadow-lg rounded-2xl overflow-hidden flex flex-col border border-gray-100 h-full transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-[#00B5B8]" style={{ minHeight: '420px' }}>
+                      <div className="bg-white shadow-lg rounded-2xl overflow-hidden flex flex-col border border-gray-100 h-full transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-[#00B5B8] group" style={{ minHeight: '420px' }}>
                         {/* Image Section - Fixed height, proper display */}
-                        <div className="relative w-full h-48 overflow-hidden bg-gray-200">
+                        <div className="relative w-full h-48 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
                           <img
                             src={resolveImg(c.image || c.imageUrl)}
                             alt={c.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             onError={(e) => (e.currentTarget.src = "/no-image.png")}
                           />
+                          {/* Gradient overlay on hover */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                           {/* Urgent Label - Only show for emergency campaigns */}
                           {(c.category || "").toLowerCase() === "emergency" && (
                             <div className="absolute top-3 right-3">
@@ -246,26 +248,31 @@ export default function TrendingFundraisers() {
                         {/* Content Section */}
                         <div className="p-5 flex flex-col flex-grow">
                           {/* Title */}
-                          <h3 className="text-lg font-bold text-[#003d3b] mb-3 line-clamp-2 leading-tight min-h-[3rem]">
+                          <h3 className="text-lg font-bold text-[#003d3b] mb-4 line-clamp-2 leading-tight min-h-[3rem] group-hover:text-[#00B5B8] transition-colors duration-300">
                             {c.title}
                           </h3>
 
-
                           {/* Amount Display */}
-                          <div className="mb-3">
-                            <div className="flex justify-between items-center text-sm font-semibold text-[#003d3b] mb-2">
-                              <span>₹{(c.raisedAmount || 0).toLocaleString('en-IN')}</span>
-                              <span className="text-gray-500">
-                                raised out of ₹{(c.goalAmount || 0).toLocaleString('en-IN')}
+                          <div className="mb-4">
+                            <div className="flex justify-between items-center mb-3">
+                              <div>
+                                <span className="text-lg font-bold text-[#003d3b]">₹{(c.raisedAmount || 0).toLocaleString('en-IN')}</span>
+                                <span className="text-xs text-gray-500 ml-1">raised</span>
+                              </div>
+                              <span className="text-sm text-gray-500 font-medium">
+                                of ₹{(c.goalAmount || 0).toLocaleString('en-IN')}
                               </span>
                             </div>
                             {/* Progress Bar */}
-                            <div className="w-full bg-gray-200 h-2 rounded-full">
+                            <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden shadow-inner">
                               <div
-                                className="h-2 rounded-full transition-all duration-500 bg-[#00B5B8]"
+                                className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#00B5B8] to-[#009EA1] relative overflow-hidden"
                                 style={{ width: `${progress}%` }}
-                              ></div>
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+                              </div>
                             </div>
+                            <p className="text-xs text-gray-500 mt-1.5 font-medium">{Math.round(progress)}% funded</p>
                           </div>
 
                           {/* Campaign Info */}
@@ -296,9 +303,18 @@ export default function TrendingFundraisers() {
                           <div className="mt-auto">
                             <button
                               onClick={(e) => handleContribute(e, c._id)}
-                              className="w-full bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-1.5"
+                              className="w-full bg-gradient-to-r from-[#00B5B8] to-[#009EA1] hover:from-[#009EA1] hover:to-[#008B8E] text-white py-3 rounded-xl font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-[1.02] group/btn relative overflow-hidden"
                             >
-                              تعاون (Contribute)
+                              <span className="relative z-10 flex items-center gap-2">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                                تعاون (Contribute)
+                                <svg className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </span>
+                              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500 transform -translate-x-full group-hover/btn:translate-x-full"></div>
                             </button>
                           </div>
                         </div>

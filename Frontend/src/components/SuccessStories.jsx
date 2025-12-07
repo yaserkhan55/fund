@@ -125,11 +125,19 @@ export default function SuccessStories() {
                         flexBasis: `${100 / itemsPerView}%`
                       }}
                     >
-                      <div className="bg-white border border-[#CFE7E7] rounded-2xl p-6 shadow-md h-full hover:shadow-lg hover:border-[#00B5B8]/30 transition-all duration-300 relative group">
+                      <div className="bg-white border border-[#CFE7E7] rounded-2xl p-6 md:p-8 shadow-md h-full hover:shadow-xl hover:border-[#00B5B8]/40 transition-all duration-300 relative group">
                         {/* Subtle light effect on hover */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="h-16 w-16 rounded-full bg-[#E6F7F7] flex items-center justify-center text-[#00B5B8] font-semibold text-xl flex-shrink-0">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#00B5B8]/0 via-[#00B5B8]/0 to-[#00B5B8]/8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
+                        
+                        {/* Quote icon */}
+                        <div className="absolute top-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                          <svg className="w-12 h-12 text-[#00B5B8]" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.996 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.984zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
+                          </svg>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 mb-5 relative z-10">
+                          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#E6F7F7] to-[#00B5B8]/20 flex items-center justify-center text-[#00B5B8] font-semibold text-xl flex-shrink-0 ring-2 ring-[#00B5B8]/20 group-hover:ring-[#00B5B8]/40 transition-all duration-300">
                             {story.avatar ? (
                               <img
                                 src={story.avatar}
@@ -149,11 +157,11 @@ export default function SuccessStories() {
                             )}
                           </div>
                           <div>
-                            <p className="text-lg font-semibold text-[#003D3B]">{story.name}</p>
-                            <p className="text-sm text-[#005A58]">{story.city}</p>
+                            <p className="text-lg font-bold text-[#003D3B] group-hover:text-[#00B5B8] transition-colors duration-300">{story.name}</p>
+                            <p className="text-sm text-[#005A58] font-medium">{story.city}</p>
                           </div>
                         </div>
-                        <p className="text-[#003D3B]/90 leading-relaxed text-base">
+                        <p className="text-[#003D3B]/90 leading-relaxed text-base md:text-lg relative z-10 italic">
                           "{story.quote}"
                         </p>
                       </div>

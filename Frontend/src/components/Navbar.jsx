@@ -129,52 +129,72 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="w-full bg-white border-b border-gray-200 shadow-sm fixed top-0 left-0 right-0 z-50 overflow-visible">
+    <nav className="w-full bg-white/95 backdrop-blur-sm border-b border-gray-200/80 shadow-sm fixed top-0 left-0 right-0 z-50 overflow-visible transition-all duration-300">
       <div className="max-w-7xl mx-auto h-20 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 relative">
 
         {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 min-w-0">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center rounded-full bg-white border-2 border-[#00B5B8] overflow-hidden shadow-sm flex-shrink-0">
+        <Link to="/" className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 min-w-0 group">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center rounded-full bg-white border-2 border-[#00B5B8] overflow-hidden shadow-sm flex-shrink-0 transition-all duration-300 group-hover:shadow-md group-hover:scale-105">
             <img
               src="/WhatsApp Image 2025-11-20 at 12.07.54 PM.jpeg"
-              className="w-full h-full object-contain p-1.5"
+              className="w-full h-full object-contain p-1.5 transition-transform duration-300 group-hover:scale-110"
             />
           </div>
-          <span className="text-lg sm:text-xl md:text-2xl font-bold text-[#003d3b] tracking-wide truncate">
+          <span className="text-lg sm:text-xl md:text-2xl font-bold text-[#003d3b] tracking-wide truncate group-hover:text-[#00B5B8] transition-colors duration-300">
             SEUMP
           </span>
         </Link>
 
         {/* Desktop Menu */}
         <div className="hidden lg:flex items-center space-x-4 xl:space-x-6 text-gray-700 font-medium flex-shrink-0">
-          <Link to="/browse" className="hover:text-[#00B5B8]">Browse Fundraisers</Link>
+          <Link to="/browse" className="hover:text-[#00B5B8] transition-colors duration-300 relative group">
+            Browse Fundraisers
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#00B5B8] transition-all duration-300 group-hover:w-full"></span>
+          </Link>
 
           {/* FIXED DROPDOWN (click-to-open) */}
           <div className="relative" ref={menuRef}>
             <span
-              className="hover:text-[#00B5B8] cursor-pointer"
+              className="hover:text-[#00B5B8] cursor-pointer transition-colors duration-300 relative group"
               onClick={() => setMenuOpen(!menuOpen)}
             >
               Fundraise For ▾
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#00B5B8] transition-all duration-300 group-hover:w-full"></span>
             </span>
 
             {menuOpen && (
-              <div className="absolute bg-white shadow-lg border rounded-md mt-2 w-44 py-2 z-50">
-                <Link className="block px-4 py-2 hover:bg-gray-100" to="/category/medical">
-                  Medical
+              <div className="absolute bg-white shadow-xl border border-gray-100 rounded-lg mt-2 w-48 py-2 z-50 animate-fadeInUp overflow-hidden">
+                <Link className="block px-4 py-2.5 hover:bg-gradient-to-r hover:from-[#00B5B8]/10 hover:to-transparent transition-all duration-300 hover:pl-6" to="/category/medical">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    Medical
+                  </span>
                 </Link>
-                <Link className="block px-4 py-2 hover:bg-gray-100" to="/category/education">
-                  Education
+                <Link className="block px-4 py-2.5 hover:bg-gradient-to-r hover:from-[#00B5B8]/10 hover:to-transparent transition-all duration-300 hover:pl-6" to="/category/education">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-[#00B5B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    Education
+                  </span>
                 </Link>
-                <Link className="block px-4 py-2 hover:bg-gray-100" to="/category/emergency">
-                  Emergencies
+                <Link className="block px-4 py-2.5 hover:bg-gradient-to-r hover:from-[#00B5B8]/10 hover:to-transparent transition-all duration-300 hover:pl-6" to="/category/emergency">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Emergencies
+                  </span>
                 </Link>
               </div>
             )}
           </div>
 
-          <Link to="/how-it-works" className="hover:text-[#00B5B8]">
+          <Link to="/how-it-works" className="hover:text-[#00B5B8] transition-colors duration-300 relative group">
             How It Works
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#00B5B8] transition-all duration-300 group-hover:w-full"></span>
           </Link>
         </div>
 
