@@ -1,8 +1,12 @@
 // utils/whatsappSender.js
 // WhatsApp Notification Service using WhatsApp Cloud API
 
-// Configuration - Update these values
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || "EAAZCfaEVVn7EBQNvysKPpeOzABxsnSMrdclqf9yy9LcA9nMBNcotAuEUZA5N1SErua0HycMHrjqSlle9Xk8Tr8v7LGdPzZC3a8ZCaK1IWKGZCAaWHHnA7oUHyQwGMKFsZCJo3kGlu7fZBsIZCmZC46y9g4dZCcdlPoK2raFiQPoZCQdGc6ujppWx6YatWr62QPhiyISzWvrgBkDXdnjnGU6Of12cwZAll2O1HOGEkVVaTZCtLes8XePCw0gkR9MZBJz25X5rnGJtSbpSI44ml3F8GtSCbtHM5F";
+// ============================================
+// CONFIGURATION - PASTE YOUR NEW TOKEN HERE
+// ============================================
+// Step 1: Generate token from Meta Business Suite → API Setup
+// Step 2: Copy the token and paste it below (replace PASTE_NEW_TOKEN_HERE)
+const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || "PASTE_NEW_TOKEN_HERE";
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || "926454387213927";
 const WHATSAPP_API_URL = `https://graph.facebook.com/v20.0/${PHONE_NUMBER_ID}/messages`;
 
@@ -23,11 +27,11 @@ export const sendWhatsAppMessage = async (recipientNumber, messageText) => {
     }
 
     // Validate access token
-    if (!ACCESS_TOKEN || ACCESS_TOKEN === "PASTE_MY_TOKEN_HERE") {
+    if (!ACCESS_TOKEN || ACCESS_TOKEN === "PASTE_NEW_TOKEN_HERE") {
       console.warn("⚠️ WhatsApp Access Token not configured");
       return {
         success: false,
-        error: "WhatsApp Access Token not configured"
+        error: "WhatsApp Access Token not configured. Please paste your token in whatsappSender.js"
       };
     }
 

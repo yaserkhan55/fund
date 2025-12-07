@@ -7,10 +7,11 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ============================================
-// CONFIGURATION - UPDATE YOUR ACCESS TOKEN HERE
+// CONFIGURATION - PASTE YOUR NEW TOKEN HERE
 // ============================================
-// ⚠️ IMPORTANT: Replace "PASTE_MY_TOKEN_HERE" below with your actual WhatsApp Cloud API access token
-const ACCESS_TOKEN = "EAAZCfaEVVn7EBQNvysKPpeOzABxsnSMrdclqf9yy9LcA9nMBNcotAuEUZA5N1SErua0HycMHrjqSlle9Xk8Tr8v7LGdPzZC3a8ZCaK1IWKGZCAaWHHnA7oUHyQwGMKFsZCJo3kGlu7fZBsIZCmZC46y9g4dZCcdlPoK2raFiQPoZCQdGc6ujppWx6YatWr62QPhiyISzWvrgBkDXdnjnGU6Of12cwZAll2O1HOGEkVVaTZCtLes8XePCw0gkR9MZBJz25X5rnGJtSbpSI44ml3F8GtSCbtHM5F";
+// Step 1: Generate token from Meta Business Suite → API Setup
+// Step 2: Copy the token and paste it below (replace PASTE_NEW_TOKEN_HERE)
+const ACCESS_TOKEN = "PASTE_NEW_TOKEN_HERE";
 const PHONE_NUMBER_ID = "926454387213927";
 const RECIPIENT_NUMBER = "917058733358";
 
@@ -34,10 +35,10 @@ app.get("/", (req, res) => {
 app.post("/notify", async (req, res) => {
   try {
     // Validate access token
-    if (!ACCESS_TOKEN || ACCESS_TOKEN === "PASTE_MY_TOKEN_HERE") {
+    if (!ACCESS_TOKEN || ACCESS_TOKEN === "PASTE_NEW_TOKEN_HERE") {
       return res.status(400).json({
         success: false,
-        error: "Access token not configured. Please set ACCESS_TOKEN in the code."
+        error: "Access token not configured. Please paste your token in sendWhatsApp.js"
       });
     }
 
@@ -96,6 +97,8 @@ app.post("/notify", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 WhatsApp Notification Sender running on port ${PORT}`);
   console.log(`📱 Endpoint: http://localhost:${PORT}/notify`);
-  console.log(`⚠️  Make sure to set your ACCESS_TOKEN in the code!`);
+  if (ACCESS_TOKEN === "PASTE_NEW_TOKEN_HERE") {
+    console.log(`⚠️  WARNING: Please paste your ACCESS_TOKEN in the code!`);
+  }
 });
 
