@@ -6,7 +6,7 @@
 // ============================================
 // Step 1: Generate token from Meta Business Suite → API Setup
 // Step 2: Copy the token and paste it below (replace PASTE_NEW_TOKEN_HERE)
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || "PASTE_NEW_TOKEN_HERE";
+const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || "EAAZCfaEVVn7EBQKOZAjGNeEApaNHrOn2nDxl7vpftMZA3oY1IwpCOHqu0sSYE5ctFai6uhKSky1qgJrlMUbZCiLsIGF07nops541In3kbgXyAoViQpbW2CJIYDi5K0EsIWZBIn5S0op1fZBDAT3ZAQ0EwltncGKmXgJNh9YicTSyHroeKnlgZB7ZBJkMLRLqN1qgUFWZCkxBBvpK4mT8FaR3rCCBVZCdemLRf6PtrePtVenoZBOvmMJjsuSegPcBdjokqAUZBPYWIxAdJcNDYJaM49X5nDKux";
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || "926454387213927";
 const WHATSAPP_API_URL = `https://graph.facebook.com/v20.0/${PHONE_NUMBER_ID}/messages`;
 
