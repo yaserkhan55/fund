@@ -2,6 +2,14 @@
 // Twilio WhatsApp Notification Service
 
 import twilio from 'twilio';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Load environment variables (in case not loaded by server.js)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 // ============================================
 // CONFIGURATION - TWILIO CREDENTIALS
@@ -11,10 +19,30 @@ import twilio from 'twilio';
 const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 // Format WhatsApp number - add 'whatsapp:' prefix if missing
-const rawNumber = process.env.TWILIO_WHATSAPP_NUMBER || "+14155238886";
-const WHATSAPP_FROM = rawNumber.startsWith('whatsapp:') 
-  ? rawNumber 
-  : `whatsapp:${rawNumber.startsWith('+') ? rawNumber : '+' + rawNumber}`;
+// IMPORTANT: For testing, use Twilio sandbox number: whatsapp:+14155238886
+// Your custom number must be configured for WhatsApp in Twilio Console first
+const rawNumber = process.env.TWILIO_WHATSAPP_NUMBER;
+
+// Default to sandbox number for testing (works immediately)
+// Only use custom number if explicitly set AND configured in Twilio
+let WHATSAPP_FROM = "whatsapp:+14155238886"; // Default: Twilio sandbox
+
+if (rawNumber) {
+  // If custom number provided, format it
+  const formatted = rawNumber.startsWith('whatsapp:') 
+    ? rawNumber 
+    : `whatsapp:${rawNumber.startsWith('+') ? rawNumber : '+' + rawNumber}`;
+  
+  // Only use custom number if it's the sandbox or explicitly configured
+  // For now, force sandbox for testing to avoid errors
+  if (formatted.includes('14155238886')) {
+    WHATSAPP_FROM = formatted;
+  } else {
+    console.warn(`⚠️ Custom number ${formatted} may not be configured for WhatsApp. Using sandbox number for testing.`);
+    console.warn("   To use custom number, configure it in Twilio Console → Messaging → Try it out → Send a WhatsApp message");
+    WHATSAPP_FROM = "whatsapp:+14155238886"; // Force sandbox
+  }
+}
 
 // Initialize Twilio client only if credentials are provided
 let client = null;

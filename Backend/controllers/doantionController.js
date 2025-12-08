@@ -127,7 +127,7 @@ const calculateFraudScore = async (donorId, amount, ipAddress, campaignId) => {
 // Guest donation endpoint (no authentication required)
 export const commitGuestDonation = async (req, res) => {
   try {
-    const { campaignId, amount, message, isAnonymous, donorName, donorEmail } = req.body;
+    const { campaignId, amount, message, isAnonymous, donorName, donorEmail, donorPhone } = req.body;
 
     // Get IP address and user agent
     const ipAddress = req.ip || req.headers["x-forwarded-for"] || req.connection.remoteAddress || "";
@@ -281,6 +281,19 @@ export const commitGuestDonation = async (req, res) => {
     // If suspicious, log for admin review
     if (donation.isSuspicious) {
       console.warn(`⚠️ Suspicious donation detected: ${donation._id}, Score: ${donation.fraudScore}, Risk: ${donation.riskLevel}`);
+    }
+
+    // Send WhatsApp thank you message (if phone number provided and not anonymous)
+    if (donorPhone && !isAnonymous && donorName) {
+      try {
+        const { sendTwilioDonationThankYou } = await import("../utils/twilioWhatsAppSender.js");
+        const formattedPhone = donorPhone.startsWith('+') ? donorPhone : `+${donorPhone}`;
+        await sendTwilioDonationThankYou(formattedPhone, donorName, Number(amount), campaign.title);
+        console.log(`✅ WhatsApp thank you sent to ${formattedPhone}`);
+      } catch (whatsappError) {
+        // Don't block donation flow if WhatsApp fails
+        console.log("WhatsApp notification optional - donation still successful:", whatsappError.message);
+      }
     }
 
     return res.status(201).json({
