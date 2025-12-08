@@ -55,13 +55,13 @@ export const sendWhatsAppMessage = async (recipientNumber, messageText) => {
 
     // Prepare the message payload
     // NOTE: In test mode, you can ONLY send pre-approved message templates
-    // Set USE_TEMPLATE_MODE = true for test mode, false for production
-    const USE_TEMPLATE_MODE = true; // Change to false when account is verified
+    // Set USE_TEMPLATE_MODE = false to use free-form text (only works if account is verified)
+    const USE_TEMPLATE_MODE = false; // Set to true only after creating template in Meta Business Suite
     
     let messagePayload;
     
     if (USE_TEMPLATE_MODE) {
-      // Template mode (required for test mode)
+      // Template mode (required for test mode - template must be created first!)
       messagePayload = {
         messaging_product: "whatsapp",
         to: recipientNumber,
@@ -74,7 +74,7 @@ export const sendWhatsAppMessage = async (recipientNumber, messageText) => {
         }
       };
     } else {
-      // Text mode (only works in production/verified accounts)
+      // Text mode (works if account is verified, or for testing with verified numbers)
       messagePayload = {
         messaging_product: "whatsapp",
         to: recipientNumber,
