@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 3001;
 // ============================================
 // Step 1: Generate token from Meta Business Suite → API Setup
 // Step 2: Copy the token and paste it below (replace PASTE_NEW_TOKEN_HERE)
+// ⚠️ Token expires every 1-2 hours - regenerate when expired
 const ACCESS_TOKEN = "PASTE_NEW_TOKEN_HERE";
 const PHONE_NUMBER_ID = "926454387213927";
 const RECIPIENT_NUMBER = "917058733358";

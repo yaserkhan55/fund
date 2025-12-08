@@ -6,7 +6,8 @@
 // ============================================
 // Step 1: Generate token from Meta Business Suite → API Setup
 // Step 2: Copy the token and paste it below (replace PASTE_NEW_TOKEN_HERE)
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || "EAAZCfaEVVn7EBQKOZAjGNeEApaNHrOn2nDxl7vpftMZA3oY1IwpCOHqu0sSYE5ctFai6uhKSky1qgJrlMUbZCiLsIGF07nops541In3kbgXyAoViQpbW2CJIYDi5K0EsIWZBIn5S0op1fZBDAT3ZAQ0EwltncGKmXgJNh9YicTSyHroeKnlgZB7ZBJkMLRLqN1qgUFWZCkxBBvpK4mT8FaR3rCCBVZCdemLRf6PtrePtVenoZBOvmMJjsuSegPcBdjokqAUZBPYWIxAdJcNDYJaM49X5nDKux";
+// ⚠️ Token expires every 1-2 hours - regenerate when expired
+const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || "EAAZCfaEVVn7EBQLNbVTTJHAkinkzGB8Xiw8inTbMlJWfbdTmSPMIVAGW1OOGYoOZCfofPeclw5jyMU3Uv5yZBZC2n9ziBCOcCQInvjMJ8ANa4YJIV8dLTi6ZCG5ueIcZChXMCylXnvyy0O0jhnJaVadMZBvXRb53RPxRLCrGowwqPWbUAAr6cPOS8FDWTDARTZBRX3ZB2e1NYYHnZBh8WffZCEHOJrWIyRLIfQaZAyfaypnIBXJwLCduqYBuuYFmFlgBM25OYrnwIZBtZCYq1rB88zPFG5eozH";
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || "926454387213927";
 const WHATSAPP_API_URL = `https://graph.facebook.com/v20.0/${PHONE_NUMBER_ID}/messages`;
 
