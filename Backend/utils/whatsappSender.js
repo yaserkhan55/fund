@@ -2,11 +2,21 @@
 // WhatsApp Notification Service using WhatsApp Cloud API
 
 // ============================================
-// CONFIGURATION - PASTE YOUR NEW TOKEN HERE
+// CONFIGURATION - TOKEN MANAGEMENT
 // ============================================
-// Step 1: Generate token from Meta Business Suite → API Setup
-// Step 2: Copy the token and paste it below (replace PASTE_NEW_TOKEN_HERE)
-// ⚠️ Token expires every 1-2 hours - regenerate when expired
+// PRIORITY: Environment Variable > Hardcoded Token
+// 
+// ✅ FOR PRODUCTION (Recommended):
+// 1. Create System User in Meta Business Suite (never expires!)
+// 2. Generate System User Token
+// 3. Set as environment variable: WHATSAPP_ACCESS_TOKEN
+//
+// 📝 FOR DEVELOPMENT:
+// - Use temporary token (expires in 1-2 hours)
+// - Or use long-lived token (60 days)
+// - Set in Backend/.env file: WHATSAPP_ACCESS_TOKEN=your_token
+//
+// ⚠️ Fallback (for testing only - will expire):
 const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || "EAAZCfaEVVn7EBQLNbVTTJHAkinkzGB8Xiw8inTbMlJWfbdTmSPMIVAGW1OOGYoOZCfofPeclw5jyMU3Uv5yZBZC2n9ziBCOcCQInvjMJ8ANa4YJIV8dLTi6ZCG5ueIcZChXMCylXnvyy0O0jhnJaVadMZBvXRb53RPxRLCrGowwqPWbUAAr6cPOS8FDWTDARTZBRX3ZB2e1NYYHnZBh8WffZCEHOJrWIyRLIfQaZAyfaypnIBXJwLCduqYBuuYFmFlgBM25OYrnwIZBtZCYq1rB88zPFG5eozH";
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || "926454387213927";
 const WHATSAPP_API_URL = `https://graph.facebook.com/v20.0/${PHONE_NUMBER_ID}/messages`;
@@ -32,8 +42,15 @@ export const sendWhatsAppMessage = async (recipientNumber, messageText) => {
       console.warn("⚠️ WhatsApp Access Token not configured");
       return {
         success: false,
-        error: "WhatsApp Access Token not configured. Please paste your token in whatsappSender.js"
+        error: "WhatsApp Access Token not configured. Please set WHATSAPP_ACCESS_TOKEN environment variable or update the code."
       };
+    }
+
+    // Log token type for debugging
+    if (process.env.WHATSAPP_ACCESS_TOKEN) {
+      console.log("✅ Using token from environment variable");
+    } else {
+      console.warn("⚠️ Using hardcoded token - consider using environment variable for production");
     }
 
     // Prepare the message payload
