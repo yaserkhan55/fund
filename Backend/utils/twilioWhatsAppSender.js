@@ -10,7 +10,11 @@ import twilio from 'twilio';
 // Account → API Keys & Tokens
 const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_NUMBER || "whatsapp:+14155238886"; // Twilio sandbox number (replace with your number)
+// Format WhatsApp number - add 'whatsapp:' prefix if missing
+const rawNumber = process.env.TWILIO_WHATSAPP_NUMBER || "+14155238886";
+const WHATSAPP_FROM = rawNumber.startsWith('whatsapp:') 
+  ? rawNumber 
+  : `whatsapp:${rawNumber.startsWith('+') ? rawNumber : '+' + rawNumber}`;
 
 // Initialize Twilio client only if credentials are provided
 let client = null;
@@ -18,6 +22,8 @@ if (ACCOUNT_SID && AUTH_TOKEN && ACCOUNT_SID.startsWith('AC') && AUTH_TOKEN.leng
   try {
     client = twilio(ACCOUNT_SID, AUTH_TOKEN);
     console.log("✅ Twilio WhatsApp client initialized");
+    console.log(`   Account SID: ${ACCOUNT_SID.substring(0, 10)}...`);
+    console.log(`   WhatsApp From: ${WHATSAPP_FROM}`);
   } catch (error) {
     console.warn("⚠️ Twilio client initialization failed:", error.message);
     client = null;
