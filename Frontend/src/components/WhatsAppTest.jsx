@@ -7,16 +7,27 @@ const API_URL = import.meta.env.VITE_API_URL || "https://fund-tcba.onrender.com"
 export default function WhatsAppTest() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [recipientNumber, setRecipientNumber] = useState("15550440443"); // Test number: +1 555 044 0443 (use your number: 917058733358 after adding to allowed list)
+  const [recipientNumber, setRecipientNumber] = useState("+917058733358"); // Format: +917058733358 (with + for Twilio)
   const [message, setMessage] = useState("Hello! Your WhatsApp Notification from my website is working 🚀");
+  const [provider, setProvider] = useState("twilio"); // "whatsapp" or "twilio"
 
   const sendTestNotification = async () => {
     setLoading(true);
     setResult(null);
 
     try {
-      const response = await axios.post(`${API_URL}/api/whatsapp/test`, {
-        recipientNumber,
+      // Choose endpoint based on provider
+      const endpoint = provider === "twilio" 
+        ? `${API_URL}/api/whatsapp/twilio/test`
+        : `${API_URL}/api/whatsapp/test`;
+      
+      // Format recipient number for Twilio (must have +)
+      const formattedNumber = provider === "twilio" && !recipientNumber.startsWith('+')
+        ? `+${recipientNumber}`
+        : recipientNumber;
+      
+      const response = await axios.post(endpoint, {
+        recipientNumber: formattedNumber,
         message
       });
 
@@ -52,23 +63,54 @@ export default function WhatsAppTest() {
           WhatsApp Notification Test
         </h2>
         <p className="text-gray-600">
-          Test your WhatsApp Cloud API integration
+          Test your WhatsApp integration (WhatsApp Cloud API or Twilio)
         </p>
+        
+        {/* Provider Selection */}
+        <div className="mt-4 flex gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="provider"
+              value="twilio"
+              checked={provider === "twilio"}
+              onChange={(e) => setProvider(e.target.value)}
+              className="w-4 h-4"
+            />
+            <span className="text-sm font-semibold">Twilio (Recommended)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="provider"
+              value="whatsapp"
+              checked={provider === "whatsapp"}
+              onChange={(e) => setProvider(e.target.value)}
+              className="w-4 h-4"
+            />
+            <span className="text-sm font-semibold">WhatsApp Cloud API</span>
+          </label>
+        </div>
       </div>
 
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-semibold text-[#003d3b] mb-2">
-            Recipient Phone Number (with country code, no +)
+            Recipient Phone Number
           </label>
           <input
             type="text"
             value={recipientNumber}
             onChange={(e) => setRecipientNumber(e.target.value)}
-            placeholder="917058733358"
+            placeholder={provider === "twilio" ? "+917058733358" : "917058733358"}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
           />
-          <p className="text-xs text-gray-500 mt-1">Format: Country code + number (e.g., 917058733358 for India)</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {provider === "twilio" 
+              ? "Format: +Country code + number (e.g., +917058733358 for India) - Must include +"
+              : "Format: Country code + number (e.g., 917058733358 for India) - No + needed"
+            }
+          </p>
         </div>
 
         <div>
@@ -128,12 +170,18 @@ export default function WhatsAppTest() {
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
           <p className="text-sm text-blue-800 font-semibold mb-2">💡 How to Test:</p>
           <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
-            <li>Enter recipient phone number (with country code)</li>
+            <li>Select provider (Twilio recommended - easier setup)</li>
+            <li>Enter recipient phone number ({provider === "twilio" ? "with +" : "without +"})</li>
             <li>Enter your test message</li>
             <li>Click "Send WhatsApp Notification"</li>
             <li>Check the recipient's WhatsApp for the message</li>
             <li>Verify success/error message appears</li>
           </ol>
+          {provider === "twilio" && (
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+              ⚠️ For Twilio: Make sure recipient number has joined sandbox by sending "join adjective-cap" to +1 415 523 8886
+            </div>
+          )}
         </div>
       </div>
     </div>
