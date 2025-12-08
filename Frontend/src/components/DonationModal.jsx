@@ -7,6 +7,7 @@ export default function DonationModal({ campaignId, onClose }) {
   const [amount, setAmount] = useState("");
   const [donorName, setDonorName] = useState("");
   const [donorEmail, setDonorEmail] = useState("");
+  const [donorPhone, setDonorPhone] = useState(""); // WhatsApp number
   const [message, setMessage] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -58,6 +59,7 @@ export default function DonationModal({ campaignId, onClose }) {
           isAnonymous: isAnonymous || false,
           donorName: isAnonymous ? "" : (donorName.trim() || ""),
           donorEmail: donorEmail.trim() || "",
+          donorPhone: donorPhone.trim() || "", // WhatsApp number
         }
       );
 
@@ -242,6 +244,25 @@ export default function DonationModal({ campaignId, onClose }) {
                   placeholder="Enter your email for receipt (optional)"
                 />
                 <p className="text-xs text-gray-500 mt-1">We'll send you a receipt if provided</p>
+              </div>
+            )}
+
+            {/* DONOR PHONE - WhatsApp (Optional) */}
+            {!isAnonymous && (
+              <div>
+                <label className="block text-sm font-semibold text-[#003d3b] mb-2">
+                  WhatsApp Number (Optional) 📱
+                </label>
+                <input
+                  type="tel"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                  value={donorPhone}
+                  onChange={(e) => setDonorPhone(e.target.value)}
+                  placeholder="+917058733358 (with country code)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  We'll send you a WhatsApp confirmation if provided
+                </p>
               </div>
             )}
 
