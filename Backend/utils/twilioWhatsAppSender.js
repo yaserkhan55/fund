@@ -8,12 +8,23 @@ import twilio from 'twilio';
 // ============================================
 // Get these from: https://console.twilio.com/
 // Account → API Keys & Tokens
-const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "YOUR_ACCOUNT_SID_HERE";
-const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "YOUR_AUTH_TOKEN_HERE";
+const ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_NUMBER || "whatsapp:+14155238886"; // Twilio sandbox number (replace with your number)
 
-// Initialize Twilio client
-const client = twilio(ACCOUNT_SID, AUTH_TOKEN);
+// Initialize Twilio client only if credentials are provided
+let client = null;
+if (ACCOUNT_SID && AUTH_TOKEN && ACCOUNT_SID.startsWith('AC') && AUTH_TOKEN.length > 0) {
+  try {
+    client = twilio(ACCOUNT_SID, AUTH_TOKEN);
+    console.log("✅ Twilio WhatsApp client initialized");
+  } catch (error) {
+    console.warn("⚠️ Twilio client initialization failed:", error.message);
+    client = null;
+  }
+} else {
+  console.warn("⚠️ Twilio credentials not configured. WhatsApp notifications via Twilio are disabled.");
+}
 
 /**
  * Send WhatsApp message via Twilio
@@ -31,10 +42,9 @@ export const sendTwilioWhatsApp = async (recipientNumber, messageText) => {
       };
     }
 
-    // Validate credentials
-    if (!ACCOUNT_SID || ACCOUNT_SID === "YOUR_ACCOUNT_SID_HERE" || 
-        !AUTH_TOKEN || AUTH_TOKEN === "YOUR_AUTH_TOKEN_HERE") {
-      console.warn("⚠️ Twilio credentials not configured");
+    // Validate credentials and client
+    if (!client) {
+      console.warn("⚠️ Twilio client not initialized");
       return {
         success: false,
         error: "Twilio credentials not configured. Please set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables."
