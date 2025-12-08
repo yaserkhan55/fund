@@ -247,24 +247,26 @@ export default function DonationModal({ campaignId, onClose }) {
               </div>
             )}
 
-            {/* DONOR PHONE - WhatsApp (Optional) */}
-            {!isAnonymous && (
-              <div>
-                <label className="block text-sm font-semibold text-[#003d3b] mb-2">
-                  WhatsApp Number (Optional) 📱
-                </label>
-                <input
-                  type="tel"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
-                  value={donorPhone}
-                  onChange={(e) => setDonorPhone(e.target.value)}
-                  placeholder="+917058733358 (with country code)"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  We'll send you a WhatsApp confirmation if provided
-                </p>
-              </div>
-            )}
+            {/* DONOR PHONE - WhatsApp (Optional) - Always visible */}
+            <div>
+              <label className="block text-sm font-semibold text-[#003d3b] mb-2">
+                WhatsApp Number (Optional) 📱
+              </label>
+              <input
+                type="tel"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                value={donorPhone}
+                onChange={(e) => setDonorPhone(e.target.value)}
+                placeholder="+917058733358 (with country code)"
+                disabled={isAnonymous}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {isAnonymous 
+                  ? "WhatsApp notifications not available for anonymous donations"
+                  : "We'll send you a WhatsApp confirmation if provided"
+                }
+              </p>
+            </div>
 
             {/* MESSAGE (Optional) */}
             <div>
