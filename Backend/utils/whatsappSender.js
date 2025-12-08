@@ -36,14 +36,36 @@ export const sendWhatsAppMessage = async (recipientNumber, messageText) => {
     }
 
     // Prepare the message payload
-    const messagePayload = {
-      messaging_product: "whatsapp",
-      to: recipientNumber,
-      type: "text",
-      text: {
-        body: messageText
-      }
-    };
+    // NOTE: In test mode, you can ONLY send pre-approved message templates
+    // Set USE_TEMPLATE_MODE = true for test mode, false for production
+    const USE_TEMPLATE_MODE = true; // Change to false when account is verified
+    
+    let messagePayload;
+    
+    if (USE_TEMPLATE_MODE) {
+      // Template mode (required for test mode)
+      messagePayload = {
+        messaging_product: "whatsapp",
+        to: recipientNumber,
+        type: "template",
+        template: {
+          name: "test_notification", // Replace with your approved template name from Meta Business Suite
+          language: {
+            code: "en"
+          }
+        }
+      };
+    } else {
+      // Text mode (only works in production/verified accounts)
+      messagePayload = {
+        messaging_product: "whatsapp",
+        to: recipientNumber,
+        type: "text",
+        text: {
+          body: messageText
+        }
+      };
+    }
 
     // Send request to WhatsApp Cloud API
     const response = await fetch(WHATSAPP_API_URL, {
