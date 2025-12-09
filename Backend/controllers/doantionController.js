@@ -872,8 +872,14 @@ export const updateDonationStatus = async (req, res) => {
       });
     }
 
-    // Send SMS when payment is marked as completed/successful
-    if (paymentStatus === "completed" || (paymentReceived === true && paymentStatus !== "failed")) {
+    // Send SMS when admin approves committed payment
+    // Trigger when: paymentStatus is "completed"/"success" OR paymentReceived is true
+    const isPaymentApproved = 
+      paymentStatus === "completed" || 
+      paymentStatus === "success" || 
+      (paymentReceived === true && donation.paymentStatus !== "failed");
+    
+    if (isPaymentApproved) {
       try {
         const { sendDonationThankYouSMS } = await import("../utils/fast2smsSender.js");
         
@@ -882,20 +888,28 @@ export const updateDonationStatus = async (req, res) => {
           const nameForSMS = donation.donorName && donation.donorName.trim() ? donation.donorName.trim() : "Donor";
           const campaignTitle = donation.campaignId?.title || "Campaign";
           
-          console.log(`📱 Payment successful! Sending confirmation SMS to: ${phoneForSMS}`);
+          console.log(`📱 Admin approved payment! Sending confirmation SMS to: ${phoneForSMS}`);
+          console.log(`   Donation ID: ${donation._id}, Amount: ₹${donation.amount}`);
           
           const smsResult = await sendDonationThankYouSMS(phoneForSMS, nameForSMS, donation.amount, campaignTitle);
           
           if (smsResult.success) {
             console.log(`✅ Payment confirmation SMS sent successfully to ${phoneForSMS}`);
           } else if (smsResult.isLimitReached) {
-            console.log(`⚠️ SMS daily limit reached. Payment successful, SMS will be sent tomorrow.`);
+            console.log(`⚠️ SMS daily limit reached (10/day). Payment approved, SMS will be sent tomorrow.`);
           } else {
             console.log(`⚠️ Payment SMS failed: ${smsResult.error}`);
+          }
+        } else {
+          if (!donation.donorPhone) {
+            console.log(`📱 SMS not sent: No phone number provided for donation ${donation._id}`);
+          } else if (donation.isAnonymous) {
+            console.log(`📱 SMS not sent: Anonymous donation ${donation._id}`);
           }
         }
       } catch (smsError) {
         console.error("Error sending payment confirmation SMS:", smsError);
+        // Don't fail the approval if SMS fails
       }
     }
 

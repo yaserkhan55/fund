@@ -311,6 +311,31 @@ export const verifyPayment = async (req, res) => {
       await donor.save();
     }
 
+    // Send SMS confirmation when payment is successful
+    if (donation.donorPhone && !donation.isAnonymous) {
+      try {
+        const { sendDonationThankYouSMS } = await import("../utils/fast2smsSender.js");
+        const phoneForSMS = donation.donorPhone.replace(/^\+/, '').trim();
+        const nameForSMS = donation.donorName && donation.donorName.trim() ? donation.donorName.trim() : "Donor";
+        const campaignTitle = campaign ? campaign.title : "Campaign";
+        
+        console.log(`📱 Payment successful! Sending confirmation SMS to: ${phoneForSMS}`);
+        
+        const smsResult = await sendDonationThankYouSMS(phoneForSMS, nameForSMS, donation.amount, campaignTitle);
+        
+        if (smsResult.success) {
+          console.log(`✅ Payment confirmation SMS sent successfully to ${phoneForSMS}`);
+        } else if (smsResult.isLimitReached) {
+          console.log(`⚠️ SMS daily limit reached. Payment successful, SMS will be sent tomorrow.`);
+        } else {
+          console.log(`⚠️ Payment SMS failed: ${smsResult.error}`);
+        }
+      } catch (smsError) {
+        console.error("Error sending payment confirmation SMS:", smsError);
+        // Don't fail payment verification if SMS fails
+      }
+    }
+
     // TODO: Generate receipt PDF
     // TODO: Send receipt email
     // TODO: Send notification to campaign owner
