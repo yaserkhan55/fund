@@ -297,15 +297,20 @@ export const commitGuestDonation = async (req, res) => {
     }
 
     // Send SMS thank you message (if phone number provided and not anonymous)
-    if (donorPhone && !isAnonymous && donorName) {
+    if (donorPhone && !isAnonymous) {
       try {
         const { sendDonationThankYouSMS } = await import("../utils/fast2smsSender.js");
         // Fast2SMS expects phone without + prefix
-        const phoneForSMS = donorPhone.replace(/^\+/, '');
-        const smsResult = await sendDonationThankYouSMS(phoneForSMS, donorName, Number(amount), campaign.title);
+        const phoneForSMS = donorPhone.replace(/^\+/, '').trim();
+        // Use donor name if provided, otherwise use "Donor"
+        const nameForSMS = donorName && donorName.trim() ? donorName.trim() : "Donor";
+        
+        console.log(`📱 Attempting to send SMS to: ${phoneForSMS}, Name: ${nameForSMS}, Amount: ${amount}`);
+        
+        const smsResult = await sendDonationThankYouSMS(phoneForSMS, nameForSMS, Number(amount), campaign.title);
         
         if (smsResult.success) {
-          console.log(`✅ SMS thank you sent to ${phoneForSMS}`);
+          console.log(`✅ SMS thank you sent successfully to ${phoneForSMS}`);
         } else if (smsResult.isLimitReached) {
           // Daily limit reached - log but don't fail donation
           console.log(`⚠️ SMS daily limit reached (10/day). Donation successful, SMS will be sent tomorrow.`);
@@ -314,7 +319,15 @@ export const commitGuestDonation = async (req, res) => {
         }
       } catch (smsError) {
         // Don't block donation flow if SMS fails
+        console.error("SMS notification error:", smsError);
         console.log("SMS notification optional - donation still successful:", smsError.message);
+      }
+    } else {
+      // Log why SMS wasn't sent
+      if (!donorPhone) {
+        console.log("📱 SMS not sent: No phone number provided");
+      } else if (isAnonymous) {
+        console.log("📱 SMS not sent: Anonymous donation");
       }
     }
 
@@ -857,6 +870,33 @@ export const updateDonationStatus = async (req, res) => {
         success: false,
         message: "Donation not found.",
       });
+    }
+
+    // Send SMS when payment is marked as completed/successful
+    if (paymentStatus === "completed" || (paymentReceived === true && paymentStatus !== "failed")) {
+      try {
+        const { sendDonationThankYouSMS } = await import("../utils/fast2smsSender.js");
+        
+        if (donation.donorPhone && !donation.isAnonymous) {
+          const phoneForSMS = donation.donorPhone.replace(/^\+/, '').trim();
+          const nameForSMS = donation.donorName && donation.donorName.trim() ? donation.donorName.trim() : "Donor";
+          const campaignTitle = donation.campaignId?.title || "Campaign";
+          
+          console.log(`📱 Payment successful! Sending confirmation SMS to: ${phoneForSMS}`);
+          
+          const smsResult = await sendDonationThankYouSMS(phoneForSMS, nameForSMS, donation.amount, campaignTitle);
+          
+          if (smsResult.success) {
+            console.log(`✅ Payment confirmation SMS sent successfully to ${phoneForSMS}`);
+          } else if (smsResult.isLimitReached) {
+            console.log(`⚠️ SMS daily limit reached. Payment successful, SMS will be sent tomorrow.`);
+          } else {
+            console.log(`⚠️ Payment SMS failed: ${smsResult.error}`);
+          }
+        }
+      } catch (smsError) {
+        console.error("Error sending payment confirmation SMS:", smsError);
+      }
     }
 
     return res.json({

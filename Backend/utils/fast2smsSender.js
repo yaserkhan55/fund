@@ -153,7 +153,15 @@ export const sendFast2SMS = async (recipientNumber, messageText) => {
  * @param {string} campaignTitle - Campaign title
  */
 export const sendDonationThankYouSMS = async (recipientNumber, donorName, amount, campaignTitle) => {
-  const message = `Thank you ${donorName}! Your donation of ₹${amount.toLocaleString('en-IN')} to "${campaignTitle}" is greatly appreciated. 🙏 - SEUMP`;
+  // Truncate campaign title if too long (to fit in 160 char SMS)
+  const shortTitle = campaignTitle.length > 30 
+    ? campaignTitle.substring(0, 27) + '...' 
+    : campaignTitle;
+  
+  const message = `Thank you ${donorName}! Your donation of ₹${amount.toLocaleString('en-IN')} to "${shortTitle}" is greatly appreciated. 🙏 - SEUMP`;
+  
+  console.log(`📱 Preparing SMS: To=${recipientNumber}, Message length=${message.length}`);
+  
   return await sendFast2SMS(recipientNumber, message);
 };
 
