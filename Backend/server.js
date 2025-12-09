@@ -19,6 +19,7 @@ import contactRoutes from "./routes/contactRoutes.js";
 import googleAuthRoutes from "./routes/googleAuthRoutes.js";
 import donorRoutes from "./routes/donorRoutes.js";
 import whatsappRoutes from "./routes/whatsappRoutes.js";
+import smsRoutes from "./routes/smsRoutes.js";
 
 import User from "./models/User.js";
 
@@ -165,6 +166,7 @@ app.use("/api/campaigns", campaignRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/donors", donorRoutes);
 app.use("/api/whatsapp", whatsappRoutes);
+app.use("/api/sms", smsRoutes);
 
 
 /* PROTECTED ROUTES */

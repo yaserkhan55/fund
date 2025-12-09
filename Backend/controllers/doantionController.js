@@ -296,6 +296,20 @@ export const commitGuestDonation = async (req, res) => {
       }
     }
 
+    // Send SMS thank you message (if phone number provided and not anonymous)
+    if (donorPhone && !isAnonymous && donorName) {
+      try {
+        const { sendDonationThankYouSMS } = await import("../utils/fast2smsSender.js");
+        // Fast2SMS expects phone without + prefix
+        const phoneForSMS = donorPhone.replace(/^\+/, '');
+        await sendDonationThankYouSMS(phoneForSMS, donorName, Number(amount), campaign.title);
+        console.log(`✅ SMS thank you sent to ${phoneForSMS}`);
+      } catch (smsError) {
+        // Don't block donation flow if SMS fails
+        console.log("SMS notification optional - donation still successful:", smsError.message);
+      }
+    }
+
     return res.status(201).json({
       success: true,
       message: "Donation commitment recorded successfully. You will be contacted for payment processing.",
