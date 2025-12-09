@@ -158,9 +158,11 @@ export const sendDonationThankYouSMS = async (recipientNumber, donorName, amount
     ? campaignTitle.substring(0, 27) + '...' 
     : campaignTitle;
   
-  const message = `Thank you ${donorName}! Your donation of ₹${amount.toLocaleString('en-IN')} to "${shortTitle}" is greatly appreciated. 🙏 - SEUMP`;
+  // Format: "Thank You Test user your donation of rs 100 "Test Campaign" is greatly appreciated - SEUMP"
+  const message = `Thank You ${donorName} your donation of rs ${amount.toLocaleString('en-IN')} "${shortTitle}" is greatly appreciated - SEUMP`;
   
   console.log(`📱 Preparing SMS: To=${recipientNumber}, Message length=${message.length}`);
+  console.log(`📱 SMS Message: ${message}`);
   
   return await sendFast2SMS(recipientNumber, message);
 };

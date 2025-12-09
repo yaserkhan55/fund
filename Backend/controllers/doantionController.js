@@ -879,6 +879,9 @@ export const updateDonationStatus = async (req, res) => {
       paymentStatus === "success" || 
       (paymentReceived === true && donation.paymentStatus !== "failed");
     
+    console.log(`📱 Checking SMS trigger: paymentStatus=${paymentStatus}, paymentReceived=${paymentReceived}, donation.paymentStatus=${donation.paymentStatus}`);
+    console.log(`📱 isPaymentApproved=${isPaymentApproved}, donorPhone=${donation.donorPhone ? 'exists' : 'missing'}, isAnonymous=${donation.isAnonymous}`);
+    
     if (isPaymentApproved) {
       try {
         const { sendDonationThankYouSMS } = await import("../utils/fast2smsSender.js");
@@ -890,6 +893,7 @@ export const updateDonationStatus = async (req, res) => {
           
           console.log(`📱 Admin approved payment! Sending confirmation SMS to: ${phoneForSMS}`);
           console.log(`   Donation ID: ${donation._id}, Amount: ₹${donation.amount}`);
+          console.log(`   Name: ${nameForSMS}, Campaign: ${campaignTitle}`);
           
           const smsResult = await sendDonationThankYouSMS(phoneForSMS, nameForSMS, donation.amount, campaignTitle);
           
@@ -908,9 +912,12 @@ export const updateDonationStatus = async (req, res) => {
           }
         }
       } catch (smsError) {
-        console.error("Error sending payment confirmation SMS:", smsError);
+        console.error("❌ Error sending payment confirmation SMS:", smsError);
+        console.error("❌ Error stack:", smsError.stack);
         // Don't fail the approval if SMS fails
       }
+    } else {
+      console.log(`📱 SMS not triggered: Payment not approved yet (paymentStatus=${paymentStatus}, paymentReceived=${paymentReceived})`);
     }
 
     return res.json({
