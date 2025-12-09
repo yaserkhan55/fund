@@ -302,8 +302,16 @@ export const commitGuestDonation = async (req, res) => {
         const { sendDonationThankYouSMS } = await import("../utils/fast2smsSender.js");
         // Fast2SMS expects phone without + prefix
         const phoneForSMS = donorPhone.replace(/^\+/, '');
-        await sendDonationThankYouSMS(phoneForSMS, donorName, Number(amount), campaign.title);
-        console.log(`✅ SMS thank you sent to ${phoneForSMS}`);
+        const smsResult = await sendDonationThankYouSMS(phoneForSMS, donorName, Number(amount), campaign.title);
+        
+        if (smsResult.success) {
+          console.log(`✅ SMS thank you sent to ${phoneForSMS}`);
+        } else if (smsResult.isLimitReached) {
+          // Daily limit reached - log but don't fail donation
+          console.log(`⚠️ SMS daily limit reached (10/day). Donation successful, SMS will be sent tomorrow.`);
+        } else {
+          console.log(`⚠️ SMS failed: ${smsResult.error}. Donation still successful.`);
+        }
       } catch (smsError) {
         // Don't block donation flow if SMS fails
         console.log("SMS notification optional - donation still successful:", smsError.message);

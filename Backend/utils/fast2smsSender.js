@@ -117,6 +117,18 @@ export const sendFast2SMS = async (recipientNumber, messageText) => {
       };
     } else {
       const errorMsg = result.message || "Unknown error from Fast2SMS";
+      
+      // Check if it's a daily limit error
+      if (errorMsg.toLowerCase().includes('limit') || errorMsg.toLowerCase().includes('quota') || errorMsg.toLowerCase().includes('daily')) {
+        console.warn(`⚠️ Fast2SMS daily limit reached (10 SMS/day). SMS not sent to ${phone}`);
+        console.warn(`   Note: Free tier allows 10 SMS/day. Limit resets at midnight IST.`);
+        return {
+          success: false,
+          error: "Daily SMS limit reached (10 SMS/day). Limit resets at midnight IST.",
+          isLimitReached: true
+        };
+      }
+      
       console.error(`❌ Fast2SMS error: ${errorMsg}`);
       return {
         success: false,
