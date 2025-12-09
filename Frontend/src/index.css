@@ -5,6 +5,7 @@
 
 /* CRITICAL: Completely hide all Clerk phone number fields */
 /* This prevents "illegal arguments undefined number" errors */
+/* NOTE: Only target Clerk-specific fields, NOT all tel inputs */
 [data-clerk-element="phoneInputBox"],
 [data-clerk-element="phoneInput"],
 [data-clerk-element="formFieldInput__phoneNumber"],
@@ -14,10 +15,7 @@
 .cl-phoneInput,
 .cl-formFieldInput__phoneNumber,
 .cl-formFieldLabel__phoneNumber,
-.cl-formField__phoneNumber,
-input[type="tel"],
-input[name*="phone"],
-input[id*="phone"] {
+.cl-formField__phoneNumber {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
