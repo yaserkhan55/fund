@@ -231,22 +231,26 @@ export default function DonationModal({ campaignId, onClose }) {
             )}
 
             {/* MOBILE NUMBER (Optional) */}
-            {!isAnonymous && (
-              <div>
-                <label className="block text-sm font-semibold text-[#003d3b] mb-2">
-                  Mobile Number (Optional) 📱
-                </label>
-                <input
-                  type="tel"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
-                  value={donorPhone}
-                  onChange={(e) => setDonorPhone(e.target.value)}
-                  placeholder="917058733358 or 9876543210"
-                  autoComplete="tel"
-                />
-                <p className="text-xs text-gray-500 mt-1">We'll send you an SMS confirmation if provided</p>
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-semibold text-[#003d3b] mb-2">
+                Mobile Number (Optional) 📱
+              </label>
+              <input
+                type="tel"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition"
+                value={donorPhone}
+                onChange={(e) => setDonorPhone(e.target.value)}
+                placeholder="917058733358 or 9876543210"
+                disabled={isAnonymous}
+                autoComplete="tel"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {isAnonymous 
+                  ? "SMS notifications not available for anonymous donations"
+                  : "We'll send you an SMS confirmation if provided"
+                }
+              </p>
+            </div>
 
             {/* MESSAGE (Optional) */}
             <div>
