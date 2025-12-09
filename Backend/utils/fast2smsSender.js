@@ -1,54 +1,50 @@
-import fetch from "node-fetch";
-import dotenv from "dotenv";
-
-dotenv.config();
+import axios from "axios";
 
 const API_KEY = process.env.FAST2SMS_API_KEY;
-const SENDER_ID = process.env.FAST2SMS_SENDER_ID;   // must be approved & 6 letters only
-const API_URL = "https://www.fast2sms.com/dev/bulkV2";
 
-export const sendSMS = async (mobile, message) => {
-    try {
-        if (!API_KEY) {
-            throw new Error("FAST2SMS_API_KEY missing from .env");
-        }
-        if (!SENDER_ID) {
-            throw new Error("FAST2SMS_SENDER_ID missing or not approved");
-        }
+const FAST2SMS_URL = "https://www.fast2sms.com/dev/bulkV2";
 
-        // Clean number
-        let number = mobile.replace(/[+\s-]/g, "");
-        if (number.length === 10) number = "91" + number;
+export async function sendFast2SMS(recipientNumber, message) {
+  try {
+    const payload = {
+      route: "v3",
+      sender_id: "TXTIND",
+      message: message,
+      language: "english",
+      flash: 0,
+      numbers: recipientNumber.toString(),
+    };
 
-        const payload = {
-            route: "v3",               // REQUIRED for transactional/promo
-            sender_id: SENDER_ID,      // Must be approved in Fast2SMS
-            message: message,
-            language: "english",
-            numbers: number
-        };
+    const headers = {
+      authorization: API_KEY,
+      "Content-Type": "application/json",
+    };
 
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: {
-                Authorization: API_KEY,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
-        });
+    const response = await axios.post(FAST2SMS_URL, payload, { headers });
 
-        const result = await response.json();
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Fast2SMS Error:", error.response?.data || error.message);
+    return { success: false, error: error.response?.data || error.message };
+  }
+}
 
-        console.log("Fast2SMS Response:", result);
+// ---------- TEMPLATE SMS ----------
 
-        if (result.return === true) {
-            return { success: true, requestId: result.request_id };
-        }
+// Donation Thank You SMS
+export async function sendDonationThankYouSMS(recipientNumber, donorName, amount, campaignTitle) {
+  const message = `Thank you ${donorName || ""} for donating ₹${amount} to "${campaignTitle}". We appreciate your support!`;
+  return sendFast2SMS(recipientNumber, message);
+}
 
-        return { success: false, error: result.message };
+// Campaign Created SMS
+export async function sendCampaignCreatedSMS(recipientNumber, campaignTitle) {
+  const message = `Your campaign "${campaignTitle}" has been created successfully. Awaiting admin approval.`;
+  return sendFast2SMS(recipientNumber, message);
+}
 
-    } catch (err) {
-        console.error("Fast2SMS Error:", err);
-        return { success: false, error: err.message };
-    }
-};
+// Campaign Approved SMS
+export async function sendCampaignApprovedSMS(recipientNumber, campaignTitle) {
+  const message = `Good news! Your campaign "${campaignTitle}" has been approved and is now live.`;
+  return sendFast2SMS(recipientNumber, message);
+}
