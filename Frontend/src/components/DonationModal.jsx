@@ -49,18 +49,27 @@ export default function DonationModal({ campaignId, onClose }) {
     setLoading(true);
 
     try {
+      // Prepare donation data
+      const donationData = {
+        campaignId,
+        amount: Number(amount),
+        message: message.trim(),
+        isAnonymous: isAnonymous || false,
+        donorName: isAnonymous ? "" : (donorName.trim() || ""),
+        donorEmail: donorEmail.trim() || "",
+        donorPhone: donorPhone.trim() || "", // Mobile number for SMS
+      };
+      
+      // Debug log
+      console.log("📱 Donation data being sent:", {
+        ...donationData,
+        donorPhone: donationData.donorPhone ? `${donationData.donorPhone.substring(0, 3)}***` : "not provided"
+      });
+      
       // Use guest donation endpoint (no authentication required)
       const response = await axios.post(
         `${API_URL}/api/donations/commit-guest`,
-        {
-          campaignId,
-          amount: Number(amount),
-          message: message.trim(),
-          isAnonymous: isAnonymous || false,
-          donorName: isAnonymous ? "" : (donorName.trim() || ""),
-          donorEmail: donorEmail.trim() || "",
-          donorPhone: donorPhone.trim() || "", // Mobile number for SMS
-        }
+        donationData
       );
 
       if (response.data.success) {
