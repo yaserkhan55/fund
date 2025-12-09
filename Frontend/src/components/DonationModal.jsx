@@ -7,7 +7,7 @@ export default function DonationModal({ campaignId, onClose }) {
   const [amount, setAmount] = useState("");
   const [donorName, setDonorName] = useState("");
   const [donorEmail, setDonorEmail] = useState("");
-  const [donorPhone, setDonorPhone] = useState(""); // WhatsApp number
+  const [donorPhone, setDonorPhone] = useState(""); // Mobile number for SMS
   const [message, setMessage] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -59,7 +59,7 @@ export default function DonationModal({ campaignId, onClose }) {
           isAnonymous: isAnonymous || false,
           donorName: isAnonymous ? "" : (donorName.trim() || ""),
           donorEmail: donorEmail.trim() || "",
-          donorPhone: donorPhone.trim() || "", // WhatsApp number
+          donorPhone: donorPhone.trim() || "", // Mobile number for SMS
         }
       );
 
@@ -247,10 +247,10 @@ export default function DonationModal({ campaignId, onClose }) {
               </div>
             )}
 
-            {/* DONOR PHONE - WhatsApp (Optional) - Always visible */}
+            {/* DONOR PHONE - Mobile Number for SMS (Optional) - Always visible */}
             <div className="w-full">
               <label htmlFor="donorPhoneInput" className="block text-sm font-semibold text-[#003d3b] mb-2">
-                WhatsApp Number (Optional) 📱
+                Mobile Number (Optional) 📱
               </label>
               <input
                 id="donorPhoneInput"
@@ -260,14 +260,14 @@ export default function DonationModal({ campaignId, onClose }) {
                 style={{ display: "block", visibility: "visible", opacity: 1 }}
                 value={donorPhone}
                 onChange={(e) => setDonorPhone(e.target.value)}
-                placeholder="+917058733358 (with country code)"
+                placeholder="917058733358 or 9876543210"
                 disabled={isAnonymous}
                 autoComplete="tel"
               />
               <p className="text-xs text-gray-500 mt-1">
                 {isAnonymous 
-                  ? "WhatsApp notifications not available for anonymous donations"
-                  : "We'll send you a WhatsApp confirmation if provided"
+                  ? "SMS notifications not available for anonymous donations"
+                  : "We'll send you an SMS confirmation if provided"
                 }
               </p>
             </div>
