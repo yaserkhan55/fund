@@ -254,6 +254,7 @@ export const commitGuestDonation = async (req, res) => {
       isAnonymous: isAnonymous || false,
       donorName: donorName || (isAnonymous ? "Anonymous" : ""),
       donorEmail: donorEmail ? donorEmail.toLowerCase() : "",
+      donorPhone: donorPhone ? donorPhone.trim() : "", // Save phone number for SMS
       paymentStatus: "pending",
       paymentMethod: "commitment",
       // Fraud detection fields

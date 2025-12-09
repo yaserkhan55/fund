@@ -1358,6 +1358,44 @@ export const verifyPayment = async (req, res) => {
 
     await donation.save();
 
+    // Send SMS when admin verifies payment
+    if (donation.donorPhone && !donation.isAnonymous) {
+      try {
+        const { sendDonationThankYouSMS } = await import("../utils/fast2smsSender.js");
+        const phoneForSMS = donation.donorPhone.replace(/^\+/, '').trim();
+        const nameForSMS = donation.donorName && donation.donorName.trim() ? donation.donorName.trim() : "Donor";
+        
+        // Get campaign title
+        const Campaign = (await import("../models/Campaign.js")).default;
+        const campaign = await Campaign.findById(donation.campaignId);
+        const campaignTitle = campaign ? campaign.title : "Campaign";
+        
+        console.log(`📱 Admin verified payment! Sending confirmation SMS to: ${phoneForSMS}`);
+        console.log(`   Donation ID: ${donation._id}, Amount: ₹${donation.amount}`);
+        console.log(`   Name: ${nameForSMS}, Campaign: ${campaignTitle}`);
+        
+        const smsResult = await sendDonationThankYouSMS(phoneForSMS, nameForSMS, donation.amount, campaignTitle);
+        
+        if (smsResult.success) {
+          console.log(`✅ Payment confirmation SMS sent successfully to ${phoneForSMS}`);
+        } else if (smsResult.isLimitReached) {
+          console.log(`⚠️ SMS daily limit reached (10/day). Payment verified, SMS will be sent tomorrow.`);
+        } else {
+          console.log(`⚠️ Payment SMS failed: ${smsResult.error}`);
+        }
+      } catch (smsError) {
+        console.error("❌ Error sending payment confirmation SMS:", smsError);
+        console.error("❌ Error stack:", smsError.stack);
+        // Don't fail payment verification if SMS fails
+      }
+    } else {
+      if (!donation.donorPhone) {
+        console.log(`📱 SMS not sent: No phone number provided for donation ${donation._id}`);
+      } else if (donation.isAnonymous) {
+        console.log(`📱 SMS not sent: Anonymous donation ${donation._id}`);
+      }
+    }
+
     res.json({
       success: true,
       message: "Payment marked as verified",
