@@ -284,14 +284,14 @@ export default function CampaignDetails() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 animate-fadeInUp">
         <div className="grid lg:grid-cols-[3fr,2fr] gap-8">
           <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
-            <div className="relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+            <div className="relative w-full aspect-[4/3] lg:aspect-[3/2] overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
               <img
                 src={heroMedia}
                 alt={campaign.title}
-                className="w-full h-[300px] lg:h-[450px] object-cover transition-transform duration-500 hover:scale-105"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                 onError={(e) => (e.currentTarget.src = FALLBACK)}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
               <button
                 className="absolute bottom-6 right-6 px-6 py-3 bg-white/95 backdrop-blur-sm rounded-full shadow-xl text-sm font-bold text-[#003d3b] hover:bg-white transition-all duration-300 transform hover:scale-105 flex items-center gap-2 group"
                 onClick={() => setActiveTab("documents")}

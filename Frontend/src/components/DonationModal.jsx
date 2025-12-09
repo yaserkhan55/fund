@@ -248,7 +248,7 @@ export default function DonationModal({ campaignId, onClose }) {
             )}
 
             {/* DONOR PHONE - WhatsApp (Optional) - Always visible */}
-            <div className="mt-2">
+            <div className="w-full">
               <label htmlFor="donorPhoneInput" className="block text-sm font-semibold text-[#003d3b] mb-2">
                 WhatsApp Number (Optional) 📱
               </label>
@@ -257,6 +257,7 @@ export default function DonationModal({ campaignId, onClose }) {
                 type="tel"
                 name="donorPhone"
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[#00B5B8] focus:border-[#00B5B8] transition bg-white text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ display: "block", visibility: "visible", opacity: 1 }}
                 value={donorPhone}
                 onChange={(e) => setDonorPhone(e.target.value)}
                 placeholder="+917058733358 (with country code)"
