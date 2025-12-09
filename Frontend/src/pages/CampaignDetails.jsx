@@ -284,11 +284,12 @@ export default function CampaignDetails() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 animate-fadeInUp">
         <div className="grid lg:grid-cols-[3fr,2fr] gap-8">
           <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
-            <div className="relative w-full aspect-[4/3] lg:aspect-[3/2] overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+            <div className="relative w-full overflow-hidden" style={{ height: '500px' }}>
               <img
                 src={heroMedia}
                 alt={campaign.title}
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                style={{ objectFit: 'cover', objectPosition: 'center' }}
                 onError={(e) => (e.currentTarget.src = FALLBACK)}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
