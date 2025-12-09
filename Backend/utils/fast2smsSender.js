@@ -91,6 +91,12 @@ export const sendFast2SMS = async (recipientNumber, messageText) => {
       numbers: phone
     };
 
+    console.log(`📱 Fast2SMS API Request:`);
+    console.log(`   URL: ${FAST2SMS_API_URL}`);
+    console.log(`   Phone: ${phone} (original: ${recipientNumber})`);
+    console.log(`   Message length: ${truncatedMessage.length} chars`);
+    console.log(`   API Key present: ${FAST2SMS_API_KEY ? 'Yes' : 'No'}`);
+
     // Make API call
     const response = await fetch(FAST2SMS_API_URL, {
       method: 'POST',
@@ -101,7 +107,10 @@ export const sendFast2SMS = async (recipientNumber, messageText) => {
       body: JSON.stringify(requestBody)
     });
 
+    console.log(`📱 Fast2SMS API Response Status: ${response.status} ${response.statusText}`);
+    
     const result = await response.json();
+    console.log(`📱 Fast2SMS API Response:`, JSON.stringify(result, null, 2));
 
     // Check response
     if (result.return === true && result.request_id) {

@@ -1358,6 +1358,16 @@ export const verifyPayment = async (req, res) => {
 
     await donation.save();
 
+    // DEBUG: Log donation details to diagnose SMS issue
+    console.log(`📱 ========== SMS DEBUG INFO ==========`);
+    console.log(`📱 Donation ID: ${donation._id}`);
+    console.log(`📱 donorPhone: "${donation.donorPhone}" (type: ${typeof donation.donorPhone}, length: ${donation.donorPhone?.length || 0})`);
+    console.log(`📱 isAnonymous: ${donation.isAnonymous} (type: ${typeof donation.isAnonymous})`);
+    console.log(`📱 donorName: "${donation.donorName}"`);
+    console.log(`📱 donorEmail: "${donation.donorEmail}"`);
+    console.log(`📱 paymentStatus: ${donation.paymentStatus}`);
+    console.log(`📱 =====================================`);
+
     // Send SMS when admin verifies payment
     if (donation.donorPhone && !donation.isAnonymous) {
       try {

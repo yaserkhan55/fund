@@ -274,6 +274,14 @@ export const commitGuestDonation = async (req, res) => {
     // Generate unique receipt number before saving
     donation.generateReceiptNumber();
     await donation.save();
+    
+    // DEBUG: Log donation details to verify phone number is saved
+    console.log(`📱 ========== DONATION CREATED DEBUG ==========`);
+    console.log(`📱 Donation ID: ${donation._id}`);
+    console.log(`📱 donorPhone saved: "${donation.donorPhone}" (type: ${typeof donation.donorPhone}, length: ${donation.donorPhone?.length || 0})`);
+    console.log(`📱 isAnonymous: ${donation.isAnonymous}`);
+    console.log(`📱 donorName: "${donation.donorName}"`);
+    console.log(`📱 =============================================`);
 
     // Update campaign raised amount
     campaign.raisedAmount += Number(amount);
