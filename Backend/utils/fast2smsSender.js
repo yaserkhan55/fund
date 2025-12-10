@@ -2,53 +2,40 @@ import axios from "axios";
 
 export async function sendFast2SMS(recipientNumber, message) {
   try {
-    const apiKey = process.env.FAST2SMS_API_KEY;
+    const API_KEY = process.env.FAST2SMS_API_KEY;
 
-    const payload = {
-      route: "v3",
-      sender_id: "TXTIND",
+    const params = {
+      authorization: API_KEY,
+      route: "q",
       message: message,
-      language: "english",
-      numbers: recipientNumber.toString()
+      numbers: recipientNumber.toString(),
+      flash: "0"
     };
 
-    const response = await axios.post(
-      "https://www.fast2sms.com/dev/wrapper/sendSMS",
-      payload,
-      {
-        headers: {
-          "authorization": apiKey,
-          "x-api-key": apiKey,
-          "Content-Type": "application/json",
-        }
-      }
+    const response = await axios.get(
+      "https://www.fast2sms.com/dev/bulkV2",
+      { params }
     );
 
     return { success: true, data: response.data };
 
   } catch (error) {
-    return { success: false, error: error.response?.data || error.message };
+    return {
+      success: false,
+      error: error.response?.data || error.message
+    };
   }
 }
 
-// =========================
-// TEMPLATE SMS FUNCTIONS
-// =========================
-
-// Thank You SMS
-export async function sendDonationThankYouSMS(recipientNumber, donorName, amount, campaignTitle) {
-  const msg = `Thank you ${donorName || ""} for donating ₹${amount} to "${campaignTitle}". We appreciate your support!`;
-  return sendFast2SMS(recipientNumber, msg);
+// Template SMS
+export async function sendDonationThankYouSMS(number, donorName, amount, title) {
+  return sendFast2SMS(number, `Thanks ${donorName || ""} for donating ₹${amount} to "${title}".`);
 }
 
-// Campaign Created
-export async function sendCampaignCreatedSMS(recipientNumber, campaignTitle) {
-  const msg = `Your campaign "${campaignTitle}" has been created successfully. Awaiting admin approval.`;
-  return sendFast2SMS(recipientNumber, msg);
+export async function sendCampaignCreatedSMS(number, title) {
+  return sendFast2SMS(number, `Your campaign "${title}" is created and awaiting approval.`);
 }
 
-// Campaign Approved
-export async function sendCampaignApprovedSMS(recipientNumber, campaignTitle) {
-  const msg = `Good news! Your campaign "${campaignTitle}" has been approved and is now live.`;
-  return sendFast2SMS(recipientNumber, msg);
+export async function sendCampaignApprovedSMS(number, title) {
+  return sendFast2SMS(number, `Your campaign "${title}" is approved and now live.`);
 }
