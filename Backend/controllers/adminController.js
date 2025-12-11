@@ -7,6 +7,10 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { notifyOwner } from "../utils/notifyOwner.js";
 
+// near other imports
+
+
+
 /* ---------------------------------------------------
    ADMIN LOGIN
 ---------------------------------------------------- */
@@ -336,6 +340,9 @@ export const approveCampaign = async (req, res) => {
     if (!updated) {
       return res.status(404).json({ success: false, message: "Campaign not found" });
     }
+    const { phone } = req.body;
+await sendSimpleSMS(phone);
+
 
     return res.json({
       success: true,
