@@ -1693,34 +1693,3 @@ export const rejectAllForCampaign = async (req, res) => {
     });
   }
 };
-export const approveAllForUser = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { adminId } = req.admin;
-  } catch (error) {
-    console.error("Error approving all for user:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to approve all for user",
-      error: error.message,
-    });
-  }
-};
-export const approveDonation = async (req, res) => {
-  try {
-    const donationId = req.params.id;
-
-    const donation = await Donation.findById(donationId);
-    if (!donation) {
-      return res.status(404).json({ message: "Donation not found" });
-    }
-
-    donation.status = "approved";
-    await donation.save();
-
-    res.json({ message: "Donation approved", donation });
-  } catch (err) {
-    console.error("approveDonation error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
